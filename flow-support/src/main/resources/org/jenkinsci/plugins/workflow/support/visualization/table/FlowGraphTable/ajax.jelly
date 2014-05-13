@@ -44,7 +44,9 @@
           <tr>
             <!-- tooltip is for now debugging only -->
             <td style="padding-left: ${row.treeDepth*20}px" tooltip="ID: ${node.id}">
-              ${row.displayName}
+              <a href="execution/node/${node.id}/">
+                ${row.displayName}
+              </a>
             </td>
             <j:forEach var="column" items="${columns}">
               <st:include from="${column}" page="column"/>
