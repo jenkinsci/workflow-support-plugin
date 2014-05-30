@@ -22,11 +22,8 @@
  * THE SOFTWARE.
  */
 
-package org.jenkinsci.plugins.workflow.test.steps;
+package org.jenkinsci.plugins.workflow.steps;
 
-import org.jenkinsci.plugins.workflow.steps.Step;
-import org.jenkinsci.plugins.workflow.steps.StepContext;
-import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import com.google.common.util.concurrent.FutureCallback;
 import hudson.Extension;
 import hudson.model.TaskListener;
