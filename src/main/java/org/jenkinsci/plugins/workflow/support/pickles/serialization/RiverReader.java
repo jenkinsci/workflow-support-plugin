@@ -121,7 +121,7 @@ public class RiverReader implements Closeable {
 
         // load the pickle stream
         List<Pickle> pickles = readPickles(offset);
-        final PickleResolver evr = new PickleResolver(pickles);
+        final PickleResolver evr = new PickleResolver(pickles, owner);
 
         // prepare the unmarshaller to load the main stream, by using yet-fulfilled PickleResolver
         MarshallingConfiguration config = new MarshallingConfiguration();

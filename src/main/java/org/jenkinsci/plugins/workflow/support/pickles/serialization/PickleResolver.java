@@ -32,6 +32,7 @@ import org.jboss.marshalling.ObjectResolver;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 
 /**
  * {@link ObjectResolver} that resolves {@link DryCapsule} to unpickled objects.
@@ -49,8 +50,16 @@ public class PickleResolver implements ObjectResolver {
      */
     private List<Object> values;
 
+    private final FlowExecutionOwner owner;
+
+    @Deprecated
     public PickleResolver(List<? extends Pickle> pickles) {
+        this(pickles, FlowExecutionOwner.dummyOwner());
+    }
+
+    public PickleResolver(List<? extends Pickle> pickles, FlowExecutionOwner owner) {
         this.pickles = pickles;
+        this.owner = owner;
     }
 
     public Object get(int id) {
@@ -67,7 +76,7 @@ public class PickleResolver implements ObjectResolver {
             // TODO log("rehydrating " + r);
             ListenableFuture<?> future;
             try {
-                future = r.rehydrate();
+                future = r.rehydrate(owner);
             } catch (RuntimeException x) {
                 future = Futures.immediateFailedFuture(x);
             }

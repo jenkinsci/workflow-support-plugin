@@ -26,11 +26,17 @@ package org.jenkinsci.plugins.workflow.support.pickles;
 
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.ListenableFuture;
+import hudson.model.TaskListener;
+import java.io.IOException;
 import jenkins.util.Timer;
 
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 
 /**
  * {@link ListenableFuture} that promises a value that needs to be periodically tried.
@@ -38,6 +44,9 @@ import javax.annotation.CheckForNull;
  * @author Kohsuke Kawaguchi
  */
 public abstract class TryRepeatedly<V> extends AbstractFuture<V> {
+
+    private static final Logger LOGGER = Logger.getLogger(TryRepeatedly.class.getName());
+
     private final int delay;
     private ScheduledFuture<?> next;
 
@@ -50,6 +59,14 @@ public abstract class TryRepeatedly<V> extends AbstractFuture<V> {
         tryLater(initialDelay);
     }
 
+    protected @Nonnull FlowExecutionOwner getOwner() {
+        return FlowExecutionOwner.dummyOwner();
+    }
+
+    protected void printWaitingMessage(@Nonnull TaskListener listener) {
+        listener.getLogger().println("Still trying to load " + this);
+    }
+
     private void tryLater(int currentDelay) {
         // TODO log a warning if trying for too long; probably Pickle.rehydrate should be given a TaskListener to note progress
 
@@ -60,10 +77,17 @@ public abstract class TryRepeatedly<V> extends AbstractFuture<V> {
             public void run() {
                 try {
                     V v = tryResolve();
-                    if (v == null)
+                    if (v == null) {
+                        try {
+                            // TODO do not print a message every second; back off exponentially
+                            printWaitingMessage(getOwner().getListener());
+                        } catch (IOException x) {
+                            LOGGER.log(Level.WARNING, null, x);
+                        }
                         tryLater(delay);
-                    else
+                    } else {
                         set(v);
+                    }
                 } catch (Throwable t) {
                     setException(t);
                 }
