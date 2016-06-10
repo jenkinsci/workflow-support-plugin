@@ -31,6 +31,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.jboss.marshalling.ObjectResolver;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 
@@ -66,7 +67,12 @@ public class PickleResolver implements ObjectResolver {
         return values.get(id);
     }
 
+    @Deprecated
     public ListenableFuture<PickleResolver> rehydrate() {
+        return rehydrate(new ArrayList<ListenableFuture<?>>());
+    }
+
+    public ListenableFuture<PickleResolver> rehydrate(Collection<ListenableFuture<?>> pickleFutures) {
         // if there's nothing to rehydrate, we are done
         if (pickles.isEmpty())
             return Futures.immediateFuture(this);
@@ -80,6 +86,7 @@ public class PickleResolver implements ObjectResolver {
             } catch (RuntimeException x) {
                 future = Futures.immediateFailedFuture(x);
             }
+            pickleFutures.add(future);
             members.add(Futures.transform(future, new Function<Object,Object>() {
                 @Override public Object apply(Object input) {
                     // TODO log("rehydrated to " + input);
