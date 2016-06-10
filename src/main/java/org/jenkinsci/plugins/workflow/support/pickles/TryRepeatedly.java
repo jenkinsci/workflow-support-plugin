@@ -114,8 +114,10 @@ public abstract class TryRepeatedly<V> extends AbstractFuture<V> {
 
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
-        if (next!=null)
+        if (next != null) {
             next.cancel(mayInterruptIfRunning);
+        }
+        LOGGER.fine("cancelling " + this + " in " + getOwner());
         return super.cancel(mayInterruptIfRunning);
     }
 
