@@ -117,7 +117,7 @@ public abstract class TryRepeatedly<V> extends AbstractFuture<V> {
         if (next != null) {
             next.cancel(mayInterruptIfRunning);
         }
-        LOGGER.fine("cancelling " + this + " in " + getOwner());
+        LOGGER.log(Level.FINE, "Cancelling {0} in {1}", new Object[] {this, getOwner()});
         return super.cancel(mayInterruptIfRunning);
     }
 
