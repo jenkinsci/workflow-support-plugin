@@ -45,6 +45,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -106,6 +108,11 @@ public class RiverReader implements Closeable {
         return din.readInt();
     }
 
+    @Deprecated
+    public ListenableFuture<Unmarshaller> restorePickles() throws IOException {
+        return restorePickles(new ArrayList<ListenableFuture<?>>());
+    }
+
     /**
      * Step 1. Start unmarshalling pickles in the persisted stream,
      * and return the future that will signal when that is all complete.
@@ -113,7 +120,7 @@ public class RiverReader implements Closeable {
      * Once the pickles are restored, the future yields {@link Unmarshaller}
      * that can be then used to load the objects persisted by {@link RiverWriter}.
      */
-    public ListenableFuture<Unmarshaller> restorePickles() throws IOException {
+    public ListenableFuture<Unmarshaller> restorePickles(Collection<ListenableFuture<?>> pickleFutures) throws IOException {
         in = openStreamAt(0);
         try {
         DataInputStream din = new DataInputStream(in);
@@ -121,7 +128,7 @@ public class RiverReader implements Closeable {
 
         // load the pickle stream
         List<Pickle> pickles = readPickles(offset);
-        final PickleResolver evr = new PickleResolver(pickles);
+        final PickleResolver evr = new PickleResolver(pickles, owner);
 
         // prepare the unmarshaller to load the main stream, by using yet-fulfilled PickleResolver
         MarshallingConfiguration config = new MarshallingConfiguration();
@@ -132,7 +139,7 @@ public class RiverReader implements Closeable {
         eu.start(Marshalling.createByteInput(din));
 
         // start rehydrating, and when done make the unmarshaller available
-        return Futures.transform(evr.rehydrate(), new Function<PickleResolver, Unmarshaller>() {
+        return Futures.transform(evr.rehydrate(pickleFutures), new Function<PickleResolver, Unmarshaller>() {
             public Unmarshaller apply(PickleResolver input) {
                 return eu;
             }

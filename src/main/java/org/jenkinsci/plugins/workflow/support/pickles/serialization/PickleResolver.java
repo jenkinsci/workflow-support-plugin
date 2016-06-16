@@ -31,7 +31,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.jboss.marshalling.ObjectResolver;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 
 /**
  * {@link ObjectResolver} that resolves {@link DryCapsule} to unpickled objects.
@@ -49,15 +51,28 @@ public class PickleResolver implements ObjectResolver {
      */
     private List<Object> values;
 
+    private final FlowExecutionOwner owner;
+
+    @Deprecated
     public PickleResolver(List<? extends Pickle> pickles) {
+        this(pickles, FlowExecutionOwner.dummyOwner());
+    }
+
+    public PickleResolver(List<? extends Pickle> pickles, FlowExecutionOwner owner) {
         this.pickles = pickles;
+        this.owner = owner;
     }
 
     public Object get(int id) {
         return values.get(id);
     }
 
+    @Deprecated
     public ListenableFuture<PickleResolver> rehydrate() {
+        return rehydrate(new ArrayList<ListenableFuture<?>>());
+    }
+
+    public ListenableFuture<PickleResolver> rehydrate(Collection<ListenableFuture<?>> pickleFutures) {
         // if there's nothing to rehydrate, we are done
         if (pickles.isEmpty())
             return Futures.immediateFuture(this);
@@ -67,10 +82,11 @@ public class PickleResolver implements ObjectResolver {
             // TODO log("rehydrating " + r);
             ListenableFuture<?> future;
             try {
-                future = r.rehydrate();
+                future = r.rehydrate(owner);
             } catch (RuntimeException x) {
                 future = Futures.immediateFailedFuture(x);
             }
+            pickleFutures.add(future);
             members.add(Futures.transform(future, new Function<Object,Object>() {
                 @Override public Object apply(Object input) {
                     // TODO log("rehydrated to " + input);
