@@ -148,7 +148,7 @@ public class RunWrapperTest {
             }
         });
     }
-    // TODO why is this not in Hamcrest to begin with?
+    // Like org.hamcrest.text.MatchesPattern.matchesPattern(String) but doing a substring, not whole-string, match:
     private static Matcher<String> containsRegexp(final String rx) {
         return new SubstringMatcher(rx) {
             @Override protected boolean evalSubstringOf(String string) {
