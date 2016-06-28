@@ -28,10 +28,12 @@ import hudson.AbortException;
 import hudson.model.AbstractBuild;
 import hudson.model.Result;
 import hudson.model.Run;
+import hudson.scm.ChangeLogSet;
 import hudson.security.ACL;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -175,6 +177,16 @@ public final class RunWrapper implements Serializable {
     @Whitelisted
     public @Nonnull String getAbsoluteUrl() throws AbortException {
         return build().getAbsoluteUrl();
+    }
+
+    @Whitelisted
+    public List<ChangeLogSet<? extends ChangeLogSet.Entry>> getChangeSets() throws Exception {
+        Run<?,?> build = build();
+        try { // TODO JENKINS-24141 should not need to use reflection here
+            return (List) build.getClass().getMethod("getChangeSets").invoke(build);
+        } catch (NoSuchMethodException x) {
+            return Collections.emptyList();
+        }
     }
 
 }
