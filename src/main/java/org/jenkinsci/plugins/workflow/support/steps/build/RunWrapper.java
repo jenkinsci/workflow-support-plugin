@@ -130,6 +130,11 @@ public final class RunWrapper implements Serializable {
     }
 
     @Whitelisted
+    public long getDuration() throws AbortException {
+	 return build().getDuration();
+    }
+
+    @Whitelisted
     public String getDescription() throws AbortException {
         return build().getDescription();
     }
@@ -138,7 +143,7 @@ public final class RunWrapper implements Serializable {
     public String getDisplayName() throws AbortException {
         return build().getDisplayName();
     }
-
+    
     @Whitelisted
     public @CheckForNull RunWrapper getPreviousBuild() throws AbortException {
         Run<?,?> previousBuild = build().getPreviousBuild();
