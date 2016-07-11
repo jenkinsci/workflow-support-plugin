@@ -25,6 +25,10 @@
 package org.jenkinsci.plugins.workflow.support.steps.build;
 
 import hudson.model.Result;
+import java.util.regex.Pattern;
+import jenkins.plugins.git.GitSampleRepoRule;
+import org.hamcrest.Matcher;
+import org.hamcrest.core.SubstringMatcher;
 import org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -37,6 +41,7 @@ import org.junit.Rule;
 import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
 
 @Issue("JENKINS-26834")
@@ -44,6 +49,8 @@ public class RunWrapperTest {
 
     @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
     @Rule public RestartableJenkinsRule r = new RestartableJenkinsRule();
+    @Rule public GitSampleRepoRule sampleRepo1 = new GitSampleRepoRule();
+    @Rule public GitSampleRepoRule sampleRepo2 = new GitSampleRepoRule();
 
     @Test public void historyAndPickling() {
         r.addStep(new Statement() {
@@ -97,6 +104,60 @@ public class RunWrapperTest {
                 assertEquals("special", b1.getDisplayName());
             }
         });
+    }
+
+    @Issue("JENKINS-30412")
+    @Test public void getChangeSets() {
+        r.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                sampleRepo1.init();
+                sampleRepo2.init();
+                WorkflowJob p = r.j.jenkins.createProject(WorkflowJob.class, "p");
+                p.setDefinition(new CpsFlowDefinition(
+                    "node {dir('1') {git($/" + sampleRepo1 + "/$)}; dir('2') {git($/" + sampleRepo2 + "/$)}}\n" +
+                    "echo(/changeSets: ${summarize currentBuild}/)\n" +
+                    "@NonCPS def summarize(b) {\n" +
+                    "  b.changeSets.collect {cs ->\n" +
+                    "    /kind=${cs.kind}; entries=/ + cs.collect {entry ->\n" +
+                    "      /${entry.commitId} by ${entry.author.id} ~ ${entry.author.fullName} on ${new Date(entry.timestamp)}: ${entry.msg}: / + entry.affectedFiles.collect {file ->\n" +
+                    "        /${file.editType.name} ${file.path}/\n" +
+                    "      }.join('; ')\n" +
+                    "    }.join(', ')\n" +
+                    "  }.join(' & ')\n" +
+                    "}", true));
+                r.j.assertLogContains("changeSets: ", r.j.assertBuildStatusSuccess(p.scheduleBuild2(0)));
+                sampleRepo1.write("onefile", "stuff");
+                sampleRepo1.git("add", "onefile");
+                sampleRepo1.git("commit", "--message=stuff");
+                assertThat(JenkinsRule.getLog(r.j.assertBuildStatusSuccess(p.scheduleBuild2(0))), containsRegexp(
+                    "changeSets: kind=git; entries=[a-f0-9]{40} by .+ ~ .+ on .+: stuff: add onefile"));
+                sampleRepo1.write("onefile", "more stuff");
+                sampleRepo1.write("anotherfile", "stuff");
+                sampleRepo1.git("add", "onefile", "anotherfile");
+                sampleRepo1.git("commit", "--message=more stuff");
+                sampleRepo1.write("onefile", "amended");
+                sampleRepo1.git("add", "onefile");
+                sampleRepo1.git("commit", "--message=amended");
+                sampleRepo2.write("elsewhere", "stuff");
+                sampleRepo2.git("add", "elsewhere");
+                sampleRepo2.git("commit", "--message=second repo");
+                assertThat(JenkinsRule.getLog(r.j.assertBuildStatusSuccess(p.scheduleBuild2(0))), containsRegexp(
+                    "changeSets: kind=git; entries=[a-f0-9]{40} by .+ ~ .+ on .+: more stuff: (edit onefile; add anotherfile|add anotherfile; edit onefile), " +
+                    "[a-f0-9]{40} by .+ ~ .+ on .+: amended: edit onefile & " +
+                    "kind=git; entries=[a-f0-9]{40} by .+ ~ .+ on .+: second repo: add elsewhere"));
+            }
+        });
+    }
+    // Like org.hamcrest.text.MatchesPattern.matchesPattern(String) but doing a substring, not whole-string, match:
+    private static Matcher<String> containsRegexp(final String rx) {
+        return new SubstringMatcher(rx) {
+            @Override protected boolean evalSubstringOf(String string) {
+                return Pattern.compile(rx).matcher(string).find();
+            }
+            @Override protected String relationship() {
+                return "containing the regexp";
+            }
+        };
     }
 
 }
