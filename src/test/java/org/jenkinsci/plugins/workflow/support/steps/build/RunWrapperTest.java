@@ -42,6 +42,7 @@ import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.MockFolder;
 import org.jvnet.hudson.test.RestartableJenkinsRule;
 
 @Issue("JENKINS-26834")
@@ -148,6 +149,25 @@ public class RunWrapperTest {
             }
         });
     }
+
+    @Issue("JENKINS-37366")
+    @Test public void projectInfoFromCurrentBuild() {
+        r.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                MockFolder folder = r.j.createFolder("this-folder");
+                WorkflowJob p = folder.createProject(WorkflowJob.class, "this-job");
+                p.setDefinition(new CpsFlowDefinition(
+                        "echo \"currentBuild.fullDisplayName='${currentBuild.fullDisplayName}'\"\n" +
+                        "echo \"currentBuild.projectName='${currentBuild.projectName}'\"\n" +
+                        "echo \"currentBuild.fullProjectName='${currentBuild.fullProjectName}'\"\n", true));
+                WorkflowRun b = r.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+                r.j.assertLogContains("currentBuild.fullDisplayName='this-folder » this-job #1'", b);
+                r.j.assertLogContains("currentBuild.projectName='this-job'", b);
+                r.j.assertLogContains("currentBuild.fullProjectName='this-folder/this-job'", b);
+            }
+        });
+    }
+
     // Like org.hamcrest.text.MatchesPattern.matchesPattern(String) but doing a substring, not whole-string, match:
     private static Matcher<String> containsRegexp(final String rx) {
         return new SubstringMatcher(rx) {

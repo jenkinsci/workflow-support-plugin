@@ -145,7 +145,22 @@ public final class RunWrapper implements Serializable {
     public String getDisplayName() throws AbortException {
         return build().getDisplayName();
     }
-    
+
+    @Whitelisted
+    public String getFullDisplayName() throws AbortException {
+        return build().getFullDisplayName();
+    }
+
+    @Whitelisted
+    public String getProjectName() throws AbortException {
+        return build().getParent().getName();
+    }
+
+    @Whitelisted
+    public String getFullProjectName() throws AbortException {
+        return build().getParent().getFullName();
+    }
+
     @Whitelisted
     public @CheckForNull RunWrapper getPreviousBuild() throws AbortException {
         Run<?,?> previousBuild = build().getPreviousBuild();
