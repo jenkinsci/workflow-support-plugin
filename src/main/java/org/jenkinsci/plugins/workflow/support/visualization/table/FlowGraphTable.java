@@ -212,14 +212,14 @@ public class FlowGraphTable {
             }
         }
 
-        for (int i=0; i<rows.size()-1; i++) {
+        for (int i=0; i<rows.size(); i++) {
             Row newRow = rows.get(i);
             if (newRow.durationMillis == 0 && newRow.hasStartTime) {
                 if (newRow.node instanceof BlockStartNode && newRow.endNode == null) { // Block is running & incomplete
                     newRow.durationMillis = System.currentTimeMillis()-newRow.startTimeMillis;
                 } else {
-                    Row nextRow = rows.get(i+1);
-                    if (nextRow.hasStartTime) {
+                    Row nextRow = newRow.firstGraphChild;
+                    if (newRow != null && nextRow.hasStartTime) {
                         newRow.durationMillis = nextRow.startTimeMillis-newRow.startTimeMillis;
                     }
                 }
@@ -299,7 +299,7 @@ public class FlowGraphTable {
             }
         }
 
-        boolean isStart() {
+        public boolean isStart() {
             return node instanceof BlockStartNode;
         }
 
@@ -312,9 +312,9 @@ public class FlowGraphTable {
         }
 
         void addGraphChild(Row r) {
-            if (firstGraphChild ==null)
+            if (firstGraphChild ==null) {
                 firstGraphChild = r;
-            else {
+            } else {
                 firstGraphChild.addGraphSibling(r);
             }
         }
