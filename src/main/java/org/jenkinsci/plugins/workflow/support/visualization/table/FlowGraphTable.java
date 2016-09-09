@@ -219,7 +219,7 @@ public class FlowGraphTable {
                     newRow.durationMillis = System.currentTimeMillis()-newRow.startTimeMillis;
                 } else {
                     Row nextRow = newRow.firstGraphChild;
-                    if (newRow != null && nextRow.hasStartTime) {
+                    if (nextRow.hasStartTime) {
                         newRow.durationMillis = nextRow.startTimeMillis-newRow.startTimeMillis;
                     }
                 }
