@@ -1,11 +1,13 @@
 package org.jenkinsci.plugins.workflow.support.visualization.table;
 
+import hudson.Util;
+import org.jenkinsci.plugins.workflow.actions.TimingAction;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.graph.BlockEndNode;
 import org.jenkinsci.plugins.workflow.graph.BlockStartNode;
-import org.jenkinsci.plugins.workflow.graph.FlowGraphWalker;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.actions.NotExecutedNodeAction;
+import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
 import org.jenkinsci.plugins.workflow.visualization.table.FlowNodeViewColumn;
 import org.jenkinsci.plugins.workflow.visualization.table.FlowNodeViewColumnDescriptor;
 
@@ -67,13 +69,13 @@ public class FlowGraphTable {
      */
     private Map<FlowNode, Row> createAllRows() {
         heads = execution.getCurrentHeads();
-        FlowGraphWalker walker = new FlowGraphWalker();
-        walker.addHeads(heads);
+        final DepthFirstScanner scanner = new DepthFirstScanner();
+        scanner.setup(heads);
 
         // nodes that we've visited
-        Map<FlowNode,Row> rows = new LinkedHashMap<FlowNode, Row>();
+        final Map<FlowNode,Row> rows = new LinkedHashMap<FlowNode, Row>();
 
-        for (FlowNode n : walker) {
+        for (FlowNode n : scanner) {
             Row row = new Row(n);
             rows.put(n, row);
         }
@@ -104,6 +106,10 @@ public class FlowGraphTable {
             if (r.isEnd()) {
                 BlockEndNode en = (BlockEndNode) r.node;
                 Row sr = rows.get(en.getStartNode());
+
+                if (r.hasStartTime && sr.hasStartTime) {  // Block timing is based on the start-to-end times
+                    sr.durationMillis = (r.startTimeMillis-sr.startTimeMillis);
+                }
 
                 assert sr.endNode==null : "start/end mapping should be 1:1";
                 sr.endNode = en;
@@ -204,11 +210,28 @@ public class FlowGraphTable {
             }
         }
 
+        for (int i=0; i<rows.size(); i++) {
+            Row newRow = rows.get(i);
+            if (newRow.durationMillis == 0 && newRow.hasStartTime) {
+                if (newRow.node instanceof BlockStartNode && newRow.endNode == null) { // Block is running & incomplete
+                    newRow.durationMillis = System.currentTimeMillis()-newRow.startTimeMillis;
+                } else {
+                    Row nextRow = newRow.firstGraphChild;
+                    if (nextRow.hasStartTime) {
+                        newRow.durationMillis = nextRow.startTimeMillis-newRow.startTimeMillis;
+                    }
+                }
+            }
+        }
+
         return rows;
     }
 
     public static class Row {
         private final FlowNode node;
+        private long durationMillis = 0L;
+        private final long startTimeMillis;
+        private final boolean hasStartTime;
 
         /**
          * We collapse {@link BlockStartNode} and {@link BlockEndNode} into one row.
@@ -229,6 +252,17 @@ public class FlowGraphTable {
 
         private Row(FlowNode node) {
             this.node = node;
+            TimingAction act = node.getAction(TimingAction.class);
+            if (act != null) {
+                this.startTimeMillis = act.getStartTime();
+                this.hasStartTime = true;
+                if (node.isRunning()) {
+                    this.durationMillis=System.currentTimeMillis()-this.startTimeMillis;
+                }
+            } else {
+                this.startTimeMillis = 0L;
+                this.hasStartTime = false;
+            }
         }
 
         public FlowNode getNode() {
@@ -243,7 +277,27 @@ public class FlowGraphTable {
             return node.getDisplayName();
         }
 
-        boolean isStart() {
+        public boolean isHasStartTime() {
+            return hasStartTime;
+        }
+
+        public long getStartTimeMillis() {
+            return this.startTimeMillis;
+        }
+
+        public long getDurationMillis() {
+            return this.durationMillis;
+        }
+
+        public String getDurationString() {
+            if (this.durationMillis == 0) {
+                return "";
+            } else {
+                return Util.getTimeSpanString(this.durationMillis);
+            }
+        }
+
+        public boolean isStart() {
             return node instanceof BlockStartNode;
         }
 
@@ -256,18 +310,23 @@ public class FlowGraphTable {
         }
 
         void addGraphChild(Row r) {
-            if (firstGraphChild ==null)
+            if (firstGraphChild ==null) {
                 firstGraphChild = r;
-            else {
+            } else {
                 firstGraphChild.addGraphSibling(r);
             }
         }
 
         void addGraphSibling(Row r) {
             Row s = this;
-            while (s.nextGraphSibling !=null)
+            while (s.nextGraphSibling !=null) {
                 s = s.nextGraphSibling;
+            }
             s.nextGraphSibling = r;
+
+            if (s.hasStartTime && r.hasStartTime) {
+                s.durationMillis = (r.startTimeMillis-s.startTimeMillis);
+            }
         }
 
         void addTreeChild(Row r) {
@@ -284,9 +343,14 @@ public class FlowGraphTable {
             if (r.isEnd())  return;
 
             Row s = this;
-            while (s.nextTreeSibling !=null)
+            while (s.nextTreeSibling !=null) {
                 s = s.nextTreeSibling;
+            }
             s.nextTreeSibling = r;
+
+            if (s.hasStartTime && r.hasStartTime) { // Store timing
+                s.durationMillis = (r.startTimeMillis-s.startTimeMillis);
+            }
         }
     }
 }
