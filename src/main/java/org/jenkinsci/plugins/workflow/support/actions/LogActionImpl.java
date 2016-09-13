@@ -25,19 +25,28 @@
 package org.jenkinsci.plugins.workflow.support.actions;
 
 import com.google.common.base.Charsets;
-import org.apache.commons.jelly.XMLOutput;
-import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
-import org.jenkinsci.plugins.workflow.graph.FlowNode;
-import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
-import org.jenkinsci.plugins.workflow.actions.LogAction;
 import hudson.console.AnnotatedLargeText;
-import org.kohsuke.stapler.framework.io.ByteBuffer;
-
+import hudson.console.ConsoleLogFilter;
+import hudson.model.AbstractBuild;
+import hudson.model.TaskListener;
+import hudson.util.StreamTaskListener;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import org.apache.commons.jelly.XMLOutput;
+import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
+import org.jenkinsci.plugins.workflow.actions.LogAction;
+import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
+import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
+import org.kohsuke.stapler.framework.io.ByteBuffer;
 
 /**
  * {@link LogAction} implementation that stores per-node log file under {@link FlowExecutionOwner#getRootDir()}.
@@ -45,11 +54,33 @@ import java.nio.charset.Charset;
  * @author Kohsuke Kawaguchi
  */
 public class LogActionImpl extends LogAction implements FlowNodeAction {
+
+    /**
+     * Get or create the streaming log handle for a given flow node.
+     * @param node the node
+     * @param filter
+     * @return a listener
+     */
+    public static @Nonnull TaskListener stream(@Nonnull FlowNode node, @CheckForNull ConsoleLogFilter filter) throws IOException, InterruptedException {
+        LogActionImpl la = node.getAction(LogActionImpl.class);
+        if (la == null) {
+            // TODO: use UTF-8
+            la = new LogActionImpl(node, Charset.defaultCharset());
+            node.addAction(la);
+        }
+        OutputStream os = new FileOutputStream(la.getLogFile(), true);
+        if (filter != null) {
+            os = filter.decorateLogger((AbstractBuild) null, os);
+        }
+        StreamTaskListener result = new StreamTaskListener(os);
+        return result;
+    }
+
     private transient FlowNode parent;
     private transient volatile File log;
     private String charset;
 
-    public LogActionImpl(FlowNode parent, Charset charset) {
+    private LogActionImpl(FlowNode parent, Charset charset) {
         if (!parent.isRunning()) {
             throw new IllegalStateException("cannot start writing logs to a finished node " + parent);
         }
@@ -57,6 +88,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
         this.charset = charset.name();
     }
 
+    @Restricted(DoNotUse.class) // Jelly
     public FlowNode getParent() {
         return parent;
     }
@@ -87,7 +119,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
     /**
      * The actual log file.
      */
-    public File getLogFile() throws IOException {
+    private File getLogFile() throws IOException {
         if (log==null)
             log = new File(parent.getExecution().getOwner().getRootDir(), parent.getId() + ".log");
         return log;
@@ -96,6 +128,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
     /**
      * Used from <tt>console.jelly</tt> to write annotated log to the given output.
      */
+    @Restricted(DoNotUse.class) // Jelly
     public void writeLogTo(long offset, XMLOutput out) throws IOException {
         AnnotatedLargeText l = getLogText();
         if (l!=null)
@@ -107,7 +140,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
         this.parent = parent;
     }
 
-    public Charset getCharset() {
+    private Charset getCharset() {
         if(charset==null)   return Charset.defaultCharset();    // just being defensive
         return Charset.forName(charset);
     }
