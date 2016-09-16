@@ -56,7 +56,6 @@ public class RunWrapperTest {
     @Test public void historyAndPickling() {
         r.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {
-                ScriptApproval.get().approveSignature("staticMethod org.codehaus.groovy.runtime.ScriptBytecodeAdapter compareNotEqual java.lang.Object java.lang.Object"); // TODO JENKINS-27390
                 WorkflowJob p = r.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition(
                     "def b0 = currentBuild\n" +
@@ -88,7 +87,6 @@ public class RunWrapperTest {
     @Test public void updateSelf() {
         r.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {
-                ScriptApproval.get().approveSignature("staticMethod org.codehaus.groovy.runtime.ScriptBytecodeAdapter compareNotEqual java.lang.Object java.lang.Object"); // TODO JENKINS-27390
                 WorkflowJob p = r.j.jenkins.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition(
                     "currentBuild.result = 'UNSTABLE'\n" +
