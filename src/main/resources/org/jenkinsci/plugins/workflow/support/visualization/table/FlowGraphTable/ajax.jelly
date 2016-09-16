@@ -48,9 +48,7 @@
             <j:set var="timeType" value="${row.isStart() ? 'in block' : 'in self'}"></j:set>
             <td style="padding-left: ${row.treeDepth*20+5}px" tooltip="ID: ${node.id}${exec_state}">
               <a href="${rootURL}/${node.url}">
-                ${row.displayName}
-                <j:if test="${row.durationMillis > 0}"> - (${row.durationString} ${timeType})
-                </j:if>
+                ${row.displayName} - (${row.durationString} ${timeType})
               </a>
             </td>
             <j:forEach var="column" items="${columns}">

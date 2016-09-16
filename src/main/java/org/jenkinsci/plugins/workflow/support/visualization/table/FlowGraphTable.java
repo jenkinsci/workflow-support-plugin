@@ -109,6 +109,7 @@ public class FlowGraphTable {
 
                 if (r.hasStartTime && sr.hasStartTime) {  // Block timing is based on the start-to-end times
                     sr.durationMillis = (r.startTimeMillis-sr.startTimeMillis);
+                    sr.hasTiming = true;
                 }
 
                 assert sr.endNode==null : "start/end mapping should be 1:1";
@@ -215,10 +216,12 @@ public class FlowGraphTable {
             if (newRow.durationMillis == 0 && newRow.hasStartTime) {
                 if (newRow.node instanceof BlockStartNode && newRow.endNode == null) { // Block is running & incomplete
                     newRow.durationMillis = System.currentTimeMillis()-newRow.startTimeMillis;
+                    newRow.hasTiming = true;
                 } else {
                     Row nextRow = newRow.firstGraphChild;
                     if (nextRow.hasStartTime) {
                         newRow.durationMillis = nextRow.startTimeMillis-newRow.startTimeMillis;
+                        newRow.hasTiming = true;
                     }
                 }
             }
@@ -232,6 +235,7 @@ public class FlowGraphTable {
         private long durationMillis = 0L;
         private final long startTimeMillis;
         private final boolean hasStartTime;
+        private boolean hasTiming = false;
 
         /**
          * We collapse {@link BlockStartNode} and {@link BlockEndNode} into one row.
@@ -258,6 +262,7 @@ public class FlowGraphTable {
                 this.hasStartTime = true;
                 if (node.isRunning()) {
                     this.durationMillis=System.currentTimeMillis()-this.startTimeMillis;
+                    this.hasTiming = true;
                 }
             } else {
                 this.startTimeMillis = 0L;
@@ -290,10 +295,14 @@ public class FlowGraphTable {
         }
 
         public String getDurationString() {
-            if (this.durationMillis == 0) {
-                return "";
+            if (!this.hasTiming) {
+                return "no timing";
             } else {
-                return Util.getTimeSpanString(this.durationMillis);
+                if (this.durationMillis == 0) {
+                    return "<1 ms";
+                } else {
+                    return Util.getTimeSpanString(this.durationMillis);
+                }
             }
         }
 
@@ -326,6 +335,7 @@ public class FlowGraphTable {
 
             if (s.hasStartTime && r.hasStartTime) {
                 s.durationMillis = (r.startTimeMillis-s.startTimeMillis);
+                s.hasTiming = true;
             }
         }
 
@@ -350,6 +360,7 @@ public class FlowGraphTable {
 
             if (s.hasStartTime && r.hasStartTime) { // Store timing
                 s.durationMillis = (r.startTimeMillis-s.startTimeMillis);
+                s.hasTiming = true;
             }
         }
     }
