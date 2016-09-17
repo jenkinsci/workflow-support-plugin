@@ -28,17 +28,12 @@ import hudson.EnvVars;
 import hudson.Launcher;
 import hudson.LauncherDecorator;
 import hudson.console.ConsoleLogFilter;
-import hudson.model.AbstractBuild;
 import hudson.model.Computer;
 import hudson.model.Job;
 import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import hudson.util.StreamTaskListener;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -66,7 +61,6 @@ public abstract class DefaultStepContext extends StepContext {
      * Uses {@link #doGet} but automatically translates certain kinds of objects into others.
      * <p>{@inheritDoc}
      */
-    @edu.umd.cs.findbugs.annotations.SuppressWarnings("OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE") // stream closed later
     @Override public final <T> T get(Class<T> key) throws IOException, InterruptedException {
         T value = doGet(key);
         if (key == EnvVars.class) {
@@ -80,23 +74,13 @@ public abstract class DefaultStepContext extends StepContext {
             return value;
         } else if (key == TaskListener.class) {
             if (listener == null) {
-                LogActionImpl la = getNode().getAction(LogActionImpl.class);
-                if (la == null) {
-                    // TODO: use the default charset of the contextual Computer object
-                    la = new LogActionImpl(getNode(), Charset.defaultCharset());
-                    getNode().addAction(la);
-                }
-                ConsoleLogFilter filter = get(ConsoleLogFilter.class);
-                OutputStream os = new FileOutputStream(la.getLogFile(), true);
-                if (filter != null) {
-                    os = filter.decorateLogger((AbstractBuild) null, os);
-                }
-                listener = new StreamTaskListener(os);
+                final FlowNode node = getNode();
+                listener = LogActionImpl.stream(node, get(ConsoleLogFilter.class));
                 final AtomicReference<GraphListener> graphListener = new AtomicReference<GraphListener>();
                 graphListener.set(new GraphListener.Synchronous() {
-                    @Override public void onNewHead(FlowNode node) {
+                    @Override public void onNewHead(FlowNode newNode) {
                         try {
-                            if (!getNode().isRunning()) {
+                            if (!node.isRunning()) {
                                 getExecution().removeListener(graphListener.get());
                                 listener.getLogger().close();
                             }
