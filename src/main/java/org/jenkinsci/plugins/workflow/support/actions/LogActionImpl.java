@@ -25,6 +25,7 @@
 package org.jenkinsci.plugins.workflow.support.actions;
 
 import com.google.common.base.Charsets;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.console.AnnotatedLargeText;
 import hudson.console.ConsoleLogFilter;
 import hudson.model.AbstractBuild;
@@ -61,6 +62,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
      * @param filter
      * @return a listener
      */
+    @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE") // stream closed later
     public static @Nonnull TaskListener stream(@Nonnull FlowNode node, @CheckForNull ConsoleLogFilter filter) throws IOException, InterruptedException {
         LogActionImpl la = node.getAction(LogActionImpl.class);
         if (la == null) {
