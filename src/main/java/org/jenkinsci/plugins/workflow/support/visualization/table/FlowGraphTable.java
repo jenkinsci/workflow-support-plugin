@@ -5,9 +5,9 @@ import org.jenkinsci.plugins.workflow.actions.TimingAction;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.graph.BlockEndNode;
 import org.jenkinsci.plugins.workflow.graph.BlockStartNode;
+import org.jenkinsci.plugins.workflow.graph.FlowGraphWalker;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.actions.NotExecutedNodeAction;
-import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
 import org.jenkinsci.plugins.workflow.visualization.table.FlowNodeViewColumn;
 import org.jenkinsci.plugins.workflow.visualization.table.FlowNodeViewColumnDescriptor;
 
@@ -69,13 +69,14 @@ public class FlowGraphTable {
      */
     private Map<FlowNode, Row> createAllRows() {
         heads = execution.getCurrentHeads();
-        final DepthFirstScanner scanner = new DepthFirstScanner();
-        scanner.setup(heads);
+        // TODO switch to DepthFirstScanner when JENKINS-38458 is fixed, and put branches back in forward order
+        FlowGraphWalker walker = new FlowGraphWalker();
+        walker.addHeads(heads);
 
         // nodes that we've visited
         final Map<FlowNode,Row> rows = new LinkedHashMap<FlowNode, Row>();
 
-        for (FlowNode n : scanner) {
+        for (FlowNode n : walker) {
             Row row = new Row(n);
             rows.put(n, row);
         }
