@@ -53,7 +53,9 @@ import org.kohsuke.stapler.framework.io.ByteBuffer;
  * {@link LogAction} implementation that stores per-node log file under {@link FlowExecutionOwner#getRootDir()}.
  *
  * @author Kohsuke Kawaguchi
- */
+ * @deprecated Use {@link AnnotatedLogAction} instead.
+*/
+@Deprecated
 public class LogActionImpl extends LogAction implements FlowNodeAction {
 
     /**

@@ -24,28 +24,26 @@
 
 package org.jenkinsci.plugins.workflow.support;
 
+import com.google.common.base.Charsets;
 import hudson.EnvVars;
 import hudson.Launcher;
 import hudson.LauncherDecorator;
-import hudson.console.ConsoleLogFilter;
 import hudson.model.Computer;
 import hudson.model.Job;
 import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.util.StreamTaskListener;
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.io.OutputStream;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
-import org.jenkinsci.plugins.workflow.flow.GraphListener;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
+import org.jenkinsci.plugins.workflow.support.actions.AnnotatedLogAction;
 import org.jenkinsci.plugins.workflow.support.actions.EnvironmentAction;
-import org.jenkinsci.plugins.workflow.support.actions.LogActionImpl;
 
 /**
  * Partial implementation of step context.
@@ -75,21 +73,8 @@ public abstract class DefaultStepContext extends StepContext {
         } else if (key == TaskListener.class) {
             if (listener == null) {
                 final FlowNode node = getNode();
-                listener = LogActionImpl.stream(node, get(ConsoleLogFilter.class));
-                final AtomicReference<GraphListener> graphListener = new AtomicReference<GraphListener>();
-                graphListener.set(new GraphListener.Synchronous() {
-                    @Override public void onNewHead(FlowNode newNode) {
-                        try {
-                            if (!node.isRunning()) {
-                                getExecution().removeListener(graphListener.get());
-                                listener.getLogger().close();
-                            }
-                        } catch (IOException x) {
-                            Logger.getLogger(DefaultStepContext.class.getName()).log(Level.FINE, null, x);
-                        }
-                    }
-                });
-                getExecution().addListener(graphListener.get());
+                OutputStream raw = getExecution().getOwner().getListener().getLogger();
+                listener = new StreamTaskListener(AnnotatedLogAction.decorate(raw, node), Charsets.UTF_8);
             }
             return key.cast(listener);
         } else if (Node.class.isAssignableFrom(key)) {
