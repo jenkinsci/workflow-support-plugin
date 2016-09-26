@@ -38,12 +38,14 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import org.apache.commons.jelly.XMLOutput;
 import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
 import org.jenkinsci.plugins.workflow.actions.LogAction;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
+import org.jenkinsci.plugins.workflow.flow.GraphListener;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -65,7 +67,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
      * @return a listener
      */
     @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE") // stream closed later
-    public static @Nonnull TaskListener stream(@Nonnull FlowNode node, @CheckForNull ConsoleLogFilter filter) throws IOException, InterruptedException {
+    public static @Nonnull TaskListener stream(@Nonnull final FlowNode node, @CheckForNull ConsoleLogFilter filter) throws IOException, InterruptedException {
         LogActionImpl la = node.getAction(LogActionImpl.class);
         if (la == null) {
             // TODO: use UTF-8
@@ -76,7 +78,17 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
         if (filter != null) {
             os = filter.decorateLogger((AbstractBuild) null, os);
         }
-        StreamTaskListener result = new StreamTaskListener(os);
+        final StreamTaskListener result = new StreamTaskListener(os);
+        final AtomicReference<GraphListener> graphListener = new AtomicReference<GraphListener>();
+        graphListener.set(new GraphListener.Synchronous() {
+            @Override public void onNewHead(FlowNode newNode) {
+                if (!node.isRunning()) {
+                    node.getExecution().removeListener(graphListener.get());
+                    result.getLogger().close();
+                }
+            }
+        });
+        node.getExecution().addListener(graphListener.get());
         return result;
     }
 

@@ -28,6 +28,8 @@ import com.google.common.base.Charsets;
 import hudson.EnvVars;
 import hudson.Launcher;
 import hudson.LauncherDecorator;
+import hudson.Util;
+import hudson.console.ConsoleLogFilter;
 import hudson.model.Computer;
 import hudson.model.Job;
 import hudson.model.Node;
@@ -39,11 +41,13 @@ import java.io.OutputStream;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
+import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.support.actions.AnnotatedLogAction;
 import org.jenkinsci.plugins.workflow.support.actions.EnvironmentAction;
+import org.jenkinsci.plugins.workflow.support.actions.LogActionImpl;
 
 /**
  * Partial implementation of step context.
@@ -59,6 +63,7 @@ public abstract class DefaultStepContext extends StepContext {
      * Uses {@link #doGet} but automatically translates certain kinds of objects into others.
      * <p>{@inheritDoc}
      */
+    @SuppressWarnings("deprecation") // LogActionImpl here for backward compatibility
     @Override public final <T> T get(Class<T> key) throws IOException, InterruptedException {
         T value = doGet(key);
         if (key == EnvVars.class) {
@@ -73,8 +78,18 @@ public abstract class DefaultStepContext extends StepContext {
         } else if (key == TaskListener.class) {
             if (listener == null) {
                 final FlowNode node = getNode();
-                OutputStream raw = getExecution().getOwner().getListener().getLogger();
-                listener = new StreamTaskListener(AnnotatedLogAction.decorate(raw, node), Charsets.UTF_8);
+                ConsoleLogFilter filter = get(ConsoleLogFilter.class);
+                FlowExecution execution = getExecution();
+                FlowExecutionOwner owner = execution.getOwner();
+                if (Util.isOverridden(FlowExecutionOwner.class, owner.getClass(), "getLog")) {
+                    OutputStream raw = owner.getListener().getLogger();
+                    if (filter != null) {
+                        raw = filter.decorateLogger(get(Run.class), raw);
+                    }
+                    listener = new StreamTaskListener(AnnotatedLogAction.decorate(raw, node), Charsets.UTF_8);
+                } else { // old WorkflowRun which uses copyLogs
+                    listener = LogActionImpl.stream(node, filter);
+                }
             }
             return key.cast(listener);
         } else if (Node.class.isAssignableFrom(key)) {
