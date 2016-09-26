@@ -25,13 +25,11 @@
 package org.jenkinsci.plugins.workflow.support.actions;
 
 import com.google.common.base.Charsets;
+import com.google.common.primitives.Bytes;
 import hudson.console.AnnotatedLargeText;
-import hudson.console.ConsoleNote;
 import hudson.console.LineTransformationOutputStream;
 import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -49,10 +47,12 @@ import org.kohsuke.stapler.framework.io.ByteBuffer;
 /**
  * A marker for a node which had some log text.
  */
-@Restricted(NoExternalUse.class)
 public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
 
     private static final Logger LOGGER = Logger.getLogger(AnnotatedLogAction.class.getName());
+    /** Could use anything, but nicer to use something visually distinct from typical output, and unlikely to be produced by non-step output such as SCM loading. */
+    @Restricted(NoExternalUse.class)
+    public static final String NODE_ID_SEP = "¦";
 
     public transient FlowNode node;
 
@@ -64,11 +64,16 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
         this.node = node;
     }
 
+    private static byte[] prefix(FlowNode node) {
+        return (node.getId() + NODE_ID_SEP).getBytes(Charsets.UTF_8);
+    }
+
     @Override public AnnotatedLargeText<? extends FlowNode> getLogText() {
         ByteBuffer buf = new ByteBuffer();
         try (InputStream whole = node.getExecution().getOwner().getLog(); InputStream wholeBuffered = new BufferedInputStream(whole)) {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            while (true) {
+            byte[] prefix = prefix(node);
+            READ: while (true) {
                 int c = wholeBuffered.read();
                 if (c == -1) {
                     break;
@@ -76,28 +81,18 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
                 baos.write(c);
                 if (c == '\n') {
                     byte[] line = baos.toByteArray(); // TODO find a more efficient way to do this; ByteBufferInput?
-                    // Cf. PlainTextConsoleOutputStream, ConsoleAnnotationOutputStream
-                    int start = 0;
-                    while (true) {
-                        int next = ConsoleNote.findPreamble(line, start, line.length - start);
-                        if (next == -1) {
-                            break;
+                    if (line.length >= prefix.length) {
+                        boolean matches = true;
+                        for (int i = 0; i < prefix.length; i++) {
+                            if (line[i] != prefix[i]) {
+                                matches = false;
+                                break;
+                            }
                         }
-                        ByteArrayInputStream bais = new ByteArrayInputStream(line, next, line.length - next);
-                        DataInputStream dis = new DataInputStream(bais);
-                        ConsoleNote<?> note;
-                        try {
-                            note = ConsoleNote.readFrom(dis);
-                        } catch (IOException | ClassNotFoundException x) {
-                            // ignore load errors here, not our problem
-                            note = null;
-                        }
-                        if (note instanceof AssociatedNodeNote && node.getId().equals(((AssociatedNodeNote) note).id)) {
+                        if (matches) {
                             // This line in fact belongs to our node, so copy it out.
-                            buf.write(line, 0, line.length); // TODO should we strip out the AssociatedNodeNote?
-                            break;
+                            buf.write(line, prefix.length, line.length - prefix.length);
                         }
-                        start = line.length - bais.available();
                     }
                     baos.reset();
                 }
@@ -122,15 +117,39 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
         if (node.getAction(AnnotatedLogAction.class) == null) {
             node.addAction(new AnnotatedLogAction(node));
         }
-        final String id = node.getId();
+        final byte[] prefix = prefix(node);
         return new LineTransformationOutputStream() {
             @Override protected void eol(byte[] b, int len) throws IOException {
                 synchronized (raw) { // when raw is a PrintStream, as from DefaultStepContext, println etc. also synchronize
-                    new AssociatedNodeNote(id).encodeTo(raw);
+                    raw.write(prefix);
                     raw.write(b, 0, len);
                 }
             }
         };
+    }
+
+    public static void strip(InputStream decorated, OutputStream stripped) throws IOException {
+        InputStream buffered = new BufferedInputStream(decorated);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final byte[] infix = NODE_ID_SEP.getBytes(Charsets.UTF_8);
+        READ:
+        while (true) {
+            int c = buffered.read();
+            if (c == -1) {
+                break;
+            }
+            baos.write(c);
+            if (c == '\n') {
+                byte[] line = baos.toByteArray(); // TODO as above
+                int idx = Bytes.indexOf(line, infix);
+                if (idx == -1) {
+                    stripped.write(line);
+                } else {
+                    stripped.write(line, idx + infix.length, line.length - idx - infix.length);
+                }
+                baos.reset();
+            }
+        }
     }
 
 }
