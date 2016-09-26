@@ -27,13 +27,12 @@ package org.jenkinsci.plugins.workflow.support.actions;
 import hudson.MarkupText;
 import hudson.console.ConsoleAnnotator;
 import hudson.console.ConsoleNote;
-import hudson.model.Run;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 
 /**
  * Indicates what a line of text came from.
  */
-class AssociatedNodeNote extends ConsoleNote<Run<?,?>> {
+class AssociatedNodeNote extends ConsoleNote<Object> {
 
     private static final long serialVersionUID = 1L;
 
@@ -44,8 +43,7 @@ class AssociatedNodeNote extends ConsoleNote<Run<?,?>> {
         this.id = id;
     }
 
-    // TODO java.lang.ClassCastException: org.jenkinsci.plugins.workflow.cps.nodes.StepAtomNode cannot be cast to hudson.model.Run
-    @Override public ConsoleAnnotator<?> annotate(Run<?,?> context, MarkupText text, int charPos) {
+    @Override public ConsoleAnnotator<?> annotate(Object context, MarkupText text, int charPos) {
         // TODO could include some information useful for JavaScript tools operating on whole-build log, as in https://github.com/jenkinsci/workflow-job-plugin/pull/21
         // Possibly these could work via ConsoleAnnotatorFactory, though it seems there is no way currently to get the original ConsoleNote from a MarkupText.
         return null;
