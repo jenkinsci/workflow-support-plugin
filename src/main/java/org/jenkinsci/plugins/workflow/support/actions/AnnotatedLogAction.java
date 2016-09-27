@@ -38,6 +38,7 @@ import java.util.logging.Logger;
 import org.apache.commons.jelly.XMLOutput;
 import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
 import org.jenkinsci.plugins.workflow.actions.LogAction;
+import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -51,10 +52,10 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
 
     private static final Logger LOGGER = Logger.getLogger(AnnotatedLogAction.class.getName());
     /** Could use anything, but nicer to use something visually distinct from typical output, and unlikely to be produced by non-step output such as SCM loading. */
-    @Restricted(NoExternalUse.class)
+    @Restricted(NoExternalUse.class) // tests only
     public static final String NODE_ID_SEP = "¦";
 
-    public transient FlowNode node;
+    private transient FlowNode node;
 
     private AnnotatedLogAction(FlowNode node) {
         this.node = node;
@@ -68,6 +69,10 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
         return (node.getId() + NODE_ID_SEP).getBytes(Charsets.UTF_8);
     }
 
+    /**
+     * Scans {@link FlowExecutionOwner#getLog} for lines annotated as belonging to this node.
+     * <p>{@inheritDoc}
+     */
     @Override public AnnotatedLargeText<? extends FlowNode> getLogText() {
         ByteBuffer buf = new ByteBuffer();
         try (InputStream whole = node.getExecution().getOwner().getLog(); InputStream wholeBuffered = new BufferedInputStream(whole)) {
@@ -113,6 +118,10 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
         getLogText().writeHtmlTo(offset, out.asWriter());
     }
 
+    /**
+     * Wraps a raw log sink so that each line printed will be annotated as having come from the specified node.
+     */
+    @Restricted(NoExternalUse.class) // for use from DefaultStepContext only
     public static OutputStream decorate(final OutputStream raw, FlowNode node) {
         if (node.getAction(AnnotatedLogAction.class) == null) {
             node.addAction(new AnnotatedLogAction(node));
@@ -128,6 +137,9 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
         };
     }
 
+    /**
+     * Copies a “raw” log decorated with node annotations to a sink with no such annotations.
+     */
     public static void strip(InputStream decorated, OutputStream stripped) throws IOException {
         InputStream buffered = new BufferedInputStream(decorated);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
