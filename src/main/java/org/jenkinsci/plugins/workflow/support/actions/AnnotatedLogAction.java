@@ -27,14 +27,25 @@ package org.jenkinsci.plugins.workflow.support.actions;
 import com.google.common.base.Charsets;
 import com.google.common.primitives.Bytes;
 import hudson.console.AnnotatedLargeText;
+import hudson.console.ConsoleLogFilter;
+import hudson.console.ConsoleNote;
+import hudson.console.HudsonExceptionNote;
 import hudson.console.LineTransformationOutputStream;
+import hudson.model.Run;
+import hudson.model.TaskListener;
+import hudson.util.AbstractTaskListener;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import org.apache.commons.jelly.XMLOutput;
 import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
 import org.jenkinsci.plugins.workflow.actions.LogAction;
@@ -55,7 +66,8 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
     @Restricted(NoExternalUse.class) // tests only
     public static final String NODE_ID_SEP = "¦";
 
-    private transient FlowNode node;
+    @Restricted(NoExternalUse.class) // Jelly
+    public transient FlowNode node;
 
     private AnnotatedLogAction(FlowNode node) {
         this.node = node;
@@ -120,21 +132,87 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
 
     /**
      * Wraps a raw log sink so that each line printed will be annotated as having come from the specified node.
+     * The result is remotable to the extent that the input was.
      */
     @Restricted(NoExternalUse.class) // for use from DefaultStepContext only
-    public static OutputStream decorate(final OutputStream raw, FlowNode node) {
+    public static @Nonnull TaskListener decorate(@Nonnull TaskListener raw, @CheckForNull ConsoleLogFilter filter, @Nonnull FlowNode node) {
         if (node.getAction(AnnotatedLogAction.class) == null) {
             node.addAction(new AnnotatedLogAction(node));
         }
-        final byte[] prefix = prefix(node);
-        return new LineTransformationOutputStream() {
-            @Override protected void eol(byte[] b, int len) throws IOException {
-                synchronized (raw) { // when raw is a PrintStream, as from DefaultStepContext, println etc. also synchronize
-                    raw.write(prefix);
-                    raw.write(b, 0, len);
+        byte[] prefix = prefix(node);
+        return new DecoratedTaskListener(raw, filter, prefix);
+    }
+    private static class DecoratedTaskListener extends AbstractTaskListener {
+        private static final long serialVersionUID = 1;
+        /**
+         * The listener we are delegating to, which was expected to be remotable.
+         * Note that we ignore all of its methods other than {@link TaskListener#getLogger}; see comment on our overrides for explanation.
+         */
+        private final @Nonnull TaskListener delegate;
+        /**
+         * An optional filter, which is expected to be serializable.
+         * Note that null is passed for the {@code build} parameter, since that would not be available on an agent.
+         */
+        private final @CheckForNull ConsoleLogFilter filter;
+        private final @Nonnull byte[] prefix;
+        private transient PrintStream logger;
+        DecoratedTaskListener(TaskListener delegate, ConsoleLogFilter filter, byte[] prefix) {
+            this.delegate = delegate;
+            this.filter = filter;
+            this.prefix = prefix;
+        }
+        @Override public PrintStream getLogger() {
+            if (logger == null) {
+                final PrintStream initial = delegate.getLogger();
+                // We apply the prefix and any filter in this order, since the filter should not be able to mangle or hide node prefixes.
+                OutputStream decorated = new LineTransformationOutputStream() {
+                    @Override protected void eol(byte[] b, int len) throws IOException {
+                        synchronized (initial) { // to match .println etc.
+                            initial.write(prefix);
+                            initial.write(b, 0, len);
+                        }
+                    }
+                };
+                if (filter != null) {
+                    try {
+                        decorated = filter.decorateLogger((Run) null, decorated);
+                    } catch (Exception x) {
+                        LOGGER.log(Level.WARNING, null, x);
+                    }
                 }
+                logger = new PrintStream(decorated);
             }
-        };
+            return logger;
+        }
+        // Adapted from StreamTaskListener, which fails to properly delegate to its own getLogger method if subclassed
+        // (and we do not want to use its writeObject/readReplace because we want to let the underlying TaskListener be serializable without RemoteOutputStream):
+        @SuppressWarnings("rawtypes")
+        @Override public void annotate(ConsoleNote ann) throws IOException {
+            ann.encodeTo(getLogger());
+        }
+        private PrintWriter _error(String prefix, String msg) {
+            PrintStream out = getLogger();
+            out.print(prefix);
+            out.println(msg);
+            try {
+                annotate(new HudsonExceptionNote());
+            } catch (IOException e) {
+                // swallow
+            }
+            return new PrintWriter(new OutputStreamWriter(out, Charsets.UTF_8), true);
+        }
+        @Override public PrintWriter error(String msg) {
+            return _error("ERROR: ", msg);
+        }
+        @Override public PrintWriter error(String format, Object... args) {
+            return error(String.format(format, args));
+        }
+        @Override public PrintWriter fatalError(String msg) {
+            return _error("FATAL: ", msg);
+        }
+        @Override public PrintWriter fatalError(String format, Object... args) {
+            return fatalError(String.format(format, args));
+        }
     }
 
     /**
