@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.workflow.support.actions;
 
 import com.google.common.base.Charsets;
 import com.google.common.primitives.Bytes;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.console.AnnotatedLargeText;
 import hudson.console.ConsoleLogFilter;
 import hudson.console.ConsoleNote;
@@ -42,6 +43,8 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -150,13 +153,17 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
          */
         private final @Nonnull TaskListener delegate;
         /**
-         * An optional filter, which is expected to be serializable.
+         * An optional filter.
          * Note that null is passed for the {@code build} parameter, since that would not be available on an agent.
          */
+        @SuppressFBWarnings(value="SE_BAD_FIELD", justification="The filter is expected to be serializable.")
         private final @CheckForNull ConsoleLogFilter filter;
         private final @Nonnull byte[] prefix;
         private transient PrintStream logger;
         DecoratedTaskListener(TaskListener delegate, ConsoleLogFilter filter, byte[] prefix) {
+            if (filter != null && !(filter instanceof Serializable)) {
+                throw new IllegalArgumentException("Cannot pass a nonserializable " + filter.getClass());
+            }
             this.delegate = delegate;
             this.filter = filter;
             this.prefix = prefix;
@@ -180,7 +187,11 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
                         LOGGER.log(Level.WARNING, null, x);
                     }
                 }
-                logger = new PrintStream(decorated);
+                try {
+                    logger = new PrintStream(decorated, false, "UTF-8");
+                } catch (UnsupportedEncodingException x) {
+                    throw new AssertionError(x);
+                }
             }
             return logger;
         }
