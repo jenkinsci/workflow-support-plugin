@@ -27,7 +27,6 @@ package org.jenkinsci.plugins.workflow.support;
 import hudson.EnvVars;
 import hudson.Launcher;
 import hudson.LauncherDecorator;
-import hudson.Util;
 import hudson.console.ConsoleLogFilter;
 import hudson.model.Computer;
 import hudson.model.Job;
@@ -38,7 +37,6 @@ import java.io.IOException;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
-import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
@@ -59,7 +57,6 @@ public abstract class DefaultStepContext extends StepContext {
      * Uses {@link #doGet} but automatically translates certain kinds of objects into others.
      * <p>{@inheritDoc}
      */
-    @SuppressWarnings("deprecation") // LogActionImpl here for backward compatibility
     @Override public final <T> T get(Class<T> key) throws IOException, InterruptedException {
         T value = doGet(key);
         if (key == EnvVars.class) {
@@ -73,14 +70,7 @@ public abstract class DefaultStepContext extends StepContext {
             return value;
         } else if (key == TaskListener.class) {
             if (listener == null) {
-                final FlowNode node = getNode();
-                ConsoleLogFilter filter = get(ConsoleLogFilter.class);
-                FlowExecutionOwner owner = getExecution().getOwner();
-                if (Util.isOverridden(FlowExecutionOwner.class, owner.getClass(), "getLog")) {
-                    listener = AnnotatedLogAction.decorate(owner.getListener(), filter, node);
-                } else { // old WorkflowRun which uses copyLogs
-                    listener = org.jenkinsci.plugins.workflow.support.actions.LogActionImpl.stream(node, filter);
-                }
+                listener = AnnotatedLogAction.listenerFor(getNode(), get(ConsoleLogFilter.class));
             }
             return key.cast(listener);
         } else if (Node.class.isAssignableFrom(key)) {

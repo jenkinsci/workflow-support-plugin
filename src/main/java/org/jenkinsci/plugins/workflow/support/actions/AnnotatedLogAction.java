@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.workflow.support.actions;
 import com.google.common.base.Charsets;
 import com.google.common.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Util;
 import hudson.console.AnnotatedLargeText;
 import hudson.console.ConsoleLogFilter;
 import hudson.console.ConsoleNote;
@@ -134,11 +135,28 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
     }
 
     /**
+     * Creates a sink to print output from a step.
+     * Will use {@link LogActionImpl} if necessary.
+     * @param node a node which wishes to print output
+     * @param filter an optional log filter (must be {@link Serializable})
+     * @return a stream
+     */
+    @SuppressWarnings("deprecation") // LogActionImpl here for backward compatibility
+    @Restricted(NoExternalUse.class) // for use from DefaultStepContext only
+    public static @Nonnull TaskListener listenerFor(@Nonnull FlowNode node, @CheckForNull ConsoleLogFilter filter) throws IOException, InterruptedException {
+        FlowExecutionOwner owner = node.getExecution().getOwner();
+        if (Util.isOverridden(FlowExecutionOwner.class, owner.getClass(), "getLog")) {
+            return decorate(owner.getListener(), filter, node);
+        } else { // old WorkflowRun which uses copyLogs
+            return LogActionImpl.stream(node, filter);
+        }
+    }
+
+    /**
      * Wraps a raw log sink so that each line printed will be annotated as having come from the specified node.
      * The result is remotable to the extent that the input was.
      */
-    @Restricted(NoExternalUse.class) // for use from DefaultStepContext only
-    public static @Nonnull TaskListener decorate(@Nonnull TaskListener raw, @CheckForNull ConsoleLogFilter filter, @Nonnull FlowNode node) {
+    private static @Nonnull TaskListener decorate(@Nonnull TaskListener raw, @CheckForNull ConsoleLogFilter filter, @Nonnull FlowNode node) {
         if (node.getAction(AnnotatedLogAction.class) == null) {
             node.addAction(new AnnotatedLogAction(node));
         }
