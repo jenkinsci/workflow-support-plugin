@@ -25,9 +25,12 @@
 package org.jenkinsci.plugins.workflow.test.steps;
 
 import com.google.common.util.concurrent.FutureCallback;
+import org.jenkinsci.plugins.workflow.actions.TimingAction;
+import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
+import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 
@@ -71,8 +74,14 @@ public final class BlockSemaphoreStep extends Step {
     @Override public StepExecution start(final StepContext context) throws Exception {
         this.context = context;
         return new StepExecution(context) {
+            @StepContextParameter
+            private transient FlowNode node;
+
             @Override
             public boolean start() throws Exception {
+                if (node.getAction(TimingAction.class) == null) {
+                    node.addAction(new TimingAction());
+                }
                 moveFrom(State.INIT);
                 return false;
             }
@@ -89,7 +98,7 @@ public final class BlockSemaphoreStep extends Step {
         moveFrom(State.STARTED);
         context.newBodyInvoker().withContext(contextOverrides).withCallback(new Callback()).start();
     }
-    
+
     private class Callback extends BodyExecutionCallback {
         @Override public void onSuccess(StepContext context, Object returnValue) {
             blockReturnValue = returnValue;
