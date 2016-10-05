@@ -24,28 +24,23 @@
 
 package org.jenkinsci.plugins.workflow.support.actions;
 
-import com.google.common.base.Charsets;
 import com.google.common.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Util;
 import hudson.console.AnnotatedLargeText;
 import hudson.console.ConsoleLogFilter;
-import hudson.console.ConsoleNote;
-import hudson.console.HudsonExceptionNote;
 import hudson.console.LineTransformationOutputStream;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import hudson.util.AbstractTaskListener;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -82,7 +77,7 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
     }
 
     private static byte[] prefix(FlowNode node) {
-        return (node.getId() + NODE_ID_SEP).getBytes(Charsets.UTF_8);
+        return (node.getId() + NODE_ID_SEP).getBytes(StandardCharsets.UTF_8);
     }
 
     /**
@@ -121,7 +116,7 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
         } catch (IOException x) {
             LOGGER.log(Level.WARNING, null, x);
         }
-        return new AnnotatedLargeText<>(buf, Charsets.UTF_8, !node.isRunning(), node);
+        return new AnnotatedLargeText<>(buf, StandardCharsets.UTF_8, !node.isRunning(), node);
     }
 
     // TODO probably need an API method in LogAction to obtain all log text from a block node and descendants (e.g., a parallel branch)
@@ -163,11 +158,11 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
         byte[] prefix = prefix(node);
         return new DecoratedTaskListener(raw, filter, prefix);
     }
-    private static class DecoratedTaskListener extends AbstractTaskListener {
+    private static class DecoratedTaskListener extends LessAbstractTaskListener {
         private static final long serialVersionUID = 1;
         /**
          * The listener we are delegating to, which was expected to be remotable.
-         * Note that we ignore all of its methods other than {@link TaskListener#getLogger}; see comment on our overrides for explanation.
+         * Note that we ignore all of its methods other than {@link TaskListener#getLogger}.
          */
         private final @Nonnull TaskListener delegate;
         /**
@@ -213,35 +208,6 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
             }
             return logger;
         }
-        // Adapted from StreamTaskListener, which fails to properly delegate to its own getLogger method if subclassed
-        // (and we do not want to use its writeObject/readReplace because we want to let the underlying TaskListener be serializable without RemoteOutputStream):
-        @SuppressWarnings("rawtypes")
-        @Override public void annotate(ConsoleNote ann) throws IOException {
-            ann.encodeTo(getLogger());
-        }
-        private PrintWriter _error(String prefix, String msg) {
-            PrintStream out = getLogger();
-            out.print(prefix);
-            out.println(msg);
-            try {
-                annotate(new HudsonExceptionNote());
-            } catch (IOException e) {
-                // swallow
-            }
-            return new PrintWriter(new OutputStreamWriter(out, Charsets.UTF_8), true);
-        }
-        @Override public PrintWriter error(String msg) {
-            return _error("ERROR: ", msg);
-        }
-        @Override public PrintWriter error(String format, Object... args) {
-            return error(String.format(format, args));
-        }
-        @Override public PrintWriter fatalError(String msg) {
-            return _error("FATAL: ", msg);
-        }
-        @Override public PrintWriter fatalError(String format, Object... args) {
-            return fatalError(String.format(format, args));
-        }
     }
 
     /**
@@ -250,7 +216,7 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
     public static void strip(InputStream decorated, OutputStream stripped) throws IOException {
         InputStream buffered = new BufferedInputStream(decorated);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        final byte[] infix = NODE_ID_SEP.getBytes(Charsets.UTF_8);
+        final byte[] infix = NODE_ID_SEP.getBytes(StandardCharsets.UTF_8);
         READ:
         while (true) {
             int c = buffered.read();
