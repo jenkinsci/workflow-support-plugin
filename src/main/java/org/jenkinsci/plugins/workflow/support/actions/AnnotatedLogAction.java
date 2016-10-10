@@ -32,6 +32,7 @@ import hudson.console.ConsoleAnnotationOutputStream;
 import hudson.console.ConsoleAnnotator;
 import hudson.console.ConsoleLogFilter;
 import hudson.console.LineTransformationOutputStream;
+import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.BufferedInputStream;
@@ -188,6 +189,7 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
             this.filter = filter;
             this.prefix = prefix;
         }
+        @SuppressWarnings("deprecation")
         @Override public PrintStream getLogger() {
             if (logger == null) {
                 final PrintStream initial = delegate.getLogger();
@@ -202,7 +204,12 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
                 };
                 if (filter != null) {
                     try {
-                        decorated = filter.decorateLogger((Run) null, decorated);
+                        // TODO the compatibility code in ConsoleLogFilter fails to delegate to the old overload when given a null argument
+                        if (Util.isOverridden(ConsoleLogFilter.class, filter.getClass(), "decorateLogger", Run.class, OutputStream.class)) {
+                            decorated = filter.decorateLogger((Run) null, decorated);
+                        } else {
+                            decorated = filter.decorateLogger((AbstractBuild) null, decorated);
+                        }
                     } catch (Exception x) {
                         LOGGER.log(Level.WARNING, null, x);
                     }
