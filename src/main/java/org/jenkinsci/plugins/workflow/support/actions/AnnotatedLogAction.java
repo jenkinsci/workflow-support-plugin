@@ -28,6 +28,8 @@ import com.google.common.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Util;
 import hudson.console.AnnotatedLargeText;
+import hudson.console.ConsoleAnnotationOutputStream;
+import hudson.console.ConsoleAnnotator;
 import hudson.console.ConsoleLogFilter;
 import hudson.console.LineTransformationOutputStream;
 import hudson.model.Run;
@@ -40,7 +42,9 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -61,9 +65,12 @@ import org.kohsuke.stapler.framework.io.ByteBuffer;
 public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
 
     private static final Logger LOGGER = Logger.getLogger(AnnotatedLogAction.class.getName());
+
     /** Could use anything, but nicer to use something visually distinct from typical output, and unlikely to be produced by non-step output such as SCM loading. */
     @Restricted(NoExternalUse.class) // tests only
     public static final String NODE_ID_SEP = "¦";
+
+    private static final byte[] INFIX = NODE_ID_SEP.getBytes(StandardCharsets.UTF_8);
 
     @Restricted(NoExternalUse.class) // Jelly
     public transient FlowNode node;
@@ -216,7 +223,6 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
     public static void strip(InputStream decorated, OutputStream stripped) throws IOException {
         InputStream buffered = new BufferedInputStream(decorated);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        final byte[] infix = NODE_ID_SEP.getBytes(StandardCharsets.UTF_8);
         READ:
         while (true) {
             int c = buffered.read();
@@ -226,14 +232,64 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
             baos.write(c);
             if (c == '\n') {
                 byte[] line = baos.toByteArray(); // TODO as above
-                int idx = Bytes.indexOf(line, infix);
+                int idx = Bytes.indexOf(line, INFIX);
                 if (idx == -1) {
                     stripped.write(line);
                 } else {
-                    stripped.write(line, idx + infix.length, line.length - idx - infix.length);
+                    stripped.write(line, idx + INFIX.length, line.length - idx - INFIX.length);
                 }
                 baos.reset();
             }
+        }
+    }
+
+    /**
+     * Decorates an HTML stream with output coming from nodes wrapped in a {@code pipeline-node-<ID>} CSS class based on {@link FlowNode#getId}.
+     */
+    public static <T> ConsoleAnnotationOutputStream<T> annotateHtml(Writer out, ConsoleAnnotator<? super T> ann, T context) {
+        return new NodeConsoleAnnotationOutputStream<>(out, ann, context);
+    }
+    private static class NodeConsoleAnnotationOutputStream<T> extends ConsoleAnnotationOutputStream<T> {
+        private final Writer out;
+        NodeConsoleAnnotationOutputStream(Writer out, ConsoleAnnotator<? super T> ann, T context) {
+            super(out, ann, context, StandardCharsets.UTF_8);
+            this.out = out;
+        }
+        @Override protected void eol(byte[] in, int sz) throws IOException {
+            assert sz >= 0 && sz <= in.length;
+            String id = null;
+            int idx = Bytes.indexOf(in, INFIX);
+            if (idx != -1) {
+                id = new String(in, 0, idx, StandardCharsets.UTF_8);
+                out.write("<span class=\"pipeline-node-" + id + "\">");
+                int skip = idx + INFIX.length;
+                in = Arrays.copyOfRange(in, skip, sz);
+                sz -= skip;
+                assert sz >= 0 && sz <= in.length;
+            }
+            /* Produces more natural-looking output (MarkupText excludes NL) but is makes it impossible to specify display: none to hide a line (there will still be vertical whitespace):
+            int eol = sz;
+            while (eol > 0) {
+                byte c = in[eol - 1];
+                if (c == '\n' || c == '\r') {
+                    eol--;
+                } else {
+                    break;
+                }
+            }
+            super.eol(in, eol);
+            if (id != null) {
+                out.write("</span>");
+            }
+            for (int i = eol; i < sz; i++) {
+                out.write(in[i]);
+            }
+             */
+            super.eol(in, sz);
+            if (id != null) {
+                out.write("</span>");
+            }
+            // TODO try to coalesce content, so that <span class="pipeline-node-123">+ echo hello\n</span><span class="pipeline-node-123">hello\n</span> becomes <span class="pipeline-node-123">+ echo hello\nhello\n</span>
         }
     }
 
