@@ -33,6 +33,7 @@ import hudson.model.Result;
 import hudson.model.StreamBuildListener;
 import hudson.remoting.RemoteOutputStream;
 import hudson.util.AbstractTaskListener;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
@@ -96,6 +97,11 @@ public abstract class LessAbstractTaskListener extends AbstractTaskListener {
     /** Optional method in case a subclass wishes to implement {@link BuildListener}. */
     public void finished(Result result) {
         getLogger().println("Finished: " + result);
+    }
+
+    /** Optional method in case a subclass wishes to implement {@link Closeable}. */
+    public void close() {
+        getLogger().close();
     }
 
 }
