@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.support.actions;
 
+import com.google.common.annotations.Beta;
 import hudson.console.ConsoleNote;
 import hudson.console.HudsonExceptionNote;
 import hudson.model.BuildListener;
@@ -38,14 +39,12 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Replacement for {@link StreamBuildListener} that delegates all methods to {@link #getLogger} rather than a private field.
  * This allows it to be sanely subclassed, for example to delegate to another listener, or to use a serial form that does not involve {@link RemoteOutputStream}.
  */
-@Restricted(NoExternalUse.class) // at least for now; would be best done in AbstractTaskListener
+@Beta // would be best done in AbstractTaskListener
 public abstract class LessAbstractTaskListener extends AbstractTaskListener {
 
     @SuppressWarnings("rawtypes")
