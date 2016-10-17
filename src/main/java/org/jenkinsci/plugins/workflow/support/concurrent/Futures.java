@@ -240,7 +240,7 @@ public abstract class Futures {
      */
     public static <I, O> ListenableFuture<O> transform(ListenableFuture<I> future,
         final Function<? super I, ? extends O> function) {
-      return transform(future, function, MoreExecutors.sameThreadExecutor());
+      return Futures.<I, O>transform(future, function, MoreExecutors.sameThreadExecutor());
     }
 
     /**
