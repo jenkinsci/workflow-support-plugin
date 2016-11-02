@@ -83,7 +83,7 @@
         <dependency>
             <groupId>org.jboss.marshalling</groupId>
             <artifactId>jboss-marshalling-river</artifactId>
-            <version>1.4.9.Final</version>
+            <version>1.4.9.Final</version> <!-- TODO JENKINS-32986 need 1.4.12.Final when released to pick up JBMAR-189 https://github.com/jboss-remoting/jboss-marshalling/pull/48 -->
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
