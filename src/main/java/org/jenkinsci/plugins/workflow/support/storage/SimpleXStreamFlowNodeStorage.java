@@ -148,23 +148,71 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     private static final Field FlowNode$exec;
     private static final Field FlowNode$parents;
     private static final Field FlowNode$parentIds;
+    private static final Field FlowNode$id;
 
     static {
         XSTREAM.registerConverter(new Converter() {
             private final RobustReflectionConverter ref = new RobustReflectionConverter(XSTREAM.getMapper(), JVM.newReflectionProvider());
             // IdentityHashMap could leak memory. WeakHashMap compares by equals, which will fail with NPE in FlowNode.hashCode.
             private final Map<FlowNode,String> ids = CacheBuilder.newBuilder().weakKeys().<FlowNode,String>build().asMap();
+
+            private final Object NO_FIELD = new Object();
+
+            // Used to determine if we have a descriptorId field and if so, deduplicate them
+            private final Map<Class, Object> descriptorIdMap = CacheBuilder.newBuilder().weakKeys().<Class,Object>build().asMap();
+
             @Override public boolean canConvert(Class type) {
                 return FlowNode.class.isAssignableFrom(type);
             }
             @Override public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
                 ref.marshal(source, writer, context);
             }
+
+            // Reflectively deduplicate the descriptorId field on flownodes
+            private void internDescriptorIdIfPresent(@Nonnull FlowNode f) {
+                try {
+                    Class c = f.getClass();
+                    Object ob = descriptorIdMap.get(c);
+                    if (ob == NO_FIELD) {
+                        return;
+                    } else if (ob != null) {
+                        Field descriptorIdField = (Field)ob;
+                        Object fieldVal = descriptorIdField.get(f);
+                        if (fieldVal != null) {
+                            descriptorIdField.set(f, ((String)fieldVal).intern());
+                        }
+                    } else { // First time we saw this class
+                        try {
+                            Field field = c.getDeclaredField("descriptorId");
+                            field.setAccessible(true);
+                            descriptorIdMap.put(c, field);
+                            Object fieldVal = field.get(f);
+                            if (fieldVal != null) {
+                                field.set(f, ((String)fieldVal).intern());
+                            }
+                        } catch (NoSuchFieldException nse) {
+                            descriptorIdMap.put(c, NO_FIELD);
+                        }
+
+                    }
+                } catch (IllegalAccessException iae) {
+                    throw new RuntimeException(iae);
+                }
+            }
+
             @Override public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context) {
                 try {
                     FlowNode n = (FlowNode) ref.unmarshal(reader, context);
-                    ids.put(n, reader.getValue());
+                    String val = reader.getValue();
+                    if (val != null) {
+                        val = val.intern();
+                    }
+                    ids.put(n, val);
+
                     try {
+                        FlowNode$id.set(n, n.getId().intern());
+                        internDescriptorIdIfPresent(n);
+
                         @SuppressWarnings("unchecked") List<FlowNode> parents = (List<FlowNode>) FlowNode$parents.get(n);
                         if (parents != null) {
                             @SuppressWarnings("unchecked") List<String> parentIds = (List<String>) FlowNode$parentIds.get(n);
@@ -198,6 +246,8 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
             FlowNode$parents.setAccessible(true);
             FlowNode$parentIds = FlowNode.class.getDeclaredField("parentIds");
             FlowNode$parentIds.setAccessible(true);
+            FlowNode$id = FlowNode.class.getDeclaredField("id");
+            FlowNode$id.setAccessible(true);
         } catch (NoSuchFieldException e) {
             throw new Error(e);
         }
