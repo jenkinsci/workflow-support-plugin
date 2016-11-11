@@ -149,7 +149,12 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
      */
     private static boolean isRunning(FlowNode node) {
         if (node instanceof BlockStartNode) {
-            return new LinearBlockHoppingScanner().findFirstMatch(node.getExecution().getCurrentHeads(), Predicates.equalTo(node)) != null;
+            for (FlowNode head : node.getExecution().getCurrentHeads()) {
+                if (new LinearBlockHoppingScanner().findFirstMatch(head, Predicates.equalTo(node)) != null) {
+                    return true;
+                }
+            }
+            return false;
         } else {
             return node.isRunning();
         }

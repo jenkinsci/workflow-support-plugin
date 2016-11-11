@@ -25,6 +25,7 @@ package org.jenkinsci.plugins.workflow.support.actions;
 
 import hudson.model.Action;
 import hudson.model.InvisibleAction;
+import org.jenkinsci.plugins.workflow.actions.PersistentAction;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 
 import java.io.IOException;
@@ -41,7 +42,7 @@ import javax.annotation.Nonnull;
  *
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
-public class PauseAction extends InvisibleAction {
+public class PauseAction extends InvisibleAction implements PersistentAction {
 
     private static final Logger LOGGER = Logger.getLogger(PauseAction.class.getName());
 
