@@ -145,7 +145,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
             try {
                 FlowNode_setActions.invoke(this.node, actions());
             } catch (InvocationTargetException|IllegalAccessException ex) {
-                throw new Error(ex);
+                throw new RuntimeException(ex);
             }
         }
 
