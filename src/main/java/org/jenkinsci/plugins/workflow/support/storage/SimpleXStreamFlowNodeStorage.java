@@ -45,6 +45,8 @@ import hudson.util.XStream2;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -120,6 +122,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         } catch (IllegalAccessException e) {
             throw (IllegalAccessError) new IllegalAccessError("Failed to set owner").initCause(e);
         }
+        v.storeActions();
         for (FlowNodeAction a : Util.filter(v.actions(), FlowNodeAction.class)) {
             a.onLoad(v.node);
         }
@@ -138,6 +141,14 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
             this.actions = actions.isEmpty() ? null : actions.toArray(new Action[actions.size()]);
         }
 
+        private void storeActions() {  // We've already loaded the actions, may as well store them to the FlowNode
+            try {
+                FlowNode_setActions.invoke(this.node, actions());
+            } catch (InvocationTargetException|IllegalAccessException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+
         public @Nonnull List<Action> actions() {
             return actions != null ? Arrays.asList(actions) : Collections.<Action>emptyList();
         }
@@ -148,6 +159,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     private static final Field FlowNode$exec;
     private static final Field FlowNode$parents;
     private static final Field FlowNode$parentIds;
+    private static final Method FlowNode_setActions;
 
     static {
         XSTREAM.registerConverter(new Converter() {
@@ -198,7 +210,9 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
             FlowNode$parents.setAccessible(true);
             FlowNode$parentIds = FlowNode.class.getDeclaredField("parentIds");
             FlowNode$parentIds.setAccessible(true);
-        } catch (NoSuchFieldException e) {
+            FlowNode_setActions = FlowNode.class.getDeclaredMethod("setActions", List.class);
+            FlowNode_setActions.setAccessible(true);
+        } catch (NoSuchFieldException|NoSuchMethodException e) {
             throw new Error(e);
         }
     }
