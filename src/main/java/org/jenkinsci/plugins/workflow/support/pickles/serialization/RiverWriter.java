@@ -24,6 +24,12 @@
 
 package org.jenkinsci.plugins.workflow.support.pickles.serialization;
 
+import hudson.Extension;
+import hudson.ExtensionPoint;
+import hudson.init.InitMilestone;
+import hudson.init.Initializer;
+import hudson.util.Memoizer;
+import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.pickles.Pickle;
 import org.jenkinsci.plugins.workflow.pickles.PickleFactory;
@@ -33,7 +39,11 @@ import org.jboss.marshalling.Marshalling;
 import org.jboss.marshalling.MarshallingConfiguration;
 import org.jboss.marshalling.ObjectResolver;
 import org.jboss.marshalling.river.RiverMarshallerFactory;
+import org.jenkinsci.plugins.workflow.support.pickles.SingleTypedPickleFactory;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
+import javax.annotation.CheckForNull;
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.DataOutputStream;
@@ -80,6 +90,78 @@ public class RiverWriter implements Closeable {
 
     private boolean pickling;
 
+    @Restricted(NoExternalUse.class)
+    @Extension
+    public static final class PicklingCache implements ExtensionPoint {
+
+        static final Object NULL_FACTORY = new Object();
+        static final ExtensionList<PickleFactory> pickleFactories = PickleFactory.all();
+
+        private Memoizer<Class, Object> factoryCache = new Memoizer<Class, Object>() {
+            @Override
+            public Object compute(Class pickleClass) {
+                if (pickleFactories.isEmpty()) {
+                    throw new IllegalStateException("JENKINS-26137: Jenkins is shutting down");
+                }
+
+                for (PickleFactory f : pickleFactories) {
+                    if (f instanceof SingleTypedPickleFactory) {
+                        SingleTypedPickleFactory singleTyped = (SingleTypedPickleFactory)f;
+                        if (singleTyped.getPickleType().isAssignableFrom(pickleClass)) {
+                            return singleTyped;
+                        }
+                    }
+                }
+                return NULL_FACTORY;
+            }
+        };
+
+        /**
+         * Reduce the O(n) pickle replacement lookup with O(1) cache lookup once we've seen the class before
+         * This optimizes aggressively if all {@link PickleFactory} instances are {@link SingleTypedPickleFactory}
+         * Otherwise it does a less aggressive versions
+         * @param ob Object to replace with possible pickle
+         * @param nonSingleTypedFactories List of non-singletyped PickleFactories
+         * @return
+         */
+        public Object getFastReplacement(Object ob, @CheckForNull List<PickleFactory> nonSingleTypedFactories) {
+            if (ob == null) {return ob;}
+            Object maybeFactory = factoryCache.get(ob.getClass());
+            // First the fast check: look for a usable precanned factory
+            if (maybeFactory != NULL_FACTORY) {
+                Object replace = ((PickleFactory)maybeFactory).writeReplace(ob);
+                if (replace != null) {
+                    return replace;
+                }
+            }
+            if (nonSingleTypedFactories != null && nonSingleTypedFactories.size() > 0) {
+                // Fall back to testing the non-singletyped pickle factories in an O(n) search
+                // Not robust against hacks to trigger a non-singletyped factory before singletyped ones
+                for (int i=0; i<nonSingleTypedFactories.size(); i++) {
+                    Object replace = nonSingleTypedFactories.get(i).writeReplace(ob);
+                    if (replace != null) {
+                        return replace;
+                    }
+                }
+            }
+            return ob;
+        }
+
+        public void invalidateAll() {
+            factoryCache.clear();
+        }
+
+        public static PicklingCache getCache(){
+            return Jenkins.getActiveInstance().getExtensionList(PicklingCache.class).get(0);
+        }
+
+        @Initializer(after = InitMilestone.EXTENSIONS_AUGMENTED)  // Prevents potential leakage on reload
+        public static void invalidateGlobalCache() {
+            getCache().invalidateAll();
+        }
+
+    }
+
     /**
      * Persisted form of stateful objects that need special handling during rehydration.
      */
@@ -88,6 +170,15 @@ public class RiverWriter implements Closeable {
     // TODO: rename to HibernatingObjectOutputStream?
     public RiverWriter(File f, FlowExecutionOwner _owner) throws IOException {
         final ExtensionList<PickleFactory> pickleFactories = PickleFactory.all();
+        final ArrayList<PickleFactory> specialFactories = new ArrayList<PickleFactory>();
+        for (PickleFactory p : pickleFactories) {
+            if (!(p instanceof SingleTypedPickleFactory)) {
+                specialFactories.add(p);
+            }
+        }
+
+        final PicklingCache cache = PicklingCache.getCache();
+
         if (pickleFactories.isEmpty()) {
             throw new IllegalStateException("JENKINS-26137: Jenkins is shutting down");
         }
@@ -111,12 +202,13 @@ public class RiverWriter implements Closeable {
                     return new DryOwner();
 
                 if (pickling) {
-                    for (PickleFactory f : pickleFactories) {
-                        Pickle v = f.writeReplace(o);
-                        if (v != null) {
-                            pickles.add(v);
-                            return new DryCapsule(pickles.size() - 1); // let Pickle be serialized into the stream
-                        }
+                    if (o == null) {
+                        return o;
+                    }
+                    Object maybeReplacement = cache.getFastReplacement(o, specialFactories);
+                    if (maybeReplacement != o && o instanceof Pickle) {
+                        pickles.add((Pickle)maybeReplacement);
+                        return new DryCapsule(pickles.size() - 1); // let Pickle be serialized into the stream
                     }
                 }
                 return o;

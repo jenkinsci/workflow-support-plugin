@@ -50,4 +50,8 @@ public abstract class SingleTypedPickleFactory<T> extends PickleFactory {
         }
         return null;
     }
+
+    public Class<T> getPickleType() {
+        return this.type;
+    }
 }
