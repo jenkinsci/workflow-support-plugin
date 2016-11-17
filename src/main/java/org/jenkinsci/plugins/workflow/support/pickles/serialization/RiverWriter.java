@@ -206,7 +206,8 @@ public class RiverWriter implements Closeable {
                         return o;
                     }
                     Object maybeReplacement = cache.getFastReplacement(o, specialFactories);
-                    if (maybeReplacement != o && o instanceof Pickle) {
+
+                    if (maybeReplacement != o) {
                         pickles.add((Pickle)maybeReplacement);
                         return new DryCapsule(pickles.size() - 1); // let Pickle be serialized into the stream
                     }
