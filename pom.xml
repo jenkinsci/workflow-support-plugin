@@ -64,18 +64,11 @@
             <id>repo.jenkins-ci.org</id>
             <url>https://repo.jenkins-ci.org/public/</url>
         </pluginRepository>
-        <pluginRepository>
-            <id>repo.jenkins-ci.org-snapshot</id>
-            <url>https://repo.jenkins-ci.org/snapshots/</url> <!-- TODO pending https://github.com/jenkinsci/maven-hpi-plugin/pull/46 -->
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </pluginRepository>
     </pluginRepositories>
     <properties>
         <jenkins.version>1.642.3</jenkins.version>
         <no-test-jar>false</no-test-jar>
-        <hpi-plugin.version>1.121-SNAPSHOT</hpi-plugin.version> <!-- TODO pending https://github.com/jenkinsci/maven-hpi-plugin/pull/46 -->
+        <hpi-plugin.version>1.121-20161207.210916-1</hpi-plugin.version> <!-- TODO pending https://github.com/jenkinsci/maven-hpi-plugin/pull/46 -->
         <enforcer.fail>false</enforcer.fail> <!-- TODO ditto -->
     </properties>
     <dependencies>
