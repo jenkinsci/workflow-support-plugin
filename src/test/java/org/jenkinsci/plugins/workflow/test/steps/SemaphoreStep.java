@@ -151,10 +151,11 @@ public final class SemaphoreStep extends AbstractStepImpl implements Serializabl
     public static class Execution extends AbstractStepExecutionImpl {
 
         @Inject(optional=true) private SemaphoreStep step;
+        private String k;
 
         @Override public boolean start() throws Exception {
             State s = State.get();
-            String k = step.k();
+            k = step.k();
             boolean sync = true;
             if (s.returnValues.containsKey(k)) {
                 System.err.println("Immediately running " + k);
@@ -176,8 +177,12 @@ public final class SemaphoreStep extends AbstractStepImpl implements Serializabl
 
         @Override public void stop(Throwable cause) {
             State s = State.get();
-            s.contexts.remove(step.k());
+            s.contexts.remove(k);
             getContext().onFailure(cause);
+        }
+
+        @Override public String getStatus() {
+            return State.get().contexts.containsKey(k) ? "waiting on " + k : "finished " + k;
         }
 
         private static final long serialVersionUID = 1L;
