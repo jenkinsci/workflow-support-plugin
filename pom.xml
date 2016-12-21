@@ -79,7 +79,7 @@
         <dependency>
             <groupId>com.github.jglick</groupId> <!-- TODO pending https://github.com/jenkinsci/workflow-api-plugin/pull/17 -->
             <artifactId>workflow-api-plugin</artifactId>
-            <version>99f1c51</version>
+            <version>ea218b9</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>

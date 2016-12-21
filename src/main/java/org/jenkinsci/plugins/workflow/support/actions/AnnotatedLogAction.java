@@ -94,7 +94,7 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
      */
     @Override public AnnotatedLargeText<? extends FlowNode> getLogText() {
         ByteBuffer buf = new ByteBuffer();
-        try (InputStream whole = node.getExecution().getOwner().getLog(); InputStream wholeBuffered = new BufferedInputStream(whole)) {
+        try (InputStream whole = node.getExecution().getOwner().getLog(0); InputStream wholeBuffered = new BufferedInputStream(whole)) {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             byte[] prefix = prefix(node);
             READ: while (true) {
@@ -148,7 +148,7 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
     @Restricted(NoExternalUse.class) // for use from DefaultStepContext only
     public static @Nonnull TaskListener listenerFor(@Nonnull FlowNode node, @CheckForNull ConsoleLogFilter filter) throws IOException, InterruptedException {
         FlowExecutionOwner owner = node.getExecution().getOwner();
-        if (Util.isOverridden(FlowExecutionOwner.class, owner.getClass(), "getLog")) {
+        if (Util.isOverridden(FlowExecutionOwner.class, owner.getClass(), "getLog", long.class)) {
             return decorate(owner.getListener(), filter, node);
         } else { // old WorkflowRun which uses copyLogs
             return LogActionImpl.stream(node, filter);
