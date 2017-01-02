@@ -162,6 +162,11 @@ public final class RunWrapper implements Serializable {
     }
 
     @Whitelisted
+    public List<String> getLog(int maxLines) throws IOException {
+        return build().getLog(maxLines);
+    }
+
+    @Whitelisted
     public @CheckForNull RunWrapper getPreviousBuild() throws AbortException {
         Run<?,?> previousBuild = build().getPreviousBuild();
         return previousBuild != null ? new RunWrapper(previousBuild, false) : null;
