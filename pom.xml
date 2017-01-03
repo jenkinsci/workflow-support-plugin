@@ -54,10 +54,6 @@
             <id>repo.jenkins-ci.org</id>
             <url>https://repo.jenkins-ci.org/public/</url>
         </repository>
-        <repository> <!-- TODO as below -->
-            <id>jitpack.io</id>
-            <url>https://jitpack.io</url>
-        </repository>
     </repositories>
     <pluginRepositories>
         <pluginRepository>
@@ -68,7 +64,6 @@
     <properties>
         <jenkins.version>1.642.3</jenkins.version>
         <no-test-jar>false</no-test-jar>
-        <hpi-plugin.version>1.121</hpi-plugin.version>
     </properties>
     <dependencies>
         <dependency>
@@ -77,9 +72,9 @@
             <version>2.4</version>
         </dependency>
         <dependency>
-            <groupId>com.github.jglick</groupId> <!-- TODO pending https://github.com/jenkinsci/workflow-api-plugin/pull/17 -->
-            <artifactId>workflow-api-plugin</artifactId>
-            <version>ea218b9</version>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-api</artifactId>
+            <version>2.9-20170103.203634-1</version> <!-- TODO pending https://github.com/jenkinsci/workflow-api-plugin/pull/17 -->
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
