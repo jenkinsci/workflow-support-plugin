@@ -37,6 +37,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -215,13 +216,14 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
         @SuppressWarnings("deprecation")
         @Override public PrintStream getLogger() {
             if (logger == null) {
-                final PrintStream initial = delegate.getLogger();
+                final OutputStream initial = new BufferedOutputStream(delegate.getLogger());
                 // We apply the prefix and any filter in this order, since the filter should not be able to mangle or hide node prefixes.
                 OutputStream decorated = new LineTransformationOutputStream() {
                     @Override protected void eol(byte[] b, int len) throws IOException {
                         synchronized (initial) { // to match .println etc.
                             initial.write(prefix);
                             initial.write(b, 0, len);
+                            initial.flush();
                         }
                     }
                 };
