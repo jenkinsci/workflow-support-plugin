@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.support.actions;
 
+import com.google.common.base.Predicates;
 import com.google.common.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Util;
@@ -54,7 +55,9 @@ import org.apache.commons.jelly.XMLOutput;
 import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
 import org.jenkinsci.plugins.workflow.actions.LogAction;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
+import org.jenkinsci.plugins.workflow.graph.BlockStartNode;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.graphanalysis.LinearBlockHoppingScanner;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -77,6 +80,9 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
     public transient FlowNode node;
 
     private AnnotatedLogAction(FlowNode node) {
+        if (!isRunning(node)) {
+            throw new IllegalStateException("cannot start writing logs to a finished node " + node);
+        }
         this.node = node;
     }
 
@@ -124,7 +130,7 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
         } catch (IOException x) {
             LOGGER.log(Level.WARNING, null, x);
         }
-        return new AnnotatedLargeText<>(buf, StandardCharsets.UTF_8, !node.isRunning(), node);
+        return new AnnotatedLargeText<>(buf, StandardCharsets.UTF_8, !isRunning(node), node);
     }
 
     // TODO probably need an API method in LogAction to obtain all log text from a block node and descendants (e.g., a parallel branch)
@@ -166,6 +172,23 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
         byte[] prefix = prefix(node);
         return new DecoratedTaskListener(raw, filter, prefix);
     }
+
+    /**
+     * Unlike {@link FlowNode#isRunning}, handles {@link BlockStartNode}s.
+     */
+    private static boolean isRunning(FlowNode node) {
+        if (node instanceof BlockStartNode) {
+            for (FlowNode head : node.getExecution().getCurrentHeads()) {
+                if (new LinearBlockHoppingScanner().findFirstMatch(head, Predicates.equalTo(node)) != null) {
+                    return true;
+                }
+            }
+            return false;
+        } else {
+            return node.isRunning();
+        }
+    }
+
     private static class DecoratedTaskListener extends LessAbstractTaskListener {
         private static final long serialVersionUID = 1;
         /**
