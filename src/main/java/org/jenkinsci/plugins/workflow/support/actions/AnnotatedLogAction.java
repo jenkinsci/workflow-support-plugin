@@ -36,9 +36,9 @@ import hudson.console.LineTransformationOutputStream;
 import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.util.ByteArrayOutputStream2;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -102,7 +102,7 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
     @Override public AnnotatedLargeText<? extends FlowNode> getLogText() {
         ByteBuffer buf = new ByteBuffer();
         try (InputStream whole = node.getExecution().getOwner().getLog(0); InputStream wholeBuffered = new BufferedInputStream(whole)) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ByteArrayOutputStream2 baos = new ByteArrayOutputStream2();
             byte[] prefix = prefix(node);
             READ: while (true) {
                 int c = wholeBuffered.read();
@@ -111,18 +111,19 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
                 }
                 baos.write(c);
                 if (c == '\n') {
-                    byte[] line = baos.toByteArray(); // TODO find a more efficient way to do this; ByteBufferInput?
-                    if (line.length >= prefix.length) {
+                    byte[] linebuf = baos.getBuffer();
+                    int len = baos.size();
+                    if (len >= prefix.length) {
                         boolean matches = true;
                         for (int i = 0; i < prefix.length; i++) {
-                            if (line[i] != prefix[i]) {
+                            if (linebuf[i] != prefix[i]) {
                                 matches = false;
                                 break;
                             }
                         }
                         if (matches) {
                             // This line in fact belongs to our node, so copy it out.
-                            buf.write(line, prefix.length, line.length - prefix.length);
+                            buf.write(linebuf, prefix.length, len - prefix.length);
                         }
                     }
                     baos.reset();
@@ -254,7 +255,7 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
      */
     public static void strip(InputStream decorated, OutputStream stripped) throws IOException {
         InputStream buffered = new BufferedInputStream(decorated);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ByteArrayOutputStream2 baos = new ByteArrayOutputStream2();
         READ:
         while (true) {
             int c = buffered.read();
@@ -263,12 +264,14 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
             }
             baos.write(c);
             if (c == '\n') {
-                byte[] line = baos.toByteArray(); // TODO as above
-                int idx = Bytes.indexOf(line, INFIX);
-                if (idx == -1) {
-                    stripped.write(line);
+                byte[] buf = baos.getBuffer();
+                int len = baos.size();
+                int idx = Bytes.indexOf(buf, INFIX);
+                int restLen = len - idx - INFIX.length;
+                if (idx == -1 || /* would be nice if indexOf took a bound */ restLen < 0) {
+                    stripped.write(buf, 0, len);
                 } else {
-                    stripped.write(line, idx + INFIX.length, line.length - idx - INFIX.length);
+                    stripped.write(buf, idx + INFIX.length, restLen);
                 }
                 baos.reset();
             }
