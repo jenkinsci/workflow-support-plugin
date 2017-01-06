@@ -92,7 +92,11 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
     }
 
     private static byte[] prefix(FlowNode node) {
-        return (node.getId() + NODE_ID_SEP).getBytes(StandardCharsets.UTF_8);
+        return prefix(node.getId());
+    }
+
+    private static byte[] prefix(String id) {
+        return (id + NODE_ID_SEP).getBytes(StandardCharsets.UTF_8);
     }
 
     /**
@@ -173,6 +177,11 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
         }
         byte[] prefix = prefix(node);
         return new DecoratedTaskListener(raw, filter, prefix);
+    }
+
+    /** For testing. */
+    static @Nonnull TaskListener decorate(@Nonnull TaskListener raw, @Nonnull String id) {
+        return new DecoratedTaskListener(raw, null, prefix(id));
     }
 
     /**
@@ -286,6 +295,7 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
     }
     private static class NodeConsoleAnnotationOutputStream<T> extends ConsoleAnnotationOutputStream<T> {
         private final Writer out;
+        private String currentId;
         NodeConsoleAnnotationOutputStream(Writer out, ConsoleAnnotator<? super T> ann, T context) {
             super(out, ann, context, StandardCharsets.UTF_8);
             this.out = out;
@@ -296,35 +306,21 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction {
             int idx = Bytes.indexOf(in, INFIX);
             if (idx != -1) {
                 id = new String(in, 0, idx, StandardCharsets.UTF_8);
-                out.write("<span class=\"pipeline-node-" + id + "\">");
+                if (!id.equals(currentId)) {
+                    if (currentId != null) {
+                        out.write("</span>");
+                    }
+                    out.write("<span class=\"pipeline-node-" + id + "\">");
+                }
                 int skip = idx + INFIX.length;
                 in = Arrays.copyOfRange(in, skip, sz);
                 sz -= skip;
                 assert sz >= 0 && sz <= in.length;
-            }
-            /* Produces more natural-looking output (MarkupText excludes NL) but is makes it impossible to specify display: none to hide a line (there will still be vertical whitespace):
-            int eol = sz;
-            while (eol > 0) {
-                byte c = in[eol - 1];
-                if (c == '\n' || c == '\r') {
-                    eol--;
-                } else {
-                    break;
-                }
-            }
-            super.eol(in, eol);
-            if (id != null) {
+            } else if (currentId != null) {
                 out.write("</span>");
             }
-            for (int i = eol; i < sz; i++) {
-                out.write(in[i]);
-            }
-             */
             super.eol(in, sz);
-            if (id != null) {
-                out.write("</span>");
-            }
-            // TODO try to coalesce content, so that <span class="pipeline-node-123">+ echo hello\n</span><span class="pipeline-node-123">hello\n</span> becomes <span class="pipeline-node-123">+ echo hello\nhello\n</span>
+            currentId = id;
         }
     }
 
