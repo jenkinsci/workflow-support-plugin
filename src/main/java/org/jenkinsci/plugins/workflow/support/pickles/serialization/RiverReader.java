@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.workflow.support.pickles.serialization;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.IOUtils;
 import org.jboss.marshalling.ChainingObjectResolver;
 import org.jboss.marshalling.Marshalling;
@@ -93,6 +94,7 @@ public class RiverReader implements Closeable {
         }
     };
 
+    @SuppressFBWarnings(value="MS_SHOULD_BE_FINAL", justification="intentionally not")
     @Restricted(NoExternalUse.class) // tests only
     public static @CheckForNull ObjectResolver customResolver = null;
 
