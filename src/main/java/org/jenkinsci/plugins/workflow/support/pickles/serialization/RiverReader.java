@@ -25,7 +25,9 @@
 package org.jenkinsci.plugins.workflow.support.pickles.serialization;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.IOUtils;
 import org.jboss.marshalling.ChainingObjectResolver;
 import org.jboss.marshalling.Marshalling;
@@ -50,8 +52,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.CheckForNull;
 
 import static org.apache.commons.io.IOUtils.*;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Reads program data file that stores the object graph of the CPS-transformed program.
@@ -88,6 +93,10 @@ public class RiverReader implements Closeable {
             throw new IllegalStateException();
         }
     };
+
+    @SuppressFBWarnings(value="MS_SHOULD_BE_FINAL", justification="intentionally not")
+    @Restricted(NoExternalUse.class) // tests only
+    public static @CheckForNull ObjectResolver customResolver = null;
 
     private InputStream in;
 
@@ -155,7 +164,7 @@ public class RiverReader implements Closeable {
         try {
             MarshallingConfiguration config = new MarshallingConfiguration();
             config.setClassResolver(new SimpleClassResolver(classLoader));
-            config.setObjectResolver(ownerResolver);
+            config.setObjectResolver(combine(ownerResolver));
             Unmarshaller eu = new RiverMarshallerFactory().createUnmarshaller(config);
             try {
                 eu.start(Marshalling.createByteInput(es));
@@ -177,7 +186,11 @@ public class RiverReader implements Closeable {
     }
 
     private ObjectResolver combine(ObjectResolver... resolvers) {
-        return new ChainingObjectResolver(resolvers);
+        List<ObjectResolver> _resolvers = Lists.newArrayList(resolvers);
+        if (customResolver != null) {
+            _resolvers.add(0, customResolver);
+        }
+        return _resolvers.size() == 1 ? _resolvers.get(0) : new ChainingObjectResolver(_resolvers);
     }
 
     @Override public void close() {
