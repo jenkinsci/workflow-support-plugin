@@ -170,7 +170,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-scm-step</artifactId>
-            <version>2.3</version>
+            <version>2.4-20170224.221458-1</version> <!-- TODO https://github.com/jenkinsci/workflow-scm-step-plugin/pull/13 -->
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
