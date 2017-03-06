@@ -122,6 +122,12 @@ public final class RunWrapper implements Serializable {
     }
 
     @Whitelisted
+    public @Nonnull String getCurrentResult() throws AbortException {
+        Result result = build().getResult();
+        return result != null ? result.toString() : Result.SUCCESS.toString();
+    }
+
+    @Whitelisted
     public long getTimeInMillis() throws AbortException {
         return build().getTimeInMillis();
     }
