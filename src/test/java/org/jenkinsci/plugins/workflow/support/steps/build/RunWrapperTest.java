@@ -69,7 +69,7 @@ public class RunWrapperTest {
                 WorkflowRun b2 = p.scheduleBuild2(0).getStartCondition().get();
                 SemaphoreStep.success("basics/2", null);
                 SemaphoreStep.waitForStart("basics/3", b2);
-                r.j.waitForMessage("number=2 result=null", b2);
+                r.j.waitForMessage("number=2 result=SUCCESS", b2);
                 r.j.assertLogNotContains("number=1", b2);
             }
         });
