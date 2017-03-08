@@ -65,7 +65,7 @@ public class RunWrapperTest {
                     "}", true));
                 SemaphoreStep.success("basics/1", null);
                 WorkflowRun b1 = r.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
-                r.j.assertLogContains("number=1 result=null", b1);
+                r.j.assertLogContains("number=1 result=SUCCESS", b1);
                 WorkflowRun b2 = p.scheduleBuild2(0).getStartCondition().get();
                 SemaphoreStep.success("basics/2", null);
                 SemaphoreStep.waitForStart("basics/3", b2);
@@ -167,19 +167,18 @@ public class RunWrapperTest {
     }
 
     @Issue("JENKINS-37366")
-    @Test public void getCurrentResult() {
+    @Test public void getResultDefault() {
         r.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {
-                MockFolder folder = r.j.createFolder("this-folder");
-                WorkflowJob p = folder.createProject(WorkflowJob.class, "current-result-job");
+                WorkflowJob p = r.j.createProject(WorkflowJob.class, "default-result-job");
                 p.setDefinition(new CpsFlowDefinition(
-                        "echo \"initial currentBuild.currentResult='${currentBuild.currentResult}'\"\n" +
+                        "echo \"initial currentBuild.result='${currentBuild.result}'\"\n" +
                         "currentBuild.result = 'UNSTABLE'\n" +
-                        "echo \"final currentBuild.currentResult='${currentBuild.currentResult}'\"\n",
+                        "echo \"final currentBuild.result='${currentBuild.result}'\"\n",
                         true));
                 WorkflowRun b = r.j.assertBuildStatus(Result.UNSTABLE, p.scheduleBuild2(0).get());
-                r.j.assertLogContains("initial currentBuild.currentResult='" + Result.SUCCESS.toString() + "'", b);
-                r.j.assertLogContains("final currentBuild.currentResult='" + Result.UNSTABLE.toString() + "'", b);
+                r.j.assertLogContains("initial currentBuild.result='" + Result.SUCCESS.toString() + "'", b);
+                r.j.assertLogContains("final currentBuild.result='" + Result.UNSTABLE.toString() + "'", b);
             }
         });
     }
