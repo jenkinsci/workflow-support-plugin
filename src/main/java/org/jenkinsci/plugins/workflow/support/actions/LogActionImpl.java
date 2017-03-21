@@ -152,13 +152,16 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
      * (for example by calling {@link StepContext#get} on demand rather than by using {@link StepContextParameter}).
      */
     private static boolean isRunning(FlowNode node) {
+        if (node.isRunning()) {
+            return true;
+        }
         if (node instanceof BlockStartNode) {
             // Block start is considered running if currently executing nodes are part of the block
             List<FlowNode> headNodes = node.getExecution().getCurrentHeads();
             AbstractFlowScanner scanner = (headNodes.size() > 1) ? new DepthFirstScanner() : new LinearBlockHoppingScanner();
-            return (scanner.findFirstMatch(headNodes, Predicates.equalTo(node)) != null) ? true : false;
+            return scanner.findFirstMatch(headNodes, Predicates.equalTo(node)) != null;
         } else {
-            return node.isRunning();
+            return false;
         }
     }
 
