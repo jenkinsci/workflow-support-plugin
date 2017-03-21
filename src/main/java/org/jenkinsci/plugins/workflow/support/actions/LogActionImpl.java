@@ -155,7 +155,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
         if (node instanceof BlockStartNode) {
             // Block start is considered running if currently executing nodes are part of the block
             List<FlowNode> headNodes = node.getExecution().getCurrentHeads();
-            AbstractFlowScanner scanner = (headNodes.size() > 1) ? new DepthFirstScanner() : new LinearScanner();
+            AbstractFlowScanner scanner = (headNodes.size() > 1) ? new DepthFirstScanner() : new LinearBlockHoppingScanner();
             return (scanner.findFirstMatch(headNodes, Predicates.equalTo(node)) != null) ? true : false;
         } else {
             return node.isRunning();
