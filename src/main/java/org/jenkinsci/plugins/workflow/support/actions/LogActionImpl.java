@@ -51,6 +51,7 @@ import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.flow.GraphListener;
 import org.jenkinsci.plugins.workflow.graph.BlockStartNode;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
 import org.jenkinsci.plugins.workflow.graphanalysis.LinearBlockHoppingScanner;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
@@ -149,12 +150,9 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
      */
     private static boolean isRunning(FlowNode node) {
         if (node instanceof BlockStartNode) {
-            for (FlowNode head : node.getExecution().getCurrentHeads()) {
-                if (new LinearBlockHoppingScanner().findFirstMatch(head, Predicates.equalTo(node)) != null) {
-                    return true;
-                }
-            }
-            return false;
+            // Block start is considered running if currently executing nodes are part of the block
+            DepthFirstScanner scanner = new DepthFirstScanner();
+            return (scanner.findFirstMatch(node.getExecution().getCurrentHeads(), Predicates.equalTo(node)) != null) ? true : false;
         } else {
             return node.isRunning();
         }
