@@ -118,6 +118,12 @@ public final class RunWrapper implements Serializable {
     @Whitelisted
     public @CheckForNull String getResult() throws AbortException {
         Result result = build().getResult();
+        return result != null ? result.toString() : null;
+    }
+
+    @Whitelisted
+    public @Nonnull String getCurrentResult() throws AbortException {
+        Result result = build().getResult();
         return result != null ? result.toString() : Result.SUCCESS.toString();
     }
 
