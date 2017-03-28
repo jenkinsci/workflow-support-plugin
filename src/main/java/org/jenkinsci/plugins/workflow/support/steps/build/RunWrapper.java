@@ -128,6 +128,20 @@ public final class RunWrapper implements Serializable {
     }
 
     @Whitelisted
+    public boolean resultIsBetterOrEqualTo(String other) throws AbortException {
+        Result result = build().getResult() != null ? build().getResult() : Result.SUCCESS;
+        Result otherResult = Result.fromString(other);
+        return result.isBetterOrEqualTo(otherResult);
+    }
+
+    @Whitelisted
+    public boolean resultIsWorseOrEqualTo(String other) throws AbortException {
+        Result result = build().getResult() != null ? build().getResult() : Result.SUCCESS;
+        Result otherResult = Result.fromString(other);
+        return result.isWorseOrEqualTo(otherResult);
+    }
+
+    @Whitelisted
     public long getTimeInMillis() throws AbortException {
         return build().getTimeInMillis();
     }
