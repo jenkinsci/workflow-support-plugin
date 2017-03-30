@@ -1,6 +1,9 @@
 <dl>
     <dt><code>number</code></dt><dd>build number (integer)</dd>
     <dt><code>result</code></dt><dd>typically <code>SUCCESS</code>, <code>UNSTABLE</code>, or <code>FAILURE</code> (<em>may</em> be null for an ongoing build)</dd>
+    <dt><code>currentResult</code></dt><dd>typically <code>SUCCESS</code>, <code>UNSTABLE</code>, or <code>FAILURE</code>. Will never be null.</dd>
+    <dt><code>resultIsBetterOrEqualTo(String)</code></dt><dd>Compares the current build result to the provided result string (<code>SUCCESS</code>, <code>UNSTABLE</code>, or <code>FAILURE</code>) and returns true if the current build result is better than or equal to the provided result.</dd>
+    <dt><code>resultIsWorseOrEqualTo(String)</code></dt><dd>Compares the current build result to the provided result string (<code>SUCCESS</code>, <code>UNSTABLE</code>, or <code>FAILURE</code>) and returns true if the current build result is worse than or equal to the provided result.</dd>
     <dt><code>displayName</code></dt><dd>normally <code>#123</code> but sometimes set to, e.g., an SCM commit identifier</dd>
     <dt><code>description</code></dt><dd>additional information about the build</dd>
     <dt><code>id</code></dt><dd>normally <code>number</code> as a string</dd>
