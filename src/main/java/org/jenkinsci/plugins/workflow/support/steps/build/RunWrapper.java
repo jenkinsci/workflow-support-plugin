@@ -159,7 +159,12 @@ public final class RunWrapper implements Serializable {
 
     @Whitelisted
     public long getDuration() throws AbortException {
-	 return build().getDuration();
+	 return build().getDuration() != 0 ? build().getDuration() : System.currentTimeMillis() - build().getStartTimeInMillis();
+    }
+
+    @Whitelisted
+    public String getDurationString() throws AbortException {
+        return build().getDurationString();
     }
 
     @Whitelisted

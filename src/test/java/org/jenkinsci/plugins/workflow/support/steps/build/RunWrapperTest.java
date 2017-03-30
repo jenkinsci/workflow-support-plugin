@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.support.steps.build;
 
+import hudson.model.Messages;
 import hudson.model.Result;
 import java.util.regex.Pattern;
 import jenkins.plugins.git.GitSampleRepoRule;
@@ -165,6 +166,22 @@ public class RunWrapperTest {
             }
         });
     }
+
+    @Issue("JENKINS-42952")
+    @Test public void duration() {
+        r.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = r.j.createProject(WorkflowJob.class, "this-job");
+                p.setDefinition(new CpsFlowDefinition(
+                        "echo \"currentBuild.duration='${currentBuild.duration}'\"\n" +
+                                "echo \"currentBuild.durationString='${currentBuild.durationString}'\"\n", true));
+                WorkflowRun b = r.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+                r.j.assertLogNotContains("currentBuild.duration='0'", b);
+                r.j.assertLogNotContains("currentBuild.durationString='" + Messages.Run_NotStartedYet() + "'", b);
+            }
+        });
+    }
+
 
     @Issue("JENKINS-37366")
     @Test public void getCurrentResult() {
