@@ -182,6 +182,29 @@ public class RunWrapperTest {
         });
     }
 
+
+    @Issue("JENKINS-37366")
+    @Test public void getCurrentResult() {
+        r.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                MockFolder folder = r.j.createFolder("this-folder");
+                WorkflowJob p = folder.createProject(WorkflowJob.class, "current-result-job");
+                p.setDefinition(new CpsFlowDefinition(
+                        "echo \"initial currentBuild.currentResult='${currentBuild.currentResult}'\"\n" +
+                        "currentBuild.result = 'UNSTABLE'\n" +
+                        "echo \"final currentBuild.currentResult='${currentBuild.currentResult}'\"\n" +
+                        "echo \"resultIsBetterOrEqualTo FAILURE: ${currentBuild.resultIsBetterOrEqualTo('FAILURE')}\"\n" +
+                        "echo \"resultIsWorseOrEqualTo SUCCESS: ${currentBuild.resultIsWorseOrEqualTo('SUCCESS')}\"\n",
+                        true));
+                WorkflowRun b = r.j.assertBuildStatus(Result.UNSTABLE, p.scheduleBuild2(0).get());
+                r.j.assertLogContains("initial currentBuild.currentResult='" + Result.SUCCESS.toString() + "'", b);
+                r.j.assertLogContains("final currentBuild.currentResult='" + Result.UNSTABLE.toString() + "'", b);
+                r.j.assertLogContains("resultIsBetterOrEqualTo FAILURE: true", b);
+                r.j.assertLogContains("resultIsWorseOrEqualTo SUCCESS: true", b);
+            }
+        });
+    }
+
     // Like org.hamcrest.text.MatchesPattern.matchesPattern(String) but doing a substring, not whole-string, match:
     private static Matcher<String> containsRegexp(final String rx) {
         return new SubstringMatcher(rx) {

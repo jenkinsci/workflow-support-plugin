@@ -39,6 +39,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -51,7 +52,10 @@ import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.flow.GraphListener;
 import org.jenkinsci.plugins.workflow.graph.BlockStartNode;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.graphanalysis.AbstractFlowScanner;
+import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
 import org.jenkinsci.plugins.workflow.graphanalysis.LinearBlockHoppingScanner;
+import org.jenkinsci.plugins.workflow.graphanalysis.LinearScanner;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import org.kohsuke.accmod.Restricted;
@@ -148,15 +152,16 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
      * (for example by calling {@link StepContext#get} on demand rather than by using {@link StepContextParameter}).
      */
     private static boolean isRunning(FlowNode node) {
+        if (node.isRunning()) {
+            return true;
+        }
         if (node instanceof BlockStartNode) {
-            for (FlowNode head : node.getExecution().getCurrentHeads()) {
-                if (new LinearBlockHoppingScanner().findFirstMatch(head, Predicates.equalTo(node)) != null) {
-                    return true;
-                }
-            }
-            return false;
+            // Block start is considered running if currently executing nodes are part of the block
+            List<FlowNode> headNodes = node.getExecution().getCurrentHeads();
+            AbstractFlowScanner scanner = (headNodes.size() > 1) ? new DepthFirstScanner() : new LinearBlockHoppingScanner();
+            return scanner.findFirstMatch(headNodes, Predicates.equalTo(node)) != null;
         } else {
-            return node.isRunning();
+            return false;
         }
     }
 

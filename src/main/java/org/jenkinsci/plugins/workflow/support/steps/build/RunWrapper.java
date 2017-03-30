@@ -122,6 +122,32 @@ public final class RunWrapper implements Serializable {
     }
 
     @Whitelisted
+    public @Nonnull String getCurrentResult() throws AbortException {
+        Result result = build().getResult();
+        return result != null ? result.toString() : Result.SUCCESS.toString();
+    }
+
+    @Whitelisted
+    public boolean resultIsBetterOrEqualTo(String other) throws AbortException {
+        Result result = build().getResult();
+        if (result == null) {
+            result = Result.SUCCESS;
+        }
+        Result otherResult = Result.fromString(other);
+        return result.isBetterOrEqualTo(otherResult);
+    }
+
+    @Whitelisted
+    public boolean resultIsWorseOrEqualTo(String other) throws AbortException {
+        Result result = build().getResult();
+        if (result == null) {
+            result = Result.SUCCESS;
+        }
+        Result otherResult = Result.fromString(other);
+        return result.isWorseOrEqualTo(otherResult);
+    }
+
+    @Whitelisted
     public long getTimeInMillis() throws AbortException {
         return build().getTimeInMillis();
     }
