@@ -37,10 +37,13 @@ import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.workflow.actions.TimingAction;
+import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
+import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -153,7 +156,14 @@ public final class SemaphoreStep extends AbstractStepImpl implements Serializabl
         @Inject(optional=true) private SemaphoreStep step;
         private String k;
 
+        @StepContextParameter
+        private transient FlowNode node;
+
         @Override public boolean start() throws Exception {
+            // Because
+            if (node.getAction(TimingAction.class) == null) {
+                node.addAction(new TimingAction());
+            }
             State s = State.get();
             k = step.k();
             boolean sync = true;
