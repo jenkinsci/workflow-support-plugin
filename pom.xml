@@ -65,12 +65,14 @@
         <jenkins.version>1.642.3</jenkins.version>
         <no-test-jar>false</no-test-jar>
         <git-plugin.version>3.0.5</git-plugin.version>
+        <workflow-scm-step-plugin.version>2.4</workflow-scm-step-plugin.version>
+        <workflow-step-api-plugin.version>2.10</workflow-step-api-plugin.version>
     </properties>
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-step-api</artifactId>
-            <version>2.9</version>
+            <version>${workflow-step-api-plugin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -96,7 +98,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-step-api</artifactId>
-            <version>2.9</version>
+            <version>${workflow-step-api-plugin.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
@@ -133,7 +135,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-scm-step</artifactId>
-            <version>2.3</version>
+            <version>${workflow-scm-step-plugin.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -170,7 +172,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-scm-step</artifactId>
-            <version>2.4</version>
+            <version>${workflow-scm-step-plugin.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
