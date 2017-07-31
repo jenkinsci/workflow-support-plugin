@@ -28,7 +28,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>2.30</version>
+        <version>2.31</version>
         <relativePath />
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -65,17 +65,19 @@
         <jenkins.version>1.642.3</jenkins.version>
         <no-test-jar>false</no-test-jar>
         <git-plugin.version>3.0.5</git-plugin.version>
+        <workflow-scm-step-plugin.version>2.4</workflow-scm-step-plugin.version>
+        <workflow-step-api-plugin.version>2.10</workflow-step-api-plugin.version>
     </properties>
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-step-api</artifactId>
-            <version>2.9</version>
+            <version>${workflow-step-api-plugin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-api</artifactId>
-            <version>2.20-20170727.220207-1</version> <!-- TODO https://github.com/jenkinsci/workflow-api-plugin/pull/45 -->
+            <version>2.20-20170731.163505-3</version> <!-- TODO https://github.com/jenkinsci/workflow-api-plugin/pull/45 -->
             <exclusions>
                 <exclusion>
                     <groupId>org.jenkins-ci.plugins</groupId>
@@ -96,7 +98,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-step-api</artifactId>
-            <version>2.9</version>
+            <version>${workflow-step-api-plugin.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
@@ -115,7 +117,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>structs</artifactId>
-            <version>1.6</version>
+            <version>1.10-20170731.160029-1</version> <!-- TODO https://github.com/jenkinsci/structs-plugin/pull/27 -->
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -133,7 +135,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-scm-step</artifactId>
-            <version>2.3</version>
+            <version>${workflow-scm-step-plugin.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -159,6 +161,12 @@
             <artifactId>git</artifactId>
             <version>${git-plugin.version}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion> <!-- git-client pulls in a newer version than core bundles -->
+                    <groupId>commons-codec</groupId>
+                    <artifactId>commons-codec</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -170,7 +178,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-scm-step</artifactId>
-            <version>2.4</version>
+            <version>${workflow-scm-step-plugin.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
