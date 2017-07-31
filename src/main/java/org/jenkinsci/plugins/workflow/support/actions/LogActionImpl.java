@@ -102,7 +102,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
 
     private LogActionImpl(FlowNode parent, Charset charset) {
         if (!parent.isActive()) {
-            throw new IllegalStateException("cannot start writing logs to a finished node " + parent);
+            LOGGER.log(Level.WARNING, null, new IllegalStateException("cannot start writing logs to a finished node " + parent + " " + parent.getDisplayFunctionName() + " in " + parent.getExecution()));
         }
         this.parent = parent;
         this.charset = charset.name();
