@@ -58,7 +58,7 @@ public class LogActionImplTest {
         r.assertLogContains("atom step in A with 1 commands to go", b);
         r.assertLogContains("logging from LBBL with 0 commands to go", b);
         r.assertLogContains("atom step in B with 1 commands to go", b);
-        /* TODO misuse of FlowNode.isRunning in WorkflowRun.copyLogs prevents this from appearing unless we access TaskListener from start(); should be fixed by JENKINS-38381:
+        /* TODO misuse of FlowNode.isRunning in WorkflowRun.copyLogs prevents this from appearing unless we access TaskListener from start(); should be fixed by JENKINS-38381, or by switching to isActive:
         r.assertLogContains("logging from BL with 0 commands to go", b);
         */
     }

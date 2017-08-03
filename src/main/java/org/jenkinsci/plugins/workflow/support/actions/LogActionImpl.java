@@ -120,8 +120,6 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
             if (!log.exists()) {
                 return new AnnotatedLargeText<>(new ByteBuffer(), getCharset(), !parent.isActive(), parent);
             }
-            // Note that WorkflowRun.copyLogs will still currently refuse to consider steps
-            // which fail to obtain a TaskListener prior to invoking their body.
             return new AnnotatedLargeText<>(log, getCharset(), !parent.isActive(), parent);
         } catch (IOException e) {
             ByteBuffer buf = new ByteBuffer();
