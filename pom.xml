@@ -116,7 +116,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>structs</artifactId>
-            <version>1.10-20170731.160029-1</version> <!-- TODO https://github.com/jenkinsci/structs-plugin/pull/27 -->
+            <version>1.10</version>
             <scope>test</scope>
         </dependency>
         <dependency>
