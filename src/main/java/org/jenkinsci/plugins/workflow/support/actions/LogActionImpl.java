@@ -100,9 +100,9 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
     private transient volatile File log;
     private String charset;
 
-    private LogActionImpl(FlowNode parent, Charset charset) {
+    private LogActionImpl(FlowNode parent, Charset charset) throws IOException {
         if (!parent.isActive()) {
-            LOGGER.log(Level.WARNING, null, new IllegalStateException("cannot start writing logs to a finished node " + parent + " " + parent.getDisplayFunctionName() + " in " + parent.getExecution()));
+            throw new IOException("cannot start writing logs to a finished node " + parent + " " + parent.getDisplayFunctionName() + " in " + parent.getExecution());
         }
         this.parent = parent;
         this.charset = charset.name();
