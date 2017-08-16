@@ -224,12 +224,16 @@ public final class RunWrapper implements Serializable {
     }
 
     @Whitelisted
-    public List<ChangeLogSet<? extends ChangeLogSet.Entry>> getChangeSets() throws AbortException {
+    public List<ChangeLogSet<? extends ChangeLogSet.Entry>> getChangeSets() throws Exception {
         Run<?,?> build = build();
-        if (build instanceof RunWithSCM) {
+        if (build instanceof RunWithSCM) { // typical cases
             return ((RunWithSCM<?, ?>) build).getChangeSets();
         } else {
-            return Collections.emptyList();
+            try { // to support WorkflowRun prior to workflow-job 2.12
+                return (List) build.getClass().getMethod("getChangeSets").invoke(build);
+            } catch (NoSuchMethodException x) { // something weird like ExternalRun
+                return Collections.emptyList();
+            }
         }
     }
 
