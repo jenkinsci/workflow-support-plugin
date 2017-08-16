@@ -30,6 +30,7 @@ import hudson.model.Result;
 import hudson.model.Run;
 import hudson.scm.ChangeLogSet;
 import hudson.security.ACL;
+import hudson.security.ACLContext;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
@@ -37,9 +38,7 @@ import java.util.List;
 import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
+import jenkins.scm.RunWithSCM;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.Whitelisted;
 import org.jenkinsci.plugins.workflow.support.actions.EnvironmentAction;
 
@@ -89,11 +88,8 @@ public final class RunWrapper implements Serializable {
             throw new SecurityException("can only set the description property on the current build");
         }
         // Even if the build is carrying a specific authentication, we want it to be allowed to update itself:
-        SecurityContext orig = ACL.impersonate(ACL.SYSTEM);
-        try {
+        try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
             build().setDescription(d);
-        } finally {
-            SecurityContextHolder.setContext(orig);
         }
     }
 
@@ -102,11 +98,8 @@ public final class RunWrapper implements Serializable {
         if (!currentBuild) {
             throw new SecurityException("can only set the displayName property on the current build");
         }
-        SecurityContext orig = ACL.impersonate(ACL.SYSTEM);
-        try {
+        try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
             build().setDisplayName(n);
-        } finally {
-            SecurityContextHolder.setContext(orig);
         }
     }
 
@@ -233,10 +226,14 @@ public final class RunWrapper implements Serializable {
     @Whitelisted
     public List<ChangeLogSet<? extends ChangeLogSet.Entry>> getChangeSets() throws Exception {
         Run<?,?> build = build();
-        try { // TODO JENKINS-24141 should not need to use reflection here
-            return (List) build.getClass().getMethod("getChangeSets").invoke(build);
-        } catch (NoSuchMethodException x) {
-            return Collections.emptyList();
+        if (build instanceof RunWithSCM) { // typical cases
+            return ((RunWithSCM<?, ?>) build).getChangeSets();
+        } else {
+            try { // to support WorkflowRun prior to workflow-job 2.12
+                return (List) build.getClass().getMethod("getChangeSets").invoke(build);
+            } catch (NoSuchMethodException x) { // something weird like ExternalRun
+                return Collections.emptyList();
+            }
         }
     }
 

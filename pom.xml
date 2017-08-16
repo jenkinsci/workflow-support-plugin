@@ -28,7 +28,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>2.30</version>
+        <version>2.33</version>
         <relativePath />
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -40,7 +40,7 @@
     <licenses>
         <license>
             <name>MIT License</name>
-            <url>http://opensource.org/licenses/MIT</url>
+            <url>https://opensource.org/licenses/MIT</url>
         </license>
     </licenses>
     <scm>
@@ -62,7 +62,7 @@
         </pluginRepository>
     </pluginRepositories>
     <properties>
-        <jenkins.version>1.642.3</jenkins.version>
+        <jenkins.version>2.60.2</jenkins.version>
         <no-test-jar>false</no-test-jar>
         <git-plugin.version>3.0.5</git-plugin.version>
         <workflow-scm-step-plugin.version>2.4</workflow-scm-step-plugin.version>
@@ -147,7 +147,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-job</artifactId>
-            <version>2.10</version>
+            <version>2.12.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -161,6 +161,12 @@
             <artifactId>git</artifactId>
             <version>${git-plugin.version}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-codec</groupId>
+                    <artifactId>commons-codec</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
