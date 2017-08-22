@@ -260,7 +260,7 @@ public class FlowGraphTable {
             if (act != null) {
                 this.startTimeMillis = act.getStartTime();
                 this.hasStartTime = true;
-                if (node.isRunning()) {
+                if (node.isActive()) {
                     this.durationMillis=System.currentTimeMillis()-this.startTimeMillis;
                     this.hasTiming = true;
                 }
