@@ -49,7 +49,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -70,6 +72,8 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         }
     });
 
+    private transient HashMap<String, FlowNode> deferredWrite = new HashMap<String, FlowNode>();
+
     public SimpleXStreamFlowNodeStorage(FlowExecution exec, File dir) {
         this.exec = exec;
         this.dir = dir;
@@ -79,6 +83,12 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     public FlowNode getNode(String id) throws IOException {
         // TODO according to Javadoc this should return null if !getNodeFile(id).isFile()
         try {
+            if (deferredWrite != null && deferredWrite.isEmpty() == false) {
+                FlowNode maybeOutput = deferredWrite.get(id);
+                if (maybeOutput != null) {
+                    return maybeOutput;
+                }
+            }
             return nodeCache.get(id);
         } catch (ExecutionException x) {
             throw new IOException(x); // could unwrap if necessary
@@ -87,10 +97,34 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
 
     @Override
     public void storeNode(FlowNode n) throws IOException {
-        nodeCache.put(n.getId(), n);
+        if (!n.isPersistent()) {
+            if (deferredWrite == null) {
+                deferredWrite = new HashMap<String, FlowNode>();
+            }
+            deferredWrite.put(n.getId(), n);
+        } else {
+            nodeCache.put(n.getId(), n);
+            XmlFile f = getNodeFile(n.getId());
+            if (!f.exists()) {
+                persistAllTheThings(n);
+            }
+        }
+    }
+
+    private void persistAllTheThings(FlowNode n) throws IOException {
         XmlFile f = getNodeFile(n.getId());
-        if (!f.exists()) {
-            f.write(new Tag(n, Collections.<Action>emptyList()));
+        f.write(new Tag(n, n.getActions()));
+    }
+
+    /** Force persisting any nodes that had writing deferred */
+    public void persistAll() throws IOException {
+        if (deferredWrite != null && deferredWrite.isEmpty() == false) {
+            Collection<FlowNode> toWrite = deferredWrite.values();
+            for (FlowNode f : toWrite) {
+                nodeCache.put(f.getId(), f);
+                persistAllTheThings(f);
+            }
+            deferredWrite.clear();
         }
     }
 
@@ -108,7 +142,12 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
      * Just stores this one node
      */
     public void saveActions(FlowNode node, List<Action> actions) throws IOException {
-        getNodeFile(node.getId()).write(new Tag(node,actions));
+        if (!node.isPersistent()) {
+            deferredWrite.put(node.getId(), node);
+        } else {
+            nodeCache.put(node.getId(), node);
+            persistAllTheThings(node);
+        }
     }
 
     private Tag load(String id) throws IOException {
