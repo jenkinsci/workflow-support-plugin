@@ -26,7 +26,6 @@ package org.jenkinsci.plugins.workflow.support.storage;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.google.common.cache.CacheBuilder;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
@@ -51,7 +50,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -161,8 +159,6 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     static {
         XSTREAM.registerConverter(new Converter() {
             private final RobustReflectionConverter ref = new RobustReflectionConverter(XSTREAM.getMapper(), JVM.newReflectionProvider());
-            // IdentityHashMap could leak memory. WeakHashMap compares by equals, which will fail with NPE in FlowNode.hashCode.
-            private final Map<FlowNode,String> ids = CacheBuilder.newBuilder().weakKeys().<FlowNode,String>build().asMap();
             @Override public boolean canConvert(Class type) {
                 return FlowNode.class.isAssignableFrom(type);
             }
@@ -172,7 +168,6 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
             @Override public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context) {
                 try {
                     FlowNode n = (FlowNode) ref.unmarshal(reader, context);
-                    ids.put(n, reader.getValue());
                     try {
                         @SuppressWarnings("unchecked") List<FlowNode> parents = (List<FlowNode>) FlowNode$parents.get(n);
                         if (parents != null) {
@@ -180,9 +175,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
                             assert parentIds == null;
                             parentIds = new ArrayList<String>(parents.size());
                             for (FlowNode parent : parents) {
-                                String id = ids.get(parent);
-                                assert id != null;
-                                parentIds.add(id);
+                                parentIds.add(parent.getId().intern());
                             }
                             FlowNode$parents.set(n, null);
                             FlowNode$parentIds.set(n, parentIds);
