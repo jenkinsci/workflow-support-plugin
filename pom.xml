@@ -66,10 +66,11 @@
         <no-test-jar>false</no-test-jar>
         <git-plugin.version>3.0.5</git-plugin.version>
         <workflow-scm-step-plugin.version>2.4</workflow-scm-step-plugin.version>
-        <workflow-step-api-plugin.version>2.13-deferactionwrite-SNAPSHOT</workflow-step-api-plugin.version>
+        <workflow-step-api-plugin.version>2.13-deferactionwrite2-20170901.210414-1</workflow-step-api-plugin.version>
     </properties>
     <dependencies>
         <dependency>
+            <!-- Temp version until https://github.com/jenkinsci/workflow-step-api-plugin/pull/29 gets released  -->
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-step-api</artifactId>
             <version>${workflow-step-api-plugin.version}</version>
@@ -77,7 +78,8 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-api</artifactId>
-            <version>2.21-deferactionwrite-SNAPSHOT</version> <!-- TODO https://github.com/jenkinsci/workflow-api-plugin/pull/45 -->
+            <!-- Temp version for https://github.com/jenkinsci/workflow-api-plugin/pull/49 -->
+            <version>2.21-deferactionwrite-20170901.212705-1</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
