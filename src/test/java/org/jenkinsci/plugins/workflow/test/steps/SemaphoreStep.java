@@ -175,10 +175,10 @@ public final class SemaphoreStep extends AbstractStepImpl implements Serializabl
             return sync;
         }
 
-        @Override public void stop(Throwable cause) {
+        @Override public void stop(Throwable cause) throws Exception {
             State s = State.get();
             s.contexts.remove(k);
-            getContext().onFailure(cause);
+            super.stop(cause);
         }
 
         @Override public String getStatus() {
