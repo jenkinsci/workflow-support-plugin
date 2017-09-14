@@ -24,18 +24,19 @@
 
 package org.jenkinsci.plugins.workflow.support.actions;
 
-import com.google.inject.Inject;
 import hudson.EnvVars;
 import hudson.model.TaskListener;
+import java.util.Collections;
 import java.util.LinkedList;
+import java.util.Set;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
-import org.jenkinsci.plugins.workflow.steps.AbstractStepImpl;
 import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
+import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
+import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
+import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.Rule;
@@ -58,27 +59,30 @@ public class LogActionImplTest {
         r.assertLogContains("atom step in A with 1 commands to go", b);
         r.assertLogContains("logging from LBBL with 0 commands to go", b);
         r.assertLogContains("atom step in B with 1 commands to go", b);
-        /* TODO misuse of FlowNode.isRunning in WorkflowRun.copyLogs prevents this from appearing unless we access TaskListener from start(); should be fixed by JENKINS-38381:
         r.assertLogContains("logging from BL with 0 commands to go", b);
-        */
     }
-    public static class ChattyStep extends AbstractStepImpl {
+    public static class ChattyStep extends Step {
         public final String pattern;
         @DataBoundConstructor public ChattyStep(String pattern) {this.pattern = pattern;}
-        @TestExtension("logsAndBlocks") public static class DescriptorImpl extends AbstractStepDescriptorImpl {
-            public DescriptorImpl() {
-                super(Execution.class);
-            }
+        @Override public StepExecution start(StepContext context) throws Exception {
+            return new Execution(context, pattern);
+        }
+        @TestExtension("logsAndBlocks") public static class DescriptorImpl extends StepDescriptor {
             @Override public String getFunctionName() {return "chatty";}
             @Override public boolean takesImplicitBlockArgument() {return true;}
+            @Override public Set<? extends Class<?>> getRequiredContext() {
+                return Collections.singleton(TaskListener.class);
+            }
         }
-        public static class Execution extends AbstractStepExecutionImpl {
-            @Inject(optional=true) transient ChattyStep step;
-            String pattern;
+        private static class Execution extends StepExecution {
+            Execution(StepContext context, String pattern) {
+                super(context);
+                this.pattern = pattern;
+            }
+            final String pattern;
             LinkedList<Boolean> commands; // L ~ false to log, B ~ true to run block
             @Override public boolean start() throws Exception {
                 commands = new LinkedList<>();
-                pattern = step.pattern;
                 for (char c : pattern.toCharArray()) {
                     if (c == 'L') {
                         commands.add(false);
@@ -102,7 +106,7 @@ public class LogActionImplTest {
                 }
             }
             @Override public void stop(Throwable cause) throws Exception {}
-            private final class Callback extends BodyExecutionCallback {
+            private final class Callback extends BodyExecutionCallback { // not using TailCall since run() sometimes calls onSuccess itself
                 @Override public void onSuccess(StepContext context, Object result) {
                     try {
                         run();
