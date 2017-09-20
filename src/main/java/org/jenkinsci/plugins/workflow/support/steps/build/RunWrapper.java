@@ -28,12 +28,14 @@ import hudson.AbortException;
 import hudson.model.AbstractBuild;
 import hudson.model.Result;
 import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.scm.ChangeLogSet;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.CheckForNull;
@@ -206,7 +208,14 @@ public final class RunWrapper implements Serializable {
     public @Nonnull Map<String,String> getBuildVariables() throws AbortException {
         Run<?,?> build = build();
         if (build instanceof AbstractBuild) {
-            return Collections.unmodifiableMap(((AbstractBuild<?,?>) build).getBuildVariables());
+            Map<String,String> buildVars = new HashMap<>();
+            try {
+                buildVars.putAll(build.getEnvironment(TaskListener.NULL));
+            } catch (IOException | InterruptedException e) {
+                // Do nothing
+            }
+            buildVars.putAll(((AbstractBuild<?,?>) build).getBuildVariables());
+            return Collections.unmodifiableMap(buildVars);
         } else {
             EnvironmentAction.IncludingOverrides env = build.getAction(EnvironmentAction.IncludingOverrides.class);
             if (env != null) { // downstream is also WorkflowRun
