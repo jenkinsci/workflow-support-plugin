@@ -50,4 +50,9 @@ public abstract class FlowNodeStorage implements FlowActionStorage {
      */
     public abstract @CheckForNull FlowNode getNode(String id) throws IOException;
     public abstract void storeNode(FlowNode n) throws IOException;
+
+    /** Invoke this to assure any unwritten {@link FlowNode} data is persisted to disk */
+    public void persistAll() throws IOException {
+        // Only needs implementation if you're not already guaranteeing persistence at all times
+    }
 }
