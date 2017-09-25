@@ -24,12 +24,17 @@
 
 package org.jenkinsci.plugins.workflow.support.storage;
 
+import hudson.init.Terminator;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.graph.FlowActionStorage;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
+import org.jenkinsci.plugins.workflow.steps.StepExecution;
+
 import java.io.IOException;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * Abstraction of various ways to persist {@link FlowNode}, for those {@link FlowExecution}s
@@ -44,15 +49,48 @@ import javax.annotation.CheckForNull;
  */
 public abstract class FlowNodeStorage implements FlowActionStorage {
     /**
-     *
      * @return null
      *      If no node of the given ID has been persisted before.
      */
     public abstract @CheckForNull FlowNode getNode(String id) throws IOException;
-    public abstract void storeNode(FlowNode n) throws IOException;
 
-    /** Invoke this to assure any unwritten {@link FlowNode} data is persisted to disk */
-    public void persistAll() throws IOException {
+    /** Registers node in this storage, potentially persisting to disk.
+     *  {@link #flushNode(FlowNode)} will guarantee it is persisted.
+     */
+    public abstract void storeNode(@Nonnull FlowNode n) throws IOException;
+
+    /**
+     * Register the given node to the storage, potentially flushing to disk,
+     *  and optionally marking the node as deferring writes.
+     * <p> This should be invoked with delayWritingAction=true generally.
+     *
+     *  Generally {@link #autopersist(FlowNode)} should be automatically invoked before Step execution begins
+     *  unless the step implements {@link StepDescriptor#delayWritingFlownodeActions()}.
+     *
+     * @param n Node to store
+     * @param delayWritingActions If true, node will avoid persisting actions except on explicit flush or when you call
+     *                            {@link #autopersist(FlowNode)}.
+     * @throws IOException
+     */
+    public void storeNode(@Nonnull FlowNode n, boolean delayWritingActions) throws IOException {
+        storeNode(n); // Default impl, override if you support delaying writes
+    }
+
+    /** Marks node as needing to flush with EVERY write to the {@link FlowNode#actions} from now on, and invoke {@link #flushNode(FlowNode)}
+     *  if we're waiting to write anything.
+     */
+    public void autopersist(@Nonnull FlowNode n) throws IOException {
+        flushNode(n);
+    }
+
+    /** Persists node fully to disk, ensuring it is written out to storage. */
+    public void flushNode(@Nonnull FlowNode n) throws IOException {
+        // Only needs implementation if you're not guaranteeing persistence at all times
+    }
+
+    /** Invoke this to insure any unwritten {@link FlowNode} data is persisted to disk. */
+    @Terminator
+    public void flush() throws IOException {
         // Only needs implementation if you're not already guaranteeing persistence at all times
     }
 }
