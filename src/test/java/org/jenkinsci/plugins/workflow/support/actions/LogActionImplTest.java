@@ -105,7 +105,6 @@ public class LogActionImplTest {
                     run();
                 }
             }
-            @Override public void stop(Throwable cause) throws Exception {}
             private final class Callback extends BodyExecutionCallback { // not using TailCall since run() sometimes calls onSuccess itself
                 @Override public void onSuccess(StepContext context, Object result) {
                     try {
