@@ -24,7 +24,6 @@
 
 package org.jenkinsci.plugins.workflow.support.storage;
 
-import com.google.common.cache.CacheBuilder;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
@@ -52,44 +51,55 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * {@link FlowNodeStorage} that stores all the nodes in one megafile
  * But defers persisting it until needed.
  *
- * This implementation should only be used for {@link FlowDurabilityHint} values of
- *  {@link FlowDurabilityHint#NO_PROMISES} or {@link FlowDurabilityHint#SURVIVE_CLEAN_RESTART}.
+ * Calls to flush/flushNode are thus expensive... but also quite comprehensive.
  *
- * TODO handle the changes in how Tag works vs. {@link SimpleXStreamFlowNodeStorage}
- * I.E. we always persist node and tag together.
+ * For these reasons, this implementation should only be used for {@link FlowDurabilityHint} values of
+ *  {@link FlowDurabilityHint#NO_PROMISES} or {@link FlowDurabilityHint#SURVIVE_CLEAN_RESTART}.
  */
 public class LumpFlowNodeStorage extends FlowNodeStorage {
     private final File dir;
-    private final File storeFile;
 
     private final FlowExecution exec;
 
+    /** Lazy-loaded mapping. */
     private transient HashMap<String, Tag> nodes = null;
 
+    private File getStoreFile() {
+        return new File(dir, "flowNodeStore.xml");
+    }
 
     public LumpFlowNodeStorage(FlowExecution exec, File dir) {
         this.exec = exec;
         this.dir = dir;
-        this.storeFile = new File(dir, "flowNodeStore.xml");
         this.nodes = new HashMap<String, Tag>();
     }
 
-
-    HashMap<String, Tag> getNodes() throws IOException {
+    /** Loads the nodes listing, lazily - so loading the {@link FlowExecution} doesn't trigger a more complex load. */
+    HashMap<String, Tag> getOrLoadNodes() throws IOException {
         if (nodes == null) {
             // Unsafe and dirty but ought to work mostly
-            return (HashMap<String, Tag>)(XSTREAM.fromXML(storeFile));
+            HashMap<String, Tag> roughNodes = (HashMap<String, Tag>)(XSTREAM.fromXML(getStoreFile()));
+            for (Tag t : roughNodes.values()) {
+                FlowNode fn = t.node;
+                try {
+                    FlowNode$exec.set(fn, exec);
+                } catch (IllegalAccessException e) {
+                    throw (IllegalAccessError) new IllegalAccessError("Failed to set owner").initCause(e);
+                }
+                t.storeActions();
+                for (FlowNodeAction a : Util.filter(t.actions(), FlowNodeAction.class)) {
+                    a.onLoad(fn);
+                }
+            }
         }
         return nodes;
     }
@@ -98,17 +108,17 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
     @Override
     @CheckForNull
     public FlowNode getNode(@Nonnull String id) throws IOException {
-        Tag t = getNodes().get(id);
+        Tag t = getOrLoadNodes().get(id);
         return (t != null) ? t.node : null;
     }
 
     public void storeNode(@Nonnull FlowNode n, boolean delayWritingActions) throws IOException {
-        Tag t = getNodes().get(n.getId());
+        Tag t = getOrLoadNodes().get(n.getId());
         if (t != null) {
             t.node = n;
             t.actions = (Action[])(n.getActions().toArray());
         } else {
-            getNodes().put(n.getId(), new Tag(n, n.getActions()));
+            getOrLoadNodes().put(n.getId(), new Tag(n, n.getActions()));
         }
         if (!delayWritingActions) {
             flush();
@@ -121,7 +131,7 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
     }
 
     public void autopersist(@Nonnull FlowNode n) throws IOException {
-        // TODO determine if I actually DO anything???? How to obey this?
+        throw new UnsupportedOperationException("LumpFlowNodeStorage doesn't support autopersist, only explicit flush.");
     }
 
     /**
@@ -138,8 +148,9 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
     @Override
     public void flush() throws IOException {
         if (nodes != null) {
+            // TODO reuse a single buffer if we can, and consider using async FileChannel operations.
             OutputStream os = new BufferedOutputStream(
-                    Files.newOutputStream(storeFile.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+                    Files.newOutputStream(getStoreFile().toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
             );
             XSTREAM.toXMLUTF8(nodes, os); // Hah, no atomic nonsense, just write and write and write!
             os.close();
@@ -147,7 +158,7 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
     }
 
     public List<Action> loadActions(@Nonnull FlowNode node) throws IOException {
-        Tag t = getNodes().get(node.getId());
+        Tag t = getOrLoadNodes().get(node.getId());
         return (t != null) ? t.actions() : Collections.<Action>emptyList();
     }
 
@@ -155,29 +166,11 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
      * Just stores this one node
      */
     public void saveActions(@Nonnull FlowNode node, @Nonnull List<Action> actions) throws IOException {
-        Tag t = getNodes().get(node.getId());
+        Tag t = getOrLoadNodes().get(node.getId());
         if (t != null) {
             t.node = node;
-            t.actions = (Action[])(node.getActions().toArray());
+            t.actions = (Action[])(actions.toArray());
         }
-    }
-
-    private Tag load(String id) throws IOException {
-        XmlFile nodeFile = getNodeFile(id);
-        Tag v = (Tag) nodeFile.read();
-        if (v.node == null) {
-            throw new IOException("failed to load flow node from " + nodeFile + ": " + nodeFile.asString());
-        }
-        try {
-            FlowNode$exec.set(v.node, exec);
-        } catch (IllegalAccessException e) {
-            throw (IllegalAccessError) new IllegalAccessError("Failed to set owner").initCause(e);
-        }
-        v.storeActions();
-        for (FlowNodeAction a : Util.filter(v.actions(), FlowNodeAction.class)) {
-            a.onLoad(v.node);
-        }
-        return v;
     }
 
 
@@ -209,42 +202,24 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
     public static final XStream2 XSTREAM = new XStream2();
 
     private static final Field FlowNode$exec;
-    private static final Field FlowNode$parents;
-    private static final Field FlowNode$parentIds;
     private static final Method FlowNode_setActions;
 
     static {
         XSTREAM.registerConverter(new Converter() {
             private final RobustReflectionConverter ref = new RobustReflectionConverter(XSTREAM.getMapper(), JVM.newReflectionProvider());
-            // IdentityHashMap could leak memory. WeakHashMap compares by equals, which will fail with NPE in FlowNode.hashCode.
-            private final Map<FlowNode,String> ids = CacheBuilder.newBuilder().weakKeys().<FlowNode,String>build().asMap();
+
             @Override public boolean canConvert(Class type) {
-                return FlowNode.class.isAssignableFrom(type);
+                return Tag.class.isAssignableFrom(type);
             }
+
             @Override public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
                 ref.marshal(source, writer, context);
             }
+
             @Override public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context) {
                 try {
-                    FlowNode n = (FlowNode) ref.unmarshal(reader, context);
-                    ids.put(n, reader.getValue());
-                    try {
-                        @SuppressWarnings("unchecked") List<FlowNode> parents = (List<FlowNode>) FlowNode$parents.get(n);
-                        if (parents != null) {
-                            @SuppressWarnings("unchecked") List<String> parentIds = (List<String>) FlowNode$parentIds.get(n);
-                            assert parentIds == null;
-                            parentIds = new ArrayList<String>(parents.size());
-                            for (FlowNode parent : parents) {
-                                String id = ids.get(parent);
-                                assert id != null;
-                                parentIds.add(id);
-                            }
-                            FlowNode$parents.set(n, null);
-                            FlowNode$parentIds.set(n, parentIds);
-                        }
-                    } catch (Exception x) {
-                        assert false : x;
-                    }
+                    Tag n = (Tag) ref.unmarshal(reader, context);
+
                     return n;
                 } catch (RuntimeException x) {
                     x.printStackTrace();
@@ -258,10 +233,6 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
             // Really FlowNode ought to have been an interface and the concrete implementations defined here, by the storage.
             FlowNode$exec = FlowNode.class.getDeclaredField("exec");
             FlowNode$exec.setAccessible(true);
-            FlowNode$parents = FlowNode.class.getDeclaredField("parents");
-            FlowNode$parents.setAccessible(true);
-            FlowNode$parentIds = FlowNode.class.getDeclaredField("parentIds");
-            FlowNode$parentIds.setAccessible(true);
             FlowNode_setActions = FlowNode.class.getDeclaredMethod("setActions", List.class);
             FlowNode_setActions.setAccessible(true);
         } catch (NoSuchFieldException|NoSuchMethodException e) {
