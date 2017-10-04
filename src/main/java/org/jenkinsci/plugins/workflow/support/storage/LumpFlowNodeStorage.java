@@ -45,15 +45,12 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -78,13 +75,14 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
 
     private final FlowExecution exec;
 
-    private HashMap<String, Tag> nodes = null;
+    private transient HashMap<String, Tag> nodes = null;
 
 
     public LumpFlowNodeStorage(FlowExecution exec, File dir) {
         this.exec = exec;
         this.dir = dir;
         this.storeFile = new File(dir, "flowNodeStore.xml");
+        this.nodes = new HashMap<String, Tag>();
     }
 
 
