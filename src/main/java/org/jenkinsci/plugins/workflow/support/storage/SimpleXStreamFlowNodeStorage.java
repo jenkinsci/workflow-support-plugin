@@ -278,4 +278,10 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
             throw new Error(e);
         }
     }
+
+    @Override
+    void reset() {
+        this.nodeCache.invalidateAll();
+        this.deferredWrite.clear();
+    }
 }

@@ -24,13 +24,11 @@
 
 package org.jenkinsci.plugins.workflow.support.storage;
 
-import hudson.init.Terminator;
 import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.graph.FlowActionStorage;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
-import org.jenkinsci.plugins.workflow.steps.StepExecution;
 
 import java.io.IOException;
 import javax.annotation.CheckForNull;
@@ -88,9 +86,15 @@ public abstract class FlowNodeStorage implements FlowActionStorage {
         // Only needs implementation if you're not guaranteeing persistence at all times
     }
 
-    /** Invoke this to insure any unwritten {@link FlowNode} data is persisted to disk. */
-    @Terminator
+    /** Invoke this to insure any unwritten {@link FlowNode} data is persisted to disk.
+     *  Should be invoked by {@link FlowExecution#notifyShutdown()} to ensure disk state is persisted.
+     */
     public void flush() throws IOException {
         // Only needs implementation if you're not already guaranteeing persistence at all times
+    }
+
+    /** Used in testing durability, so we can be left with just what's on disk. */
+    void reset() {
+
     }
 }
