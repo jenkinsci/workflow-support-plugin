@@ -63,7 +63,7 @@ public abstract class FlowNodeStorage implements FlowActionStorage {
      * <p> This should be invoked with delayWritingAction=true generally.
      *
      *  Generally {@link #autopersist(FlowNode)} should be automatically invoked before Step execution begins
-     *  unless the step implements {@link StepDescriptor#delayWritingFlownodeActions()}.
+     *   unless the step is block-scoped (in which case the FlowNode will handle this).
      *
      * @param n Node to store
      * @param delayWritingActions If true, node will avoid persisting actions except on explicit flush or when you call
