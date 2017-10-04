@@ -116,7 +116,8 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
         Tag t = getOrLoadNodes().get(n.getId());
         if (t != null) {
             t.node = n;
-            t.actions = (Action[])(n.getActions().toArray());
+            List<Action> act = n.getActions();
+            t.actions = act.toArray(new Action[act.size()]);
         } else {
             getOrLoadNodes().put(n.getId(), new Tag(n, n.getActions()));
         }
@@ -169,7 +170,8 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
         Tag t = getOrLoadNodes().get(node.getId());
         if (t != null) {
             t.node = node;
-            t.actions = (Action[])(actions.toArray());
+            List<Action> act = node.getActions();
+            t.actions = act.toArray(new Action[act.size()]);
         }
     }
 
@@ -219,7 +221,6 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
             @Override public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context) {
                 try {
                     Tag n = (Tag) ref.unmarshal(reader, context);
-
                     return n;
                 } catch (RuntimeException x) {
                     x.printStackTrace();
