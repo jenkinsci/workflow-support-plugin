@@ -24,9 +24,8 @@
 
 package org.jenkinsci.plugins.workflow.support.storage;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
@@ -51,8 +50,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -64,11 +61,9 @@ import javax.annotation.Nonnull;
 public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     private final File dir;
     private final FlowExecution exec;
-    private final LoadingCache<String,FlowNode> nodeCache = CacheBuilder.newBuilder().softValues().build(new CacheLoader<String,FlowNode>() {
-        @Override public FlowNode load(String key) throws Exception {
-            return SimpleXStreamFlowNodeStorage.this.load(key).node;
-        }
-    });
+    private final LoadingCache<String,FlowNode> nodeCache = Caffeine.newBuilder().softValues().build(
+            key -> SimpleXStreamFlowNodeStorage.this.load(key).node
+    );
 
     public SimpleXStreamFlowNodeStorage(FlowExecution exec, File dir) {
         this.exec = exec;
@@ -80,7 +75,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         // TODO according to Javadoc this should return null if !getNodeFile(id).isFile()
         try {
             return nodeCache.get(id);
-        } catch (ExecutionException x) {
+        } catch (Exception x) {
             throw new IOException(x); // could unwrap if necessary
         }
     }
@@ -164,8 +159,6 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     static {
         XSTREAM.registerConverter(new Converter() {
             private final RobustReflectionConverter ref = new RobustReflectionConverter(XSTREAM.getMapper(), JVM.newReflectionProvider());
-            // IdentityHashMap could leak memory. WeakHashMap compares by equals, which will fail with NPE in FlowNode.hashCode.
-            private final Map<FlowNode,String> ids = CacheBuilder.newBuilder().weakKeys().<FlowNode,String>build().asMap();
             @Override public boolean canConvert(Class type) {
                 return FlowNode.class.isAssignableFrom(type);
             }
@@ -175,7 +168,6 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
             @Override public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context) {
                 try {
                     FlowNode n = (FlowNode) ref.unmarshal(reader, context);
-                    ids.put(n, reader.getValue());
                     try {
                         @SuppressWarnings("unchecked") List<FlowNode> parents = (List<FlowNode>) FlowNode$parents.get(n);
                         if (parents != null) {
@@ -183,9 +175,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
                             assert parentIds == null;
                             parentIds = new ArrayList<String>(parents.size());
                             for (FlowNode parent : parents) {
-                                String id = ids.get(parent);
-                                assert id != null;
-                                parentIds.add(id);
+                                parentIds.add(parent.getId().intern());
                             }
                             FlowNode$parents.set(n, null);
                             FlowNode$parentIds.set(n, parentIds);
