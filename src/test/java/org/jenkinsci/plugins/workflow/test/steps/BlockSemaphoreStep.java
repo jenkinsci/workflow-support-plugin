@@ -80,7 +80,7 @@ public final class BlockSemaphoreStep extends Step {
             @Override
             public void stop(Throwable cause) throws Exception {
                 state = State.STOPPED; // force the state change regardless of the current state
-                context.onFailure(cause);
+                super.stop(cause);
             }
         };
     }

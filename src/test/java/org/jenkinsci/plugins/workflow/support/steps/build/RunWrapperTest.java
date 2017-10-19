@@ -26,10 +26,14 @@ package org.jenkinsci.plugins.workflow.support.steps.build;
 
 import hudson.model.Cause;
 import hudson.model.CauseAction;
+import hudson.model.FreeStyleProject;
 import hudson.model.Messages;
+import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Result;
 import hudson.triggers.TimerTrigger;
 import java.util.regex.Pattern;
+
+import hudson.model.StringParameterDefinition;
 import jenkins.plugins.git.GitSampleRepoRule;
 import org.hamcrest.Matcher;
 import org.hamcrest.core.SubstringMatcher;
@@ -276,6 +280,24 @@ public class RunWrapperTest {
                 CauseAction action = new CauseAction();
                 WorkflowRun b = r.j.assertBuildStatusSuccess(p.scheduleBuild2(0, action).get());
                 r.j.assertLogContains("isStartedByUpstream: false", b);
+            }
+        });
+    }
+
+    @Issue("JENKINS-36528")
+    @Test public void freestyleEnvVars() {
+        r.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = r.j.createProject(WorkflowJob.class, "pipeline-job");
+                FreeStyleProject f = r.j.createProject(FreeStyleProject.class, "freestyle-job");
+                f.addProperty(new ParametersDefinitionProperty(new StringParameterDefinition("param", "default")));
+                p.setDefinition(new CpsFlowDefinition(
+                        "def b = build(job: 'freestyle-job', parameters: [string(name: 'param', value: 'something')])\n" +
+                                "echo \"b.buildVariables.BUILD_TAG='${b.buildVariables.BUILD_TAG}'\"\n" +
+                                "echo \"b.buildVariables.param='${b.buildVariables.param}'\"\n", true));
+                WorkflowRun b = r.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+                r.j.assertLogContains("b.buildVariables.BUILD_TAG='jenkins-freestyle-job-1'", b);
+                r.j.assertLogContains("b.buildVariables.param='something'", b);
             }
         });
     }
