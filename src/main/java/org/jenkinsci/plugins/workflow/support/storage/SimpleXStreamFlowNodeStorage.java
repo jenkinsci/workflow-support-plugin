@@ -161,14 +161,16 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     }
 
     /**
-     * Just stores this one node
+     * Just stores this one node, using the supplied actions.
+     * GOTCHA: technically there's nothing ensuring that node.getActions() matches supplied actions.
      */
     public void saveActions(@Nonnull FlowNode node, @Nonnull List<Action> actions) throws IOException {
         if (isDeferredWrite(node)) {
             deferredWrite.put(node.getId(), node);
         } else {
             nodeCache.put(node.getId(), node);
-            flushNode(node);
+            XmlFile f = getNodeFile(node.getId());
+            f.write(new Tag(node, actions));
         }
     }
 

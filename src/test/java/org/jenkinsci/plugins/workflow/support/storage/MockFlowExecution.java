@@ -70,6 +70,11 @@ import java.util.List;
 
     }
 
+    @Override
+    public void onLoad() {
+
+    }
+
     public FlowNodeStorage getStorage() {
         return storage;
     }

@@ -5,6 +5,7 @@ import hudson.model.Action;
 import org.jenkinsci.plugins.workflow.actions.BodyInvocationAction;
 import org.jenkinsci.plugins.workflow.actions.LabelAction;
 import org.jenkinsci.plugins.workflow.graph.AtomNode;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,15 +27,20 @@ public class SimpleXStreamStorageTest {
     @Rule
     public JenkinsRule j = new JenkinsRule();
 
+    File storageDir;
+    XmlFile file;
+
+    @Before
+    public void setup() {
+        File dir = new File(j.jenkins.getRootDir(), "storageTest");
+        dir.delete();
+        storageDir = new File(dir, "storage");
+        file = new XmlFile(new File(dir, "execution.xml"));
+    }
+
     /** Tests that basic nodes read and write correctly */
     @Test
     public void verifyBasicPersist() throws Exception {
-        File dir = new File(j.jenkins.getRootDir(), "storageTest");
-        dir.delete();
-        File executionFile = new File(dir, "execution.xml");
-        File storageDir = new File(dir, "storage");
-        XmlFile file = new XmlFile(executionFile);
-
         MockFlowExecution mock = new MockFlowExecution();
         SimpleXStreamFlowNodeStorage storage = new SimpleXStreamFlowNodeStorage(mock, storageDir);
         mock.setStorage(storage);
@@ -66,7 +72,7 @@ public class SimpleXStreamStorageTest {
 
         // Now we try to read it back
         MockFlowExecution mock2 = (MockFlowExecution)(file.read());
-        FlowNodeStorage storageAfterRead = mock2.getStorage();
+        FlowNodeStorage storageAfterRead = new SimpleXStreamFlowNodeStorage(mock2, storageDir);
 
         StorageTestUtils.assertNodesMatch(simple, storageAfterRead.getNode(simple.getId()));
         StorageTestUtils.assertNodesMatch(notQuiteAsSimple, storageAfterRead.getNode(notQuiteAsSimple.getId()));
