@@ -4,7 +4,9 @@ import hudson.XmlFile;
 import hudson.model.Action;
 import org.jenkinsci.plugins.workflow.actions.BodyInvocationAction;
 import org.jenkinsci.plugins.workflow.actions.LabelAction;
+import org.jenkinsci.plugins.workflow.actions.TimingAction;
 import org.jenkinsci.plugins.workflow.graph.AtomNode;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -71,7 +73,7 @@ public class SimpleXStreamStorageTest {
         storage.flush();
 
         // Now we try to read it back
-        MockFlowExecution mock2 = (MockFlowExecution)(file.read());
+        MockFlowExecution mock2 = new MockFlowExecution();
         FlowNodeStorage storageAfterRead = new SimpleXStreamFlowNodeStorage(mock2, storageDir);
 
         StorageTestUtils.assertNodesMatch(simple, storageAfterRead.getNode(simple.getId()));
@@ -85,7 +87,46 @@ public class SimpleXStreamStorageTest {
 
     /** Verify that when nodes are explicitly flushed they do */
     @Test
-    public void testIndividualNodeFlushing() throws Exception {
+    public void testDeferWriteAndFlush() throws Exception {
+        MockFlowExecution mock = new MockFlowExecution();
+        SimpleXStreamFlowNodeStorage storage = new SimpleXStreamFlowNodeStorage(mock, storageDir);
+        mock.setStorage(storage);
+        file.write(mock);
 
+        // Non-deferred write
+        AtomNode directlyStored = new StorageTestUtils.SimpleAtomNode(mock, "directlyStored");
+        storage.storeNode(directlyStored, false);
+        directlyStored.addAction(new LabelAction("directStored"));
+
+        // Node with actions added after storing, and deferred write
+        AtomNode deferredWriteNode = new StorageTestUtils.SimpleAtomNode(mock, "deferredWrite");
+        storage.storeNode(deferredWriteNode, true);
+        deferredWriteNode.addAction(new LabelAction("displayLabel"));
+
+        // Read and confirm the non-deferred one wrote, and the deferred one didn't
+        MockFlowExecution mock2 = new MockFlowExecution();
+        FlowNodeStorage storageAfterRead = new SimpleXStreamFlowNodeStorage(mock2, storageDir);
+        mock2.setStorage(storageAfterRead);
+        StorageTestUtils.assertNodesMatch(directlyStored, storageAfterRead.getNode(directlyStored.getId()));
+        Assert.assertNull(storageAfterRead.getNode(deferredWriteNode.getId()));
+
+        // Flush the deferred one and confirm it's on disk now
+        storage.flushNode(deferredWriteNode);
+        storageAfterRead = new SimpleXStreamFlowNodeStorage(mock2, storageDir);
+        mock2.setStorage(storageAfterRead);
+        StorageTestUtils.assertNodesMatch(deferredWriteNode, storageAfterRead.getNode(deferredWriteNode.getId()));
+
+        // Add an action and re-read to confirm that it doesn't autopersist still
+        deferredWriteNode.addAction(new BodyInvocationAction());
+        storageAfterRead = new SimpleXStreamFlowNodeStorage(mock2, storageDir);
+        mock2.setStorage(storageAfterRead);
+        Assert.assertEquals(1, storageAfterRead.getNode(deferredWriteNode.getId()).getActions().size());
+
+        // Mark node for autopersist and confirm it actually does now by adding a new action
+        storage.autopersist(deferredWriteNode);
+        deferredWriteNode.addAction(new TimingAction());
+        storageAfterRead = new SimpleXStreamFlowNodeStorage(mock2, storageDir);
+        mock2.setStorage(storageAfterRead);
+        StorageTestUtils.assertNodesMatch(deferredWriteNode, storageAfterRead.getNode(deferredWriteNode.getId()));
     }
 }

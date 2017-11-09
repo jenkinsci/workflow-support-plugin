@@ -47,6 +47,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -86,7 +87,6 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
 
     @Override
     public FlowNode getNode(String id) throws IOException {
-        // TODO according to Javadoc this should return null if !getNodeFile(id).isFile()
         try {
             if (deferredWrite != null) {
                 FlowNode maybeOutput = deferredWrite.get(id);
@@ -96,7 +96,13 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
             }
             return nodeCache.get(id);
         } catch (ExecutionException x) {
-            throw new IOException(x); // could unwrap if necessary
+            Throwable cause = x.getCause();
+            if (cause instanceof NoSuchFileException) {
+                // No file, no node
+                return null;
+            } else {
+                throw new IOException(cause);
+            }
         }
     }
 
