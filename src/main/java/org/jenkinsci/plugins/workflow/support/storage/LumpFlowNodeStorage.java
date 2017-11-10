@@ -76,6 +76,9 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
     /** Lazy-loaded mapping. */
     private transient HashMap<String, Tag> nodes = null;
 
+    /** If true, we've been modified since last flush. */
+    private boolean isModified = false;
+
     File getStoreFile() throws IOException {
         return new File(dir, "flowNodeStore.xml");
     }
@@ -131,6 +134,7 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
         } else {
             getOrLoadNodes().put(n.getId(), new Tag(n, n.getActions()));
         }
+        isModified = true;
         if (!delayWritingActions) {
             flush();
         }
@@ -154,7 +158,7 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
     /** Force persisting any nodes that had writing deferred */
     @Override
     public void flush() throws IOException {
-        if (nodes != null) {
+        if (nodes != null && isModified) {
             // TODO reuse a single buffer if we can, and consider using async FileChannel operations.
             if (!dir.exists()) {
                 IOUtils.mkdirs(dir);
@@ -185,6 +189,7 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
         } else {
             map.put(node.getId(), new Tag(node, actions));
         }
+        isModified = true;
     }
 
 
