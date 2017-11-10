@@ -31,8 +31,8 @@ import com.thoughtworks.xstream.core.JVM;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Util;
-import hudson.XmlFile;
 import hudson.model.Action;
+import hudson.util.IOUtils;
 import hudson.util.RobustReflectionConverter;
 import hudson.util.XStream2;
 import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
@@ -73,37 +73,44 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
     /** Lazy-loaded mapping. */
     private transient HashMap<String, Tag> nodes = null;
 
-    private File getStoreFile() {
+    File getStoreFile() throws IOException {
         return new File(dir, "flowNodeStore.xml");
     }
 
     public LumpFlowNodeStorage(FlowExecution exec, File dir) {
         this.exec = exec;
         this.dir = dir;
-        this.nodes = new HashMap<String, Tag>();
+        this.nodes = null;
     }
 
     /** Loads the nodes listing, lazily - so loading the {@link FlowExecution} doesn't trigger a more complex load. */
     HashMap<String, Tag> getOrLoadNodes() throws IOException {
         if (nodes == null) {
-            // Unsafe and dirty but ought to work mostly
-            HashMap<String, Tag> roughNodes = (HashMap<String, Tag>)(XSTREAM.fromXML(getStoreFile()));
-            for (Tag t : roughNodes.values()) {
-                FlowNode fn = t.node;
-                try {
-                    FlowNode$exec.set(fn, exec);
-                } catch (IllegalAccessException e) {
-                    throw (IllegalAccessError) new IllegalAccessError("Failed to set owner").initCause(e);
+            if (dir.exists()) {
+                File storeFile = getStoreFile();
+                if (storeFile.exists()) {
+                    HashMap<String, Tag> roughNodes = (HashMap<String, Tag>) (XSTREAM.fromXML(getStoreFile()));
+                    for (Tag t : roughNodes.values()) {
+                        FlowNode fn = t.node;
+                        try {
+                            FlowNode$exec.set(fn, exec);
+                        } catch (IllegalAccessException e) {
+                            throw (IllegalAccessError) new IllegalAccessError("Failed to set owner").initCause(e);
+                        }
+                        t.storeActions();
+                        for (FlowNodeAction a : Util.filter(t.actions(), FlowNodeAction.class)) {
+                            a.onLoad(fn);
+                        }
+                    }
+                    nodes = roughNodes;
                 }
-                t.storeActions();
-                for (FlowNodeAction a : Util.filter(t.actions(), FlowNodeAction.class)) {
-                    a.onLoad(fn);
-                }
+            } else {
+                IOUtils.mkdirs(dir);
+                nodes = new HashMap<String, Tag>();
             }
         }
         return nodes;
     }
-
 
     @Override
     @CheckForNull
@@ -150,6 +157,9 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
     public void flush() throws IOException {
         if (nodes != null) {
             // TODO reuse a single buffer if we can, and consider using async FileChannel operations.
+            if (!dir.exists()) {
+                IOUtils.mkdirs(dir);
+            }
             OutputStream os = new BufferedOutputStream(
                     Files.newOutputStream(getStoreFile().toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
             );
@@ -167,11 +177,14 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
      * Just stores this one node
      */
     public void saveActions(@Nonnull FlowNode node, @Nonnull List<Action> actions) throws IOException {
-        Tag t = getOrLoadNodes().get(node.getId());
+        HashMap<String, Tag> map = getOrLoadNodes();
+        Tag t = map.get(node.getId());
         if (t != null) {
             t.node = node;
             List<Action> act = node.getActions();
             t.actions = act.toArray(new Action[act.size()]);
+        } else {
+            map.put(node.getId(), new Tag(node, actions));
         }
     }
 
@@ -239,10 +252,5 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
         } catch (NoSuchFieldException|NoSuchMethodException e) {
             throw new Error(e);
         }
-    }
-
-    @Override
-    void reset() {
-        this.nodes.clear();
     }
 }

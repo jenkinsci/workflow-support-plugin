@@ -92,9 +92,4 @@ public abstract class FlowNodeStorage implements FlowActionStorage {
     public void flush() throws IOException {
         // Only needs implementation if you're not already guaranteeing persistence at all times
     }
-
-    /** Used in testing durability, so we can be left with just what's on disk. */
-    void reset() {
-
-    }
 }
