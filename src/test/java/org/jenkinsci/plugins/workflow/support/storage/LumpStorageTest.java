@@ -28,8 +28,10 @@ public class LumpStorageTest extends AbstractStorageTest {
 
         // Non-deferred write
         AtomNode directlyStored = new StorageTestUtils.SimpleAtomNode(mock, "directlyStored");
-        storage.storeNode(directlyStored, false);
         directlyStored.addAction(new LabelAction("directStored"));
+        storage.storeNode(directlyStored, false);
+
+        // If we added the action after, it wouldn't write out, because lump storage only writes on flush
 
         // Read and confirm the non-deferred one wrote
         MockFlowExecution mock2 = new MockFlowExecution();

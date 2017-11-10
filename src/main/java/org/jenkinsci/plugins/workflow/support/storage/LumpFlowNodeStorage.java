@@ -57,10 +57,13 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
- * {@link FlowNodeStorage} that stores all the nodes in one megafile
- * But defers persisting it until needed.
+ * {@link FlowNodeStorage} implementation that stores all the {@link FlowNode}s together in one file for efficient bulk I/O
  *
- * Calls to flush/flushNode are thus expensive... but also quite comprehensive.
+ * <p/>This defers persisting until {@link #flush()} is called (or until we flush individual nodes explicitly or by
+ *  storing them without specifying delayWritingActions=true. It also doesn't use the atomic write operations.
+ *
+ *  Performance characteristics: much better use of the filesystem and far more efficient read/write if you do it all at once.
+ *  HOWEVER, if you insist on explicitly writing out each node, this reverts to overall O(n^2) performance, where n is node count.
  *
  * For these reasons, this implementation should only be used for {@link FlowDurabilityHint} values of
  *  {@link FlowDurabilityHint#NO_PROMISES} or {@link FlowDurabilityHint#SURVIVE_CLEAN_RESTART}.
