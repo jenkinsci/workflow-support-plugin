@@ -74,8 +74,8 @@ public abstract class FlowNodeStorage implements FlowActionStorage {
         storeNode(n); // Default impl, override if you support delaying writes
     }
 
-    /** Marks node as needing to flush with EVERY write to the {@link FlowNode#actions} from now on, and invoke {@link #flushNode(FlowNode)}
-     *  if we're waiting to write anything.
+    /**
+     * Flushes the node if need, and if supported, marks it as needing to flush with EVERY write to the {@link FlowNode#actions}.
      */
     public void autopersist(@Nonnull FlowNode n) throws IOException {
         flushNode(n);

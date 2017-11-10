@@ -62,13 +62,5 @@ public class LumpStorageTest extends AbstractStorageTest {
         storageAfterRead = instantiateStorage(mock2, storageDir);
         mock2.setStorage(storageAfterRead);
         Assert.assertEquals(1, storageAfterRead.getNode(deferredWriteNode.getId()).getActions().size());
-
-        // Mark node for autopersist and confirm it won't read
-        try {
-            storage.autopersist(deferredWriteNode);
-            Assert.fail("Should error because we can't toggle autopersist with bulk writing of nodes");
-        } catch (UnsupportedOperationException uoe) {
-            // Expected
-        }
     }
 }

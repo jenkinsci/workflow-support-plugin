@@ -141,10 +141,6 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
         storeNode(n, false);
     }
 
-    public void autopersist(@Nonnull FlowNode n) throws IOException {
-        throw new UnsupportedOperationException("LumpFlowNodeStorage doesn't support autopersist, only explicit flush.");
-    }
-
     /**
      * Persists a single FlowNode to disk (if not already persisted).
      * @param n Node to persist
