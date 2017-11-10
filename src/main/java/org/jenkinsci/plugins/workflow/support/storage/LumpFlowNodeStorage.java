@@ -59,7 +59,7 @@ import java.util.List;
 /**
  * {@link FlowNodeStorage} implementation that stores all the {@link FlowNode}s together in one file for efficient bulk I/O
  *
- * <p/>This defers persisting until {@link #flush()} is called (or until we flush individual nodes explicitly or by
+ * <p>This defers persisting until {@link #flush()} is called (or until we flush individual nodes explicitly or by
  *  storing them without specifying delayWritingActions=true. It also doesn't use the atomic write operations.
  *
  *  Performance characteristics: much better use of the filesystem and far more efficient read/write if you do it all at once.
