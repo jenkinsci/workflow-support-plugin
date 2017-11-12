@@ -158,7 +158,8 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
             Collection<FlowNode> toWrite = deferredWrite.values();
             for (FlowNode f : toWrite) {
                 nodeCache.put(f.getId(), f);
-                flushNode(f);
+                XmlFile file = getNodeFile(f.getId());
+                file.write(new Tag(f, f.getActions()));
             }
             deferredWrite.clear();
         }
