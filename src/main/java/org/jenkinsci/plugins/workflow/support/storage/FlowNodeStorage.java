@@ -36,14 +36,14 @@ import javax.annotation.Nonnull;
 
 /**
  * Abstraction of various ways to persist {@link FlowNode}, for those {@link FlowExecution}s
- * who wants to store them within Jenkins.
+ * who want to store them within Jenkins.
  *
- * A flow graph has a characteristic that it's additive.
+ * A flow graph has a characteristic that it is additive.
  *
- * This is clearly a useful internal abstraction to decouple {@link FlowDefinition} implementation
- * from storage mechanism, but not sure if this should be exposed to users.
- *
+ * Flow nodes may be stored in memory or directly persisted to disk at any given moment, but invoking {@link #flush()}
+ *  should always guarantee that everything currently in memory is written.
  * @author Kohsuke Kawaguchi
+ * @author Sam Van Oort
  */
 public abstract class FlowNodeStorage implements FlowActionStorage {
     /**
@@ -91,5 +91,10 @@ public abstract class FlowNodeStorage implements FlowActionStorage {
      */
     public void flush() throws IOException {
         // Only needs implementation if you're not already guaranteeing persistence at all times
+    }
+
+    /** Have we written everything to disk that we need to, or is there something waiting to be written by invoking {@link #flush()}? */
+    public boolean isPersistedFully() {
+        return true;
     }
 }

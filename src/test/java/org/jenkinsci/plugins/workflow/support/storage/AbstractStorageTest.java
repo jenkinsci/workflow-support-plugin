@@ -55,6 +55,7 @@ public abstract class AbstractStorageTest {
         MockFlowExecution mock = new MockFlowExecution();
         FlowNodeStorage storage = instantiateStorage(mock, storageDir);
         mock.setStorage(storage);
+        assert storage.isPersistedFully();
 
         // Just any old node
         AtomNode simple = new StorageTestUtils.SimpleAtomNode(mock, "simple");
@@ -71,18 +72,21 @@ public abstract class AbstractStorageTest {
         acts.add(new LabelAction("yetAnotherLabel"));
         acts.add(new BodyInvocationAction());
         storage.saveActions(directlySaveActions, acts);
-        directlySaveActions.setActions(acts);  // Doesn't trigger writethrough
+        directlySaveActions.setActions(acts);  // Doesn't trigger writethrough to persistence, needed for consistency.
 
         // Deferred save
         AtomNode deferredSave = new StorageTestUtils.SimpleAtomNode(mock, "deferredSave", notQuiteAsSimple);
         storage.storeNode(deferredSave, true);
         deferredSave.addAction(new LabelAction("I was deferred but should still be written"));
+        assert !storage.isPersistedFully();
 
         storage.flush();
+        assert storage.isPersistedFully();
 
         // Now we try to read it back
         MockFlowExecution mock2 = new MockFlowExecution();
         FlowNodeStorage storageAfterRead = instantiateStorage(mock2, storageDir);
+        assert storage.isPersistedFully();
 
         StorageTestUtils.assertNodesMatch(simple, storageAfterRead.getNode(simple.getId()));
         StorageTestUtils.assertNodesMatch(notQuiteAsSimple, storageAfterRead.getNode(notQuiteAsSimple.getId()));

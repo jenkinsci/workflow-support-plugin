@@ -31,16 +31,19 @@ public class SimpleXStreamStorageTest extends AbstractStorageTest {
         // Non-deferred write
         AtomNode directlyStored = new StorageTestUtils.SimpleAtomNode(mock, "directlyStored");
         storage.storeNode(directlyStored, false);
+        assert storage.isPersistedFully();
         directlyStored.addAction(new LabelAction("directStored"));
 
         // Node with actions added after storing, and deferred write
         AtomNode deferredWriteNode = new StorageTestUtils.SimpleAtomNode(mock, "deferredWrite");
         storage.storeNode(deferredWriteNode, true);
         deferredWriteNode.addAction(new LabelAction("displayLabel"));
+        assert !storage.isPersistedFully();
 
         // Read and confirm the non-deferred one wrote, and the deferred one didn't
         MockFlowExecution mock2 = new MockFlowExecution();
         FlowNodeStorage storageAfterRead = instantiateStorage(mock2, storageDir);
+        assert storageAfterRead.isPersistedFully();
 
         mock2.setStorage(storageAfterRead);
         StorageTestUtils.assertNodesMatch(directlyStored, storageAfterRead.getNode(directlyStored.getId()));
@@ -49,18 +52,21 @@ public class SimpleXStreamStorageTest extends AbstractStorageTest {
 
         // Flush the deferred one and confirm it's on disk now
         storage.flushNode(deferredWriteNode);
+        assert storage.isPersistedFully();
         storageAfterRead = instantiateStorage(mock2, storageDir);
         mock2.setStorage(storageAfterRead);
         StorageTestUtils.assertNodesMatch(deferredWriteNode, storageAfterRead.getNode(deferredWriteNode.getId()));
 
         // Add an action and re-read to confirm that it doesn't autopersist still
         deferredWriteNode.addAction(new BodyInvocationAction());
+        assert !storage.isPersistedFully();
         storageAfterRead = instantiateStorage(mock2, storageDir);
         mock2.setStorage(storageAfterRead);
         Assert.assertEquals(1, storageAfterRead.getNode(deferredWriteNode.getId()).getActions().size());
 
         // Mark node for autopersist and confirm it actually does now by adding a new action
         storage.autopersist(deferredWriteNode);
+        assert storage.isPersistedFully();
         deferredWriteNode.addAction(new TimingAction());
         storageAfterRead = instantiateStorage(mock2, storageDir);
         mock2.setStorage(storageAfterRead);

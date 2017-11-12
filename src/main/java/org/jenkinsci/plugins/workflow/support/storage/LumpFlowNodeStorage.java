@@ -168,6 +168,7 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
             );
             XSTREAM.toXMLUTF8(nodes, os); // Hah, no atomic nonsense, just write and write and write!
             os.close();
+            isModified = false;
         }
     }
 
@@ -190,6 +191,11 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
             map.put(node.getId(), new Tag(node, actions));
         }
         isModified = true;
+    }
+
+    /** Have we written everything to disk that we need to, or is there something waiting to be written */
+    public boolean isPersistedFully() {
+        return !isModified;
     }
 
 
