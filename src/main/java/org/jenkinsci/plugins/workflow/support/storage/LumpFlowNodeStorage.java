@@ -96,6 +96,9 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
                 File storeFile = getStoreFile();
                 if (storeFile.exists()) {
                     HashMap<String, Tag> roughNodes = (HashMap<String, Tag>) (XSTREAM.fromXML(getStoreFile()));
+                    if (roughNodes == null) {
+                        throw new IOException("Unable to load nodes, invalid data");
+                    }
                     for (Tag t : roughNodes.values()) {
                         FlowNode fn = t.node;
                         try {
@@ -109,6 +112,8 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
                         }
                     }
                     nodes = roughNodes;
+                } else {
+                    nodes = new HashMap<String, Tag>();
                 }
             } else {
                 IOUtils.mkdirs(dir);
