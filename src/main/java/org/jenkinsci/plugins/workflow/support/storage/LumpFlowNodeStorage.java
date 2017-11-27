@@ -65,8 +65,8 @@ import java.util.List;
  *  Performance characteristics: much better use of the filesystem and far more efficient read/write if you do it all at once.
  *  HOWEVER, if you insist on explicitly writing out each node, this reverts to overall O(n^2) performance, where n is node count.
  *
- * For these reasons, this implementation should only be used for {@link FlowDurabilityHint} values of
- *  {@link FlowDurabilityHint#NO_PROMISES} or {@link FlowDurabilityHint#SURVIVE_CLEAN_RESTART}.
+ * For these reasons, this implementation should <strong>only</strong> be used where {@link FlowDurabilityHint#isPersistWithEveryStep()}
+ * is <strong>false</strong>.
  */
 public class LumpFlowNodeStorage extends FlowNodeStorage {
     private final File dir;
