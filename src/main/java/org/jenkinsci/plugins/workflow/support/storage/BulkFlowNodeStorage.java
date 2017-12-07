@@ -39,6 +39,7 @@ import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
+import org.jenkinsci.plugins.workflow.support.PipelineIOUtils;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -87,6 +88,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
         this.exec = exec;
         this.dir = dir;
         this.nodes = null;
+        this.setAvoidAtomicWrite(true);
     }
 
     /** Loads the nodes listing, lazily - so loading the {@link FlowExecution} doesn't trigger a more complex load. */
@@ -168,11 +170,8 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
             if (!dir.exists()) {
                 IOUtils.mkdirs(dir);
             }
-            OutputStream os = new BufferedOutputStream(
-                    Files.newOutputStream(getStoreFile().toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
-            );
-            XSTREAM.toXMLUTF8(nodes, os); // Hah, no atomic nonsense, just write and write and write!
-            os.close();
+            PipelineIOUtils.writeByXStream(nodes, getStoreFile(), XSTREAM, !this.isAvoidAtomicWrite());
+
             isModified = false;
         }
     }
@@ -235,31 +234,8 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
     private static final Method FlowNode_setActions;
 
     static {
-        XSTREAM.registerConverter(new Converter() {
-            private final RobustReflectionConverter ref = new RobustReflectionConverter(XSTREAM.getMapper(), JVM.newReflectionProvider());
-
-            @Override public boolean canConvert(Class type) {
-                return Tag.class.isAssignableFrom(type);
-            }
-
-            @Override public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
-                ref.marshal(source, writer, context);
-            }
-
-            @Override public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context) {
-                try {
-                    Tag n = (Tag) ref.unmarshal(reader, context);
-                    return n;
-                } catch (RuntimeException x) {
-                    x.printStackTrace();
-                    throw x;
-                }
-            }
-        });
-
         try {
-            // TODO ugly, but we do not want public getters and setters for internal state.
-            // Really FlowNode ought to have been an interface and the concrete implementations defined here, by the storage.
+            // Ugly, but we do not want public getters and setters for internal state on FlowNodes.
             FlowNode$exec = FlowNode.class.getDeclaredField("exec");
             FlowNode$exec.setAccessible(true);
             FlowNode_setActions = FlowNode.class.getDeclaredMethod("setActions", List.class);

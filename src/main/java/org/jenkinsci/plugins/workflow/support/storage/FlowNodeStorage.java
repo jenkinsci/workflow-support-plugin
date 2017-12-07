@@ -46,6 +46,20 @@ import javax.annotation.Nonnull;
  * @author Sam Van Oort
  */
 public abstract class FlowNodeStorage implements FlowActionStorage {
+    // Set up as "avoid" because an unset field will default to false.
+    private transient boolean avoidAtomicWrite = false;
+
+    /** If true, we use non-atomic write of XML files for this storage. See {@link hudson.util.AtomicFileWriter}. */
+    public boolean isAvoidAtomicWrite() {
+        return avoidAtomicWrite;
+    }
+
+    /** Set whether we should avoid using atomic write for node files (ensures valid node data if write is interrupted) or not.
+     */
+    public void setAvoidAtomicWrite(boolean avoidAtomicWrite){
+        this.avoidAtomicWrite = avoidAtomicWrite;
+    }
+
     /**
      * @return null
      *      If no node of the given ID has been persisted before.

@@ -41,6 +41,7 @@ import hudson.XmlFile;
 import hudson.model.Action;
 import hudson.util.RobustReflectionConverter;
 import hudson.util.XStream2;
+import org.jenkinsci.plugins.workflow.support.PipelineIOUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -143,9 +144,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     @Override
     public void flushNode(@Nonnull FlowNode n) throws IOException {
         nodeCache.put(n.getId(), n);
-        XmlFile f = getNodeFile(n.getId());
-        f.write(new Tag(n, n.getActions()));
-
+        PipelineIOUtils.writeByXStream(new Tag(n, n.getActions()), getNodeFile(n.getId()), XSTREAM, !this.isAvoidAtomicWrite());
         if (deferredWrite != null) {
             deferredWrite.remove(n.getId());
         }
@@ -158,15 +157,14 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
             Collection<FlowNode> toWrite = deferredWrite.values();
             for (FlowNode f : toWrite) {
                 nodeCache.put(f.getId(), f);
-                XmlFile file = getNodeFile(f.getId());
-                file.write(new Tag(f, f.getActions()));
+                PipelineIOUtils.writeByXStream(new Tag(f, f.getActions()), getNodeFile(f.getId()), XSTREAM, !this.isAvoidAtomicWrite());
             }
             deferredWrite.clear();
         }
     }
 
-    private XmlFile getNodeFile(String id) {
-        return new XmlFile(XSTREAM, new File(dir,id+".xml"));
+    private File getNodeFile(String id) {
+        return new File(dir,id+".xml");
     }
 
     public List<Action> loadActions(@Nonnull FlowNode node) throws IOException {
@@ -185,8 +183,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
             deferredWrite.put(node.getId(), node);
         } else {
             nodeCache.put(node.getId(), node);
-            XmlFile f = getNodeFile(node.getId());
-            f.write(new Tag(node, actions));
+            PipelineIOUtils.writeByXStream(new Tag(node, actions), getNodeFile(node.getId()), XSTREAM, !this.isAvoidAtomicWrite());
         }
     }
 
@@ -196,7 +193,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     }
 
     private Tag load(String id) throws IOException {
-        XmlFile nodeFile = getNodeFile(id);
+        XmlFile nodeFile = new XmlFile(XSTREAM, getNodeFile(id));
         Tag v = (Tag) nodeFile.read();
         if (v.node == null) {
             throw new IOException("failed to load flow node from " + nodeFile + ": " + nodeFile.asString());
