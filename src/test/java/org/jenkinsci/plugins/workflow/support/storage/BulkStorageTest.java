@@ -11,11 +11,11 @@ import java.io.File;
 /**
  * Actually attempts to test the storage engine
  */
-public class LumpStorageTest extends AbstractStorageTest {
+public class BulkStorageTest extends AbstractStorageTest {
 
     @Override
     public FlowNodeStorage instantiateStorage(MockFlowExecution exec, File storageDirectory) {
-        return new LumpFlowNodeStorage(exec, storageDir);
+        return new BulkFlowNodeStorage(exec, storageDir);
     }
 
     /** Tests the bulk-flushing behavior works as advertised. */

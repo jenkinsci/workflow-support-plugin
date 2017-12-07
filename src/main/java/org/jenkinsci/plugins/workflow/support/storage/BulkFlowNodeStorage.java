@@ -68,7 +68,7 @@ import java.util.List;
  * For these reasons, this implementation should <strong>only</strong> be used where {@link FlowDurabilityHint#isPersistWithEveryStep()}
  * is <strong>false</strong>.
  */
-public class LumpFlowNodeStorage extends FlowNodeStorage {
+public class BulkFlowNodeStorage extends FlowNodeStorage {
     private final File dir;
 
     private final FlowExecution exec;
@@ -83,7 +83,7 @@ public class LumpFlowNodeStorage extends FlowNodeStorage {
         return new File(dir, "flowNodeStore.xml");
     }
 
-    public LumpFlowNodeStorage(FlowExecution exec, File dir) {
+    public BulkFlowNodeStorage(FlowExecution exec, File dir) {
         this.exec = exec;
         this.dir = dir;
         this.nodes = null;
