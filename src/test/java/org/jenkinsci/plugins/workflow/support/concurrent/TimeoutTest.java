@@ -25,10 +25,15 @@
 package org.jenkinsci.plugins.workflow.support.concurrent;
 
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.Rule;
+import org.jvnet.hudson.test.LoggerRule;
 
 public class TimeoutTest {
+
+    @Rule public LoggerRule logging = new LoggerRule().record(Timeout.class, Level.FINER);
     
     @Test public void passed() throws Exception {
         try (Timeout timeout = Timeout.limit(5, TimeUnit.SECONDS)) {
@@ -45,6 +50,37 @@ public class TimeoutTest {
             // good
         }
         Thread.sleep(1_000);
+    }
+
+    @Test public void hung() throws Exception {
+        /* see disabled code in Timeout:
+        final AtomicBoolean stop = new AtomicBoolean();
+        Thread t = Thread.currentThread();
+        Timer.get().submit(() -> {
+            while (!stop.get()) {
+                System.err.println(t.getName());
+                try {
+                    Thread.sleep(1_000);
+                } catch (InterruptedException x) {
+                    x.printStackTrace();
+                }
+            }
+        });
+        */
+        try (Timeout timeout = Timeout.limit(1, TimeUnit.SECONDS)) {
+            for (int i = 0; i < 5; i++) {
+                try /* (WithThreadName naming = new WithThreadName(" cycle #" + i)) */ {
+                    Thread.sleep(10_000);
+                    fail("should have timed out");
+                } catch (InterruptedException x) {
+                    // OK
+                }
+            }
+        }
+        Thread.sleep(6_000);
+        /*
+        stop.set(true);
+        */
     }
 
 }
