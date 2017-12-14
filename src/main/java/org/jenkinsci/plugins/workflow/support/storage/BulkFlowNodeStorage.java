@@ -149,7 +149,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
 
     @Override
     public void storeNode(FlowNode n) throws IOException {
-        storeNode(n, false);
+        flushNode(n);
     }
 
     /**

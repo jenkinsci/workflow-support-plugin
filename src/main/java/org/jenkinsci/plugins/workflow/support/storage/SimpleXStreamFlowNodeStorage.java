@@ -58,6 +58,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -74,6 +75,8 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
             return SimpleXStreamFlowNodeStorage.this.load(key).node;
         }
     });
+
+    private static final Logger LOGGER = Logger.getLogger(SimpleXStreamFlowNodeStorage.class.getName());
 
     /** Holds nodes that don't have to autopersist upon writing. */
     private transient HashMap<String, FlowNode> deferredWrite = null;
@@ -98,6 +101,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         } catch (ExecutionException x) {
             Throwable cause = x.getCause();
             if (cause instanceof NoSuchFileException) {
+                LOGGER.finer("Tried to load FlowNode where file does not exist, for id "+id);
                 // No file, no node
                 return null;
             } else {

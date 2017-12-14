@@ -24,11 +24,9 @@
 
 package org.jenkinsci.plugins.workflow.support.storage;
 
-import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.graph.FlowActionStorage;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
-import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 
 import java.io.IOException;
 import javax.annotation.CheckForNull;
@@ -46,7 +44,7 @@ import javax.annotation.Nonnull;
  * @author Sam Van Oort
  */
 public abstract class FlowNodeStorage implements FlowActionStorage {
-    // Set up as "avoid" because an unset field will default to false.
+    // Set up as "avoid" because an unset field will default to false when deserializing and not explicitly set.
     private transient boolean avoidAtomicWrite = false;
 
     /** If true, we use non-atomic write of XML files for this storage. See {@link hudson.util.AtomicFileWriter}. */
@@ -74,7 +72,7 @@ public abstract class FlowNodeStorage implements FlowActionStorage {
     /**
      * Register the given node to the storage, potentially flushing to disk,
      *  and optionally marking the node as deferring writes.
-     * <p> This should be invoked with delayWritingAction=true generally.
+     * <p> This should be invoked with delayWritingAction=true until you have a fully configured node to write out.
      *
      *  Generally {@link #autopersist(FlowNode)} should be automatically invoked before Step execution begins
      *   unless the step is block-scoped (in which case the FlowNode will handle this).
