@@ -27,10 +27,13 @@ package org.jenkinsci.plugins.workflow.support.concurrent;
 import hudson.FilePath;
 import hudson.Util;
 import hudson.remoting.VirtualChannel;
+import hudson.util.DaemonThreadFactory;
+import hudson.util.NamingThreadFactory;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jenkins.util.Timer;
 
 /**
  * Allows operations to be limited in execution time.
@@ -40,6 +43,8 @@ import jenkins.util.Timer;
 public class Timeout implements AutoCloseable {
 
     private static final Logger LOGGER = Logger.getLogger(Timeout.class.getName());
+
+    private static final ScheduledExecutorService interruptions = Executors.newSingleThreadScheduledExecutor(new NamingThreadFactory(new DaemonThreadFactory(), "Timeout.interruptions"));
 
     private final Thread thread;
     private volatile boolean completed;
@@ -67,7 +72,7 @@ public class Timeout implements AutoCloseable {
     }
 
     private void ping(final long time, final TimeUnit unit) {
-        Timer.get().schedule(() -> {
+        interruptions.schedule(() -> {
             if (completed) {
                 LOGGER.log(Level.FINER, "{0} already finished, no need to interrupt", thread.getName());
                 return;

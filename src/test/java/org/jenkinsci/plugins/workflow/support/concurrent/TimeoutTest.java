@@ -24,8 +24,13 @@
 
 package org.jenkinsci.plugins.workflow.support.concurrent;
 
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import java.util.stream.IntStream;
+import jenkins.util.Timer;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.Rule;
@@ -81,6 +86,24 @@ public class TimeoutTest {
         /*
         stop.set(true);
         */
+    }
+
+    @Test public void starvation() throws Exception {
+        Map<Integer, Future<?>> hangers = new TreeMap<>();
+        IntStream.range(0, 15).forEachOrdered(i -> hangers.put(i, Timer.get().submit(() -> {
+            try (Timeout timeout = Timeout.limit(5, TimeUnit.SECONDS)) {
+                System.err.println("starting #" + i);
+                Thread.sleep(Long.MAX_VALUE);
+                fail("should have timed out");
+            } catch (InterruptedException x) {
+                System.err.println("interrupted #" + i);
+            }
+        })));
+        for (Map.Entry<Integer, Future<?>> hanger : hangers.entrySet()) {
+            System.err.println("joining #" + hanger.getKey());
+            hanger.getValue().get(30, TimeUnit.SECONDS);
+            System.err.println("joined #" + hanger.getKey());
+        }
     }
 
 }
