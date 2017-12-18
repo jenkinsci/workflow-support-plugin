@@ -24,11 +24,21 @@
 
 package org.jenkinsci.plugins.workflow.support.concurrent;
 
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.stream.IntStream;
+import jenkins.util.Timer;
 import org.junit.Test;
 import static org.junit.Assert.*;
+import org.junit.Rule;
+import org.jvnet.hudson.test.LoggerRule;
 
 public class TimeoutTest {
+
+    @Rule public LoggerRule logging = new LoggerRule().record(Timeout.class, Level.FINER);
     
     @Test public void passed() throws Exception {
         try (Timeout timeout = Timeout.limit(5, TimeUnit.SECONDS)) {
@@ -45,6 +55,55 @@ public class TimeoutTest {
             // good
         }
         Thread.sleep(1_000);
+    }
+
+    @Test public void hung() throws Exception {
+        /* see disabled code in Timeout:
+        final AtomicBoolean stop = new AtomicBoolean();
+        Thread t = Thread.currentThread();
+        Timer.get().submit(() -> {
+            while (!stop.get()) {
+                System.err.println(t.getName());
+                try {
+                    Thread.sleep(1_000);
+                } catch (InterruptedException x) {
+                    x.printStackTrace();
+                }
+            }
+        });
+        */
+        try (Timeout timeout = Timeout.limit(1, TimeUnit.SECONDS)) {
+            for (int i = 0; i < 5; i++) {
+                try /* (WithThreadName naming = new WithThreadName(" cycle #" + i)) */ {
+                    Thread.sleep(10_000);
+                    fail("should have timed out");
+                } catch (InterruptedException x) {
+                    // OK
+                }
+            }
+        }
+        Thread.sleep(6_000);
+        /*
+        stop.set(true);
+        */
+    }
+
+    @Test public void starvation() throws Exception {
+        Map<Integer, Future<?>> hangers = new TreeMap<>();
+        IntStream.range(0, 15).forEachOrdered(i -> hangers.put(i, Timer.get().submit(() -> {
+            try (Timeout timeout = Timeout.limit(5, TimeUnit.SECONDS)) {
+                System.err.println("starting #" + i);
+                Thread.sleep(Long.MAX_VALUE);
+                fail("should have timed out");
+            } catch (InterruptedException x) {
+                System.err.println("interrupted #" + i);
+            }
+        })));
+        for (Map.Entry<Integer, Future<?>> hanger : hangers.entrySet()) {
+            System.err.println("joining #" + hanger.getKey());
+            hanger.getValue().get(30, TimeUnit.SECONDS);
+            System.err.println("joined #" + hanger.getKey());
+        }
     }
 
 }
