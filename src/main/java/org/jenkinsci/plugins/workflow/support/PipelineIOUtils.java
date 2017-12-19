@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.StandardOpenOption;
 
 /**
@@ -16,7 +17,7 @@ import java.nio.file.StandardOpenOption;
  */
 public class PipelineIOUtils {
     /**
-     * Convenience method to allow writing a file more or less directly by reusing
+     * Convenience method to transparently write data directly or atomicly using {@link hudson.util.AtomicFileWriter}.
      * @param toWrite Object to write to file
      * @param location File to write object to
      * @param xstream xstream to use for output
@@ -28,11 +29,12 @@ public class PipelineIOUtils {
             XmlFile file = new XmlFile(xstream, location);
             file.write(toWrite);
         } else {
-            OutputStream os = new BufferedOutputStream(
-                    Files.newOutputStream(location.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
-            );
-            xstream.toXMLUTF8(toWrite, os); // No atomic nonsense, just write and write and write!
-            os.close();
+            try(OutputStream os = new BufferedOutputStream(
+                    Files.newOutputStream(location.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))){
+                xstream.toXMLUTF8(toWrite, os); // No atomic nonsense, just write and write and write!
+            } catch (InvalidPathException ipe) {
+                throw new IOException(ipe);
+            }
         }
     }
 }
