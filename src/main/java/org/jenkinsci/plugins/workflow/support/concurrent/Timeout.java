@@ -25,12 +25,15 @@
 package org.jenkinsci.plugins.workflow.support.concurrent;
 
 import hudson.FilePath;
+import hudson.Util;
 import hudson.remoting.VirtualChannel;
-import java.util.concurrent.ScheduledFuture;
+import hudson.util.DaemonThreadFactory;
+import hudson.util.NamingThreadFactory;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jenkins.util.Timer;
 
 /**
  * Allows operations to be limited in execution time.
@@ -41,28 +44,62 @@ public class Timeout implements AutoCloseable {
 
     private static final Logger LOGGER = Logger.getLogger(Timeout.class.getName());
 
-    private final ScheduledFuture<?> task;
+    private static final ScheduledExecutorService interruptions = Executors.newSingleThreadScheduledExecutor(new NamingThreadFactory(new DaemonThreadFactory(), "Timeout.interruptions"));
 
-    private Timeout(ScheduledFuture<?> task) {
-        this.task = task;
+    private final Thread thread;
+    private volatile boolean completed;
+    private long endTime;
+    /*
+    private final String originalName;
+    */
+
+    private Timeout(long time, TimeUnit unit) {
+        thread = Thread.currentThread();
+        LOGGER.log(Level.FINER, "Might interrupt {0} after {1} {2}", new Object[] {thread.getName(), time, unit});
+        /* see below:
+        originalName = thread.getName();
+        thread.setName(String.format("%s (Timeout@%h: %s)", originalName, this, Util.getTimeSpanString(unit.toMillis(time))));
+        */
+        ping(time, unit);
     }
 
     @Override public void close() {
-        task.cancel(false);
+        completed = true;
+        /*
+        thread.setName(originalName);
+        */
+        LOGGER.log(Level.FINER, "completed {0}", thread.getName());
+    }
+
+    private void ping(final long time, final TimeUnit unit) {
+        interruptions.schedule(() -> {
+            if (completed) {
+                LOGGER.log(Level.FINER, "{0} already finished, no need to interrupt", thread.getName());
+                return;
+            }
+            if (LOGGER.isLoggable(Level.FINE)) {
+                Throwable t = new Throwable();
+                t.setStackTrace(thread.getStackTrace());
+                LOGGER.log(Level.FINE, "Interrupting " + thread.getName() + " after " + time + " " + unit, t);
+            }
+            thread.interrupt();
+            if (endTime == 0) {
+                // First interruption.
+                endTime = System.nanoTime();
+            } else {
+                // Not dead yet?
+                String unresponsiveness = Util.getTimeSpanString((System.nanoTime() - endTime) / 1_000_000);
+                LOGGER.log(Level.INFO, "{0} unresponsive for {1}", new Object[] {thread.getName(), unresponsiveness});
+                /* TODO does not work; thread.getName() does not seem to return the current value when called from another thread, even w/ synchronized access, and running with -Xint
+                thread.setName(thread.getName().replaceFirst(String.format("(Timeout@%h: )[^)]+", this), "$1unresponsive for " + unresponsiveness));
+                */
+            }
+            ping(5, TimeUnit.SECONDS);
+        }, time, unit);
     }
 
     public static Timeout limit(final long time, final TimeUnit unit) {
-        final Thread thread = Thread.currentThread();
-        return new Timeout(Timer.get().schedule(new Runnable() {
-            @Override public void run() {
-                if (LOGGER.isLoggable(Level.FINE)) {
-                    Throwable t = new Throwable();
-                    t.setStackTrace(thread.getStackTrace());
-                    LOGGER.log(Level.FINE, "Interrupting " + thread + " after " + time + " " + unit, t);
-                }
-                thread.interrupt();
-            }
-        }, time, unit));
+        return new Timeout(time, unit);
     }
 
     // TODO JENKINS-32986 offer a variant that will escalate to Thread.stop
