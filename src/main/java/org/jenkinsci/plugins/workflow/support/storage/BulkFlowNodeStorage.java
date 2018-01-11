@@ -86,7 +86,6 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
             if (dir.exists()) {
                 File storeFile = getStoreFile();
                 if (storeFile.exists()) {
-                    // FIXME exception loading nodes!  Catch IOException, NPE, etc
                     HashMap<String, Tag> roughNodes = (HashMap<String, Tag>) (XSTREAM.fromXML(getStoreFile()));
                     if (roughNodes == null) {
                         throw new IOException("Unable to load nodes, invalid data");
@@ -156,7 +155,6 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
     @Override
     public void flush() throws IOException {
         if (nodes != null && isModified) {
-            // TODO reuse a single buffer if we can, and consider using async FileChannel operations.
             if (!dir.exists()) {
                 IOUtils.mkdirs(dir);
             }
