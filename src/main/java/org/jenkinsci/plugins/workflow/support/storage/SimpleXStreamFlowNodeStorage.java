@@ -58,6 +58,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -147,8 +148,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
      */
     @Override
     public void flushNode(@Nonnull FlowNode n) throws IOException {
-        nodeCache.put(n.getId(), n);
-        PipelineIOUtils.writeByXStream(new Tag(n, n.getActions()), getNodeFile(n.getId()), XSTREAM, !this.isAvoidAtomicWrite());
+        writeNode(n, n.getActions());
         if (deferredWrite != null) {
             deferredWrite.remove(n.getId());
         }
@@ -160,8 +160,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         if (deferredWrite != null && deferredWrite.isEmpty() == false) {
             Collection<FlowNode> toWrite = deferredWrite.values();
             for (FlowNode f : toWrite) {
-                nodeCache.put(f.getId(), f);
-                PipelineIOUtils.writeByXStream(new Tag(f, f.getActions()), getNodeFile(f.getId()), XSTREAM, !this.isAvoidAtomicWrite());
+                writeNode(f, f.getActions());
             }
             deferredWrite.clear();
         }
@@ -178,6 +177,11 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         return load(node.getId()).actions();
     }
 
+    private void writeNode(FlowNode node, List<Action> actions) throws IOException {
+        nodeCache.put(node.getId(), node);
+        PipelineIOUtils.writeByXStream(new Tag(node, actions), getNodeFile(node.getId()), XSTREAM, !this.isAvoidAtomicWrite());
+    }
+
     /**
      * Just stores this one node, using the supplied actions.
      * GOTCHA: technically there's nothing ensuring that node.getActions() matches supplied actions.
@@ -186,8 +190,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         if (delayAutopersistIds != null && delayAutopersistIds.contains(node.getId())) {
             deferredWrite.put(node.getId(), node);
         } else {
-            nodeCache.put(node.getId(), node);
-            PipelineIOUtils.writeByXStream(new Tag(node, actions), getNodeFile(node.getId()), XSTREAM, !this.isAvoidAtomicWrite());
+            writeNode(node, actions);
         }
     }
 
@@ -286,6 +289,13 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
                 }
             }
         });
+
+        // Aliases reduce the amount of data persisted to disk
+        XSTREAM.alias("Tag", SimpleXStreamFlowNodeStorage.Tag.class);
+        // Maybe alias for UninstantiatedDescribable too?
+        XSTREAM.aliasPackage("cps.n", "org.jenkinsci.plugins.workflow.cps.nodes");
+        XSTREAM.aliasPackage("cps.a", "org.jenkinsci.plugins.workflow.cps.actions");
+        XSTREAM.aliasPackage("actions", "org.jenkinsci.plugins.workflow.actions");
 
         try {
             // TODO ugly, but we do not want public getters and setters for internal state.

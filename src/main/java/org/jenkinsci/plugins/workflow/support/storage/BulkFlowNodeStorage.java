@@ -24,16 +24,9 @@
 
 package org.jenkinsci.plugins.workflow.support.storage;
 
-import com.thoughtworks.xstream.converters.Converter;
-import com.thoughtworks.xstream.converters.MarshallingContext;
-import com.thoughtworks.xstream.converters.UnmarshallingContext;
-import com.thoughtworks.xstream.core.JVM;
-import com.thoughtworks.xstream.io.HierarchicalStreamReader;
-import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Util;
 import hudson.model.Action;
 import hudson.util.IOUtils;
-import hudson.util.RobustReflectionConverter;
 import hudson.util.XStream2;
 import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
@@ -43,15 +36,11 @@ import org.jenkinsci.plugins.workflow.support.PipelineIOUtils;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -97,6 +86,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
             if (dir.exists()) {
                 File storeFile = getStoreFile();
                 if (storeFile.exists()) {
+                    // FIXME exception loading nodes!  Catch IOException, NPE, etc
                     HashMap<String, Tag> roughNodes = (HashMap<String, Tag>) (XSTREAM.fromXML(getStoreFile()));
                     if (roughNodes == null) {
                         throw new IOException("Unable to load nodes, invalid data");
@@ -234,6 +224,12 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
     private static final Method FlowNode_setActions;
 
     static {
+        // Aliases reduce the amount of data persisted to disk
+        XSTREAM.alias("Tag", Tag.class);
+        // Maybe alias for UninstantiatedDescribable too?
+        XSTREAM.aliasPackage("CpsNodes", "org.jenkinsci.plugins.workflow.cps.nodes");
+        XSTREAM.aliasPackage("CpsAct", "org.jenkinsci.plugins.workflow.cps.actions");
+        XSTREAM.aliasPackage("Actions", "org.jenkinsci.plugins.workflow.actions");
         try {
             // Ugly, but we do not want public getters and setters for internal state on FlowNodes.
             FlowNode$exec = FlowNode.class.getDeclaredField("exec");
