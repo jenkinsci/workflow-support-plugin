@@ -291,11 +291,12 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         });
 
         // Aliases reduce the amount of data persisted to disk
-        XSTREAM.alias("Tag", SimpleXStreamFlowNodeStorage.Tag.class);
-        // Maybe alias for UninstantiatedDescribable too?
+        XSTREAM.alias("Tag", Tag.class);
+        // Maybe alias for UninstantiatedDescribable too, if we add a structs dependency
         XSTREAM.aliasPackage("cps.n", "org.jenkinsci.plugins.workflow.cps.nodes");
+        XSTREAM.aliasPackage("wf.a", "org.jenkinsci.plugins.workflow.actions");
+        XSTREAM.aliasPackage("s.a", "org.jenkinsci.plugins.workflow.support.actions");
         XSTREAM.aliasPackage("cps.a", "org.jenkinsci.plugins.workflow.cps.actions");
-        XSTREAM.aliasPackage("actions", "org.jenkinsci.plugins.workflow.actions");
 
         try {
             // TODO ugly, but we do not want public getters and setters for internal state.
