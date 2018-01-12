@@ -24,16 +24,9 @@
 
 package org.jenkinsci.plugins.workflow.support.storage;
 
-import com.thoughtworks.xstream.converters.Converter;
-import com.thoughtworks.xstream.converters.MarshallingContext;
-import com.thoughtworks.xstream.converters.UnmarshallingContext;
-import com.thoughtworks.xstream.core.JVM;
-import com.thoughtworks.xstream.io.HierarchicalStreamReader;
-import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Util;
 import hudson.model.Action;
 import hudson.util.IOUtils;
-import hudson.util.RobustReflectionConverter;
 import hudson.util.XStream2;
 import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
@@ -43,15 +36,11 @@ import org.jenkinsci.plugins.workflow.support.PipelineIOUtils;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -97,8 +86,15 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
             if (dir.exists()) {
                 File storeFile = getStoreFile();
                 if (storeFile.exists()) {
-                    HashMap<String, Tag> roughNodes = (HashMap<String, Tag>) (XSTREAM.fromXML(getStoreFile()));
+                    HashMap<String, Tag> roughNodes = null;
+                    try {
+                        roughNodes = (HashMap<String, Tag>) (XSTREAM.fromXML(getStoreFile()));
+                    } catch (Exception ex) {
+                       nodes = new HashMap<String, Tag>();
+                       throw new IOException("Failed to read nodes", ex);
+                    }
                     if (roughNodes == null) {
+                        nodes = new HashMap<String, Tag>();
                         throw new IOException("Unable to load nodes, invalid data");
                     }
                     for (Tag t : roughNodes.values()) {
@@ -166,7 +162,6 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
     @Override
     public void flush() throws IOException {
         if (nodes != null && isModified) {
-            // TODO reuse a single buffer if we can, and consider using async FileChannel operations.
             if (!dir.exists()) {
                 IOUtils.mkdirs(dir);
             }
@@ -234,6 +229,13 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
     private static final Method FlowNode_setActions;
 
     static {
+        // Aliases reduce the amount of data persisted to disk
+        XSTREAM.alias("Tag", Tag.class);
+        // Maybe alias for UninstantiatedDescribable too, if we add a structs dependency
+        XSTREAM.aliasPackage("cps.n", "org.jenkinsci.plugins.workflow.cps.nodes");
+        XSTREAM.aliasPackage("wf.a", "org.jenkinsci.plugins.workflow.actions");
+        XSTREAM.aliasPackage("s.a", "org.jenkinsci.plugins.workflow.support.actions");
+        XSTREAM.aliasPackage("cps.a", "org.jenkinsci.plugins.workflow.cps.actions");
         try {
             // Ugly, but we do not want public getters and setters for internal state on FlowNodes.
             FlowNode$exec = FlowNode.class.getDeclaredField("exec");

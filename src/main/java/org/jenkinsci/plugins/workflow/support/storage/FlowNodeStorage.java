@@ -87,7 +87,7 @@ public abstract class FlowNodeStorage implements FlowActionStorage {
     }
 
     /**
-     * Flushes the node if need, and if supported, marks it as needing to flush with EVERY write to the {@link FlowNode#actions}.
+     * Flushes the node if needed, and if supported, marks it as needing to flush with EVERY write to the {@link FlowNode#actions}.
      */
     public void autopersist(@Nonnull FlowNode n) throws IOException {
         flushNode(n);
