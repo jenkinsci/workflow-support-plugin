@@ -86,8 +86,15 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
             if (dir.exists()) {
                 File storeFile = getStoreFile();
                 if (storeFile.exists()) {
-                    HashMap<String, Tag> roughNodes = (HashMap<String, Tag>) (XSTREAM.fromXML(getStoreFile()));
+                    HashMap<String, Tag> roughNodes = null;
+                    try {
+                        roughNodes = (HashMap<String, Tag>) (XSTREAM.fromXML(getStoreFile()));
+                    } catch (Exception ex) {
+                       nodes = new HashMap<String, Tag>();
+                       throw new IOException("Failed to read nodes", ex);
+                    }
                     if (roughNodes == null) {
+                        nodes = new HashMap<String, Tag>();
                         throw new IOException("Unable to load nodes, invalid data");
                     }
                     for (Tag t : roughNodes.values()) {
