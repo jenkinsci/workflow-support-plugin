@@ -35,6 +35,7 @@ import hudson.security.ACL;
 import hudson.security.ACLContext;
 import java.io.IOException;
 import java.io.Serializable;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -163,6 +164,17 @@ public final class RunWrapper implements Serializable {
     @Whitelisted
     public String getDurationString() throws AbortException {
         return build().getDurationString();
+    }
+
+    @Whitelisted
+    public String getLog() throws AbortException {
+        StringWriter writer = new StringWriter();
+        try {
+            build().getLogText().writeLogTo(0, writer);
+            return writer.toString();
+        } catch (IOException e) {
+            throw new AbortException("Could not read log for build " + externalizableId + ": " + e);
+        }
     }
 
     @Whitelisted
