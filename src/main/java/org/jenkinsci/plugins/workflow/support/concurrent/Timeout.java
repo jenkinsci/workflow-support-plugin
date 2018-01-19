@@ -44,7 +44,16 @@ public class Timeout implements AutoCloseable {
 
     private static final Logger LOGGER = Logger.getLogger(Timeout.class.getName());
 
-    private static final ScheduledExecutorService interruptions = Executors.newSingleThreadScheduledExecutor(new NamingThreadFactory(new DaemonThreadFactory(), "Timeout.interruptions"));
+    static class ClassloaderSanityDaemonThreadFactory extends DaemonThreadFactory {
+        public Thread newThread(Runnable r) {
+            Thread t = super.newThread(r);
+            t.setContextClassLoader(Timeout.class.getClassLoader());
+            return t;
+        }
+    }
+
+
+    private static final ScheduledExecutorService interruptions = Executors.newSingleThreadScheduledExecutor(new NamingThreadFactory(new ClassloaderSanityDaemonThreadFactory(), "Timeout.interruptions"));
 
     private final Thread thread;
     private volatile boolean completed;
