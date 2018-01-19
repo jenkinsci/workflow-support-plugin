@@ -226,6 +226,33 @@ public class RunWrapperTest {
         });
     }
 
+    @Issue("JENKINS-31576")
+    @Test
+    public void upstreamBuilds() {
+        r.addStep(new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                WorkflowJob first = r.j.createProject(WorkflowJob.class, "first-job");
+                WorkflowJob second = r.j.createProject(WorkflowJob.class, "second-job");
+                WorkflowJob third = r.j.createProject(WorkflowJob.class, "third-job");
+                first.setDefinition(new CpsFlowDefinition("build job: 'second-job'\n", true));
+                second.setDefinition(new CpsFlowDefinition("build job: 'third-job'\n", true));
+                third.setDefinition(new CpsFlowDefinition("currentBuild.upstreamBuilds?.each { b ->\n" +
+                        "  echo \"b: ${b.getFullDisplayName()}\"\n" +
+                        "}\n", true));
+
+                WorkflowRun firstRun = r.j.buildAndAssertSuccess(first);
+                WorkflowRun secondRun = second.getBuildByNumber(1);
+                r.j.assertBuildStatusSuccess(secondRun);
+                WorkflowRun thirdRun = third.getBuildByNumber(1);
+                r.j.assertBuildStatusSuccess(thirdRun);
+
+                r.j.assertLogContains("b: " + firstRun.getFullDisplayName(), thirdRun);
+                r.j.assertLogContains("b: " + secondRun.getFullDisplayName(), thirdRun);
+            }
+        });
+    }
+
     // Like org.hamcrest.text.MatchesPattern.matchesPattern(String) but doing a substring, not whole-string, match:
     private static Matcher<String> containsRegexp(final String rx) {
         return new SubstringMatcher(rx) {

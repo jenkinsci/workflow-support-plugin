@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.workflow.support.steps.build;
 
 import hudson.AbortException;
 import hudson.model.AbstractBuild;
+import hudson.model.Cause;
 import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -34,12 +35,14 @@ import hudson.security.ACL;
 import hudson.security.ACLContext;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+
 import jenkins.scm.RunWithSCM;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.Whitelisted;
 import org.jenkinsci.plugins.workflow.support.actions.EnvironmentAction;
@@ -224,6 +227,35 @@ public final class RunWrapper implements Serializable {
                 return Collections.emptyMap();
             }
         }
+    }
+
+    @Whitelisted
+    @Nonnull
+    public List<RunWrapper> getUpstreamBuilds() throws AbortException {
+        List<RunWrapper> upstreams = new ArrayList<>();
+        Run<?,?> build = build();
+        for (Cause c : build.getCauses()) {
+            if (c instanceof Cause.UpstreamCause) {
+                upstreams.addAll(upstreamCauseToRunWrappers((Cause.UpstreamCause)c));
+            }
+        }
+
+        return upstreams;
+    }
+
+    @Nonnull
+    private List<RunWrapper> upstreamCauseToRunWrappers(@Nonnull Cause.UpstreamCause cause) {
+        List<RunWrapper> upstreams = new ArrayList<>();
+        Run<?,?> r = cause.getUpstreamRun();
+        if (r != null) {
+            upstreams.add(new RunWrapper(r, false));
+            for (Cause c : cause.getUpstreamCauses()) {
+                if (c instanceof Cause.UpstreamCause) {
+                    upstreams.addAll(upstreamCauseToRunWrappers((Cause.UpstreamCause) c));
+                }
+            }
+        }
+        return upstreams;
     }
 
     @SuppressWarnings("deprecation")
