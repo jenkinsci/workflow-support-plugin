@@ -41,18 +41,25 @@ import hudson.XmlFile;
 import hudson.model.Action;
 import hudson.util.RobustReflectionConverter;
 import hudson.util.XStream2;
+import org.jenkinsci.plugins.workflow.support.PipelineIOUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -70,6 +77,13 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         }
     });
 
+    private static final Logger LOGGER = Logger.getLogger(SimpleXStreamFlowNodeStorage.class.getName());
+
+    /** Holds nodes that don't have to autopersist upon writing. */
+    private transient HashMap<String, FlowNode> deferredWrite = null;
+
+    private transient HashSet<String> delayAutopersistIds = null;
+
     public SimpleXStreamFlowNodeStorage(FlowExecution exec, File dir) {
         this.exec = exec;
         this.dir = dir;
@@ -77,42 +91,116 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
 
     @Override
     public FlowNode getNode(String id) throws IOException {
-        // TODO according to Javadoc this should return null if !getNodeFile(id).isFile()
         try {
+            if (deferredWrite != null) {
+                FlowNode maybeOutput = deferredWrite.get(id);
+                if (maybeOutput != null) {
+                    return maybeOutput;
+                }
+            }
             return nodeCache.get(id);
         } catch (ExecutionException x) {
-            throw new IOException(x); // could unwrap if necessary
+            Throwable cause = x.getCause();
+            if (cause instanceof NoSuchFileException) {
+                LOGGER.finer("Tried to load FlowNode where file does not exist, for id "+id);
+                // No file, no node
+                return null;
+            } else {
+                throw new IOException(cause);
+            }
+        }
+    }
+
+    public void storeNode(@Nonnull FlowNode n, boolean delayWritingActions) throws IOException {
+        if (delayWritingActions) {
+            if (deferredWrite == null) {
+                deferredWrite = new HashMap<String, FlowNode>();
+            }
+            deferredWrite.put(n.getId(), n);
+            if (delayAutopersistIds == null) {
+                delayAutopersistIds = new HashSet<String>(2);
+            }
+            delayAutopersistIds.add(n.getId());
+        } else {  // Flush, not that we still have to explicitly toggle autopersist for the node
+            flushNode(n);
         }
     }
 
     @Override
     public void storeNode(FlowNode n) throws IOException {
-        nodeCache.put(n.getId(), n);
-        XmlFile f = getNodeFile(n.getId());
-        if (!f.exists()) {
-            f.write(new Tag(n, Collections.<Action>emptyList()));
+        storeNode(n, false);
+    }
+
+    public void autopersist(@Nonnull FlowNode n) throws IOException {
+        if (deferredWrite != null && deferredWrite.containsKey(n.getId())) {
+            flushNode(n);
+        }
+        if (delayAutopersistIds != null) {
+            delayAutopersistIds.remove(n.getId());
+        }
+        // No-op if we weren't deferring a write of the node
+    }
+
+    /**
+     * Persists a single FlowNode to disk (if not already persisted).
+     * @param n Node to persist
+     * @throws IOException
+     */
+    @Override
+    public void flushNode(@Nonnull FlowNode n) throws IOException {
+        writeNode(n, n.getActions());
+        if (deferredWrite != null) {
+            deferredWrite.remove(n.getId());
         }
     }
 
-    private XmlFile getNodeFile(String id) {
-        return new XmlFile(XSTREAM, new File(dir,id+".xml"));
+    /** Force persisting any nodes that had writing deferred */
+    @Override
+    public void flush() throws IOException {
+        if (deferredWrite != null && deferredWrite.isEmpty() == false) {
+            Collection<FlowNode> toWrite = deferredWrite.values();
+            for (FlowNode f : toWrite) {
+                writeNode(f, f.getActions());
+            }
+            deferredWrite.clear();
+        }
     }
 
-    public List<Action> loadActions(FlowNode node) throws IOException {
+    private File getNodeFile(String id) {
+        return new File(dir,id+".xml");
+    }
+
+    public List<Action> loadActions(@Nonnull FlowNode node) throws IOException {
+
         if (!getNodeFile(node.getId()).exists())
             return new ArrayList<Action>(); // not yet saved
         return load(node.getId()).actions();
     }
 
+    private void writeNode(FlowNode node, List<Action> actions) throws IOException {
+        nodeCache.put(node.getId(), node);
+        PipelineIOUtils.writeByXStream(new Tag(node, actions), getNodeFile(node.getId()), XSTREAM, !this.isAvoidAtomicWrite());
+    }
+
     /**
-     * Just stores this one node
+     * Just stores this one node, using the supplied actions.
+     * GOTCHA: technically there's nothing ensuring that node.getActions() matches supplied actions.
      */
-    public void saveActions(FlowNode node, List<Action> actions) throws IOException {
-        getNodeFile(node.getId()).write(new Tag(node,actions));
+    public void saveActions(@Nonnull FlowNode node, @Nonnull List<Action> actions) throws IOException {
+        if (delayAutopersistIds != null && delayAutopersistIds.contains(node.getId())) {
+            deferredWrite.put(node.getId(), node);
+        } else {
+            writeNode(node, actions);
+        }
+    }
+
+    /** Have we written everything to disk that we need to, or is there something waiting to be written */
+    public boolean isPersistedFully() {
+        return this.deferredWrite == null || this.deferredWrite.isEmpty();
     }
 
     private Tag load(String id) throws IOException {
-        XmlFile nodeFile = getNodeFile(id);
+        XmlFile nodeFile = new XmlFile(XSTREAM, getNodeFile(id));
         Tag v = (Tag) nodeFile.read();
         if (v.node == null) {
             throw new IOException("failed to load flow node from " + nodeFile + ": " + nodeFile.asString());
@@ -128,6 +216,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         }
         return v;
     }
+
 
     /**
      * To group node and their actions together into one object.
@@ -200,6 +289,14 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
                 }
             }
         });
+
+        // Aliases reduce the amount of data persisted to disk
+        XSTREAM.alias("Tag", Tag.class);
+        // Maybe alias for UninstantiatedDescribable too, if we add a structs dependency
+        XSTREAM.aliasPackage("cps.n", "org.jenkinsci.plugins.workflow.cps.nodes");
+        XSTREAM.aliasPackage("wf.a", "org.jenkinsci.plugins.workflow.actions");
+        XSTREAM.aliasPackage("s.a", "org.jenkinsci.plugins.workflow.support.actions");
+        XSTREAM.aliasPackage("cps.a", "org.jenkinsci.plugins.workflow.cps.actions");
 
         try {
             // TODO ugly, but we do not want public getters and setters for internal state.

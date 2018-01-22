@@ -46,6 +46,7 @@ import javax.annotation.Nonnull;
 import org.apache.commons.jelly.XMLOutput;
 import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
 import org.jenkinsci.plugins.workflow.actions.LogAction;
+import org.jenkinsci.plugins.workflow.actions.PersistentAction;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.flow.GraphListener;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
@@ -58,7 +59,7 @@ import org.kohsuke.stapler.framework.io.ByteBuffer;
  *
  * @author Kohsuke Kawaguchi
  */
-public class LogActionImpl extends LogAction implements FlowNodeAction {
+public class LogActionImpl extends LogAction implements FlowNodeAction, PersistentAction {
 
     private static final Logger LOGGER = Logger.getLogger(LogActionImpl.class.getName());
 
