@@ -196,4 +196,17 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.jenkins-ci.tools</groupId>
+                <artifactId>maven-hpi-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <!-- Update with release -->
+                    <compatibleSinceVersion>2.17-durability-v4-SNAPSHOT</compatibleSinceVersion>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
