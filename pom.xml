@@ -33,7 +33,7 @@
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
     <artifactId>workflow-support</artifactId>
-    <version>2.18-SNAPSHOT</version>  <!-- Temp version to isolate work, remove before merge -->
+    <version>2.18</version>  <!-- Temp version to isolate work, remove before merge -->
     <packaging>hpi</packaging>
     <name>Pipeline: Supporting APIs</name>
     <url>https://wiki.jenkins.io/display/JENKINS/Pipeline+Supporting+APIs+Plugin</url>
@@ -47,7 +47,7 @@
         <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-      <tag>HEAD</tag>
+      <tag>workflow-support-2.18</tag>
   </scm>
     <repositories>
         <repository>
