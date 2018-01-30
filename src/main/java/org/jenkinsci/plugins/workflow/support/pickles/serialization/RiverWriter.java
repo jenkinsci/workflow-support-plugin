@@ -45,6 +45,8 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import org.jenkinsci.plugins.scriptsecurity.sandbox.Whitelist;
+import org.jenkinsci.plugins.scriptsecurity.sandbox.groovy.GroovySandbox;
 
 /**
  * {@link ObjectOutputStream} compatible object graph serializer
@@ -137,12 +139,24 @@ public class RiverWriter implements Closeable {
     }
 
     public void writeObject(Object o) throws IOException {
-        marshaller.writeObject(o);
+        try {
+            GroovySandbox.runInSandbox(() -> {
+                marshaller.writeObject(o);
+                return null;
+            }, Whitelist.all());
+        } catch (IOException x) {
+            throw x;
+        } catch (RuntimeException x) {
+            throw x;
+        } catch (Exception x) {
+            throw new AssertionError(x);
+        }
     }
 
     /**
-     * For writing various typed objects and primitives.
+     * @deprecated Apparently unused.
      */
+    @Deprecated
     public ObjectOutput getObjectOutput() {
         return marshaller;
     }
