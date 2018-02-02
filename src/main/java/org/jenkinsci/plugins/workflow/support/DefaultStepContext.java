@@ -61,7 +61,7 @@ public abstract class DefaultStepContext extends StepContext {
         T value = doGet(key);
         if (key == EnvVars.class) {
             Run<?,?> run = get(Run.class);
-            EnvironmentAction a = run.getAction(EnvironmentAction.class);
+            EnvironmentAction a = run == null ? null : run.getAction(EnvironmentAction.class);
             EnvVars customEnvironment = a != null ? a.getEnvironment() : run.getEnvironment(get(TaskListener.class));
             return key.cast(EnvironmentExpander.getEffectiveEnvironment(customEnvironment, (EnvVars) value, get(EnvironmentExpander.class)));
         } else if (key == Launcher.class) {

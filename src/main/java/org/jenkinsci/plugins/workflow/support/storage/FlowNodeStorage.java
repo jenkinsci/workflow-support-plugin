@@ -24,30 +24,89 @@
 
 package org.jenkinsci.plugins.workflow.support.storage;
 
-import org.jenkinsci.plugins.workflow.flow.FlowDefinition;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.graph.FlowActionStorage;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
+
 import java.io.IOException;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * Abstraction of various ways to persist {@link FlowNode}, for those {@link FlowExecution}s
- * who wants to store them within Jenkins.
+ * who want to store them within Jenkins.
  *
- * A flow graph has a characteristic that it's additive.
+ * A flow graph has a characteristic that it is additive.
  *
- * This is clearly a useful internal abstraction to decouple {@link FlowDefinition} implementation
- * from storage mechanism, but not sure if this should be exposed to users.
- *
+ * Flow nodes may be stored in memory or directly persisted to disk at any given moment, but invoking {@link #flush()}
+ *  should always guarantee that everything currently in memory is written.
  * @author Kohsuke Kawaguchi
+ * @author Sam Van Oort
  */
 public abstract class FlowNodeStorage implements FlowActionStorage {
+    // Set up as "avoid" because an unset field will default to false when deserializing and not explicitly set.
+    private transient boolean avoidAtomicWrite = false;
+
+    /** If true, we use non-atomic write of XML files for this storage. See {@link hudson.util.AtomicFileWriter}. */
+    public boolean isAvoidAtomicWrite() {
+        return avoidAtomicWrite;
+    }
+
+    /** Set whether we should avoid using atomic write for node files (ensures valid node data if write is interrupted) or not.
+     */
+    public void setAvoidAtomicWrite(boolean avoidAtomicWrite){
+        this.avoidAtomicWrite = avoidAtomicWrite;
+    }
+
     /**
-     *
      * @return null
      *      If no node of the given ID has been persisted before.
      */
     public abstract @CheckForNull FlowNode getNode(String id) throws IOException;
-    public abstract void storeNode(FlowNode n) throws IOException;
+
+    /** Registers node in this storage, potentially persisting to disk.
+     *  {@link #flushNode(FlowNode)} will guarantee it is persisted.
+     */
+    public abstract void storeNode(@Nonnull FlowNode n) throws IOException;
+
+    /**
+     * Register the given node to the storage, potentially flushing to disk,
+     *  and optionally marking the node as deferring writes.
+     * <p> This should be invoked with delayWritingAction=true until you have a fully configured node to write out.
+     *
+     *  Generally {@link #autopersist(FlowNode)} should be automatically invoked before Step execution begins
+     *   unless the step is block-scoped (in which case the FlowNode will handle this).
+     *
+     * @param n Node to store
+     * @param delayWritingActions If true, node will avoid persisting actions except on explicit flush or when you call
+     *                            {@link #autopersist(FlowNode)}.
+     * @throws IOException
+     */
+    public void storeNode(@Nonnull FlowNode n, boolean delayWritingActions) throws IOException {
+        storeNode(n); // Default impl, override if you support delaying writes
+    }
+
+    /**
+     * Flushes the node if needed, and if supported, marks it as needing to flush with EVERY write to the {@link FlowNode#actions}.
+     */
+    public void autopersist(@Nonnull FlowNode n) throws IOException {
+        flushNode(n);
+    }
+
+    /** Persists node fully to disk, ensuring it is written out to storage. */
+    public void flushNode(@Nonnull FlowNode n) throws IOException {
+        // Only needs implementation if you're not guaranteeing persistence at all times
+    }
+
+    /** Invoke this to insure any unwritten {@link FlowNode} data is persisted to disk.
+     *  Should be invoked by {@link FlowExecution#notifyShutdown()} to ensure disk state is persisted.
+     */
+    public void flush() throws IOException {
+        // Only needs implementation if you're not already guaranteeing persistence at all times
+    }
+
+    /** Have we written everything to disk that we need to, or is there something waiting to be written by invoking {@link #flush()}? */
+    public boolean isPersistedFully() {
+        return true;
+    }
 }

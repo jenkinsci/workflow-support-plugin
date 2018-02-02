@@ -26,20 +26,24 @@ package org.jenkinsci.plugins.workflow.support.steps.build;
 
 import hudson.AbortException;
 import hudson.model.AbstractBuild;
+import hudson.model.Cause;
 import hudson.model.Result;
 import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.scm.ChangeLogSet;
 import hudson.security.ACL;
+import hudson.security.ACLContext;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
+import jenkins.scm.RunWithSCM;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.Whitelisted;
 import org.jenkinsci.plugins.workflow.support.actions.EnvironmentAction;
 
@@ -89,11 +93,8 @@ public final class RunWrapper implements Serializable {
             throw new SecurityException("can only set the description property on the current build");
         }
         // Even if the build is carrying a specific authentication, we want it to be allowed to update itself:
-        SecurityContext orig = ACL.impersonate(ACL.SYSTEM);
-        try {
+        try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
             build().setDescription(d);
-        } finally {
-            SecurityContextHolder.setContext(orig);
         }
     }
 
@@ -102,11 +103,8 @@ public final class RunWrapper implements Serializable {
         if (!currentBuild) {
             throw new SecurityException("can only set the displayName property on the current build");
         }
-        SecurityContext orig = ACL.impersonate(ACL.SYSTEM);
-        try {
+        try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
             build().setDisplayName(n);
-        } finally {
-            SecurityContextHolder.setContext(orig);
         }
     }
 
@@ -122,6 +120,32 @@ public final class RunWrapper implements Serializable {
     }
 
     @Whitelisted
+    public @Nonnull String getCurrentResult() throws AbortException {
+        Result result = build().getResult();
+        return result != null ? result.toString() : Result.SUCCESS.toString();
+    }
+
+    @Whitelisted
+    public boolean resultIsBetterOrEqualTo(String other) throws AbortException {
+        Result result = build().getResult();
+        if (result == null) {
+            result = Result.SUCCESS;
+        }
+        Result otherResult = Result.fromString(other);
+        return result.isBetterOrEqualTo(otherResult);
+    }
+
+    @Whitelisted
+    public boolean resultIsWorseOrEqualTo(String other) throws AbortException {
+        Result result = build().getResult();
+        if (result == null) {
+            result = Result.SUCCESS;
+        }
+        Result otherResult = Result.fromString(other);
+        return result.isWorseOrEqualTo(otherResult);
+    }
+
+    @Whitelisted
     public long getTimeInMillis() throws AbortException {
         return build().getTimeInMillis();
     }
@@ -133,7 +157,12 @@ public final class RunWrapper implements Serializable {
 
     @Whitelisted
     public long getDuration() throws AbortException {
-	 return build().getDuration();
+	 return build().getDuration() != 0 ? build().getDuration() : System.currentTimeMillis() - build().getStartTimeInMillis();
+    }
+
+    @Whitelisted
+    public String getDurationString() throws AbortException {
+        return build().getDurationString();
     }
 
     @Whitelisted
@@ -182,7 +211,14 @@ public final class RunWrapper implements Serializable {
     public @Nonnull Map<String,String> getBuildVariables() throws AbortException {
         Run<?,?> build = build();
         if (build instanceof AbstractBuild) {
-            return Collections.unmodifiableMap(((AbstractBuild<?,?>) build).getBuildVariables());
+            Map<String,String> buildVars = new HashMap<>();
+            try {
+                buildVars.putAll(build.getEnvironment(TaskListener.NULL));
+            } catch (IOException | InterruptedException e) {
+                // Do nothing
+            }
+            buildVars.putAll(((AbstractBuild<?,?>) build).getBuildVariables());
+            return Collections.unmodifiableMap(buildVars);
         } else {
             EnvironmentAction.IncludingOverrides env = build.getAction(EnvironmentAction.IncludingOverrides.class);
             if (env != null) { // downstream is also WorkflowRun
@@ -191,6 +227,35 @@ public final class RunWrapper implements Serializable {
                 return Collections.emptyMap();
             }
         }
+    }
+
+    @Whitelisted
+    @Nonnull
+    public List<RunWrapper> getUpstreamBuilds() throws AbortException {
+        List<RunWrapper> upstreams = new ArrayList<>();
+        Run<?,?> build = build();
+        for (Cause c : build.getCauses()) {
+            if (c instanceof Cause.UpstreamCause) {
+                upstreams.addAll(upstreamCauseToRunWrappers((Cause.UpstreamCause)c));
+            }
+        }
+
+        return upstreams;
+    }
+
+    @Nonnull
+    private List<RunWrapper> upstreamCauseToRunWrappers(@Nonnull Cause.UpstreamCause cause) {
+        List<RunWrapper> upstreams = new ArrayList<>();
+        Run<?,?> r = cause.getUpstreamRun();
+        if (r != null) {
+            upstreams.add(new RunWrapper(r, false));
+            for (Cause c : cause.getUpstreamCauses()) {
+                if (c instanceof Cause.UpstreamCause) {
+                    upstreams.addAll(upstreamCauseToRunWrappers((Cause.UpstreamCause) c));
+                }
+            }
+        }
+        return upstreams;
     }
 
     @SuppressWarnings("deprecation")
@@ -202,10 +267,14 @@ public final class RunWrapper implements Serializable {
     @Whitelisted
     public List<ChangeLogSet<? extends ChangeLogSet.Entry>> getChangeSets() throws Exception {
         Run<?,?> build = build();
-        try { // TODO JENKINS-24141 should not need to use reflection here
-            return (List) build.getClass().getMethod("getChangeSets").invoke(build);
-        } catch (NoSuchMethodException x) {
-            return Collections.emptyList();
+        if (build instanceof RunWithSCM) { // typical cases
+            return ((RunWithSCM<?, ?>) build).getChangeSets();
+        } else {
+            try { // to support WorkflowRun prior to workflow-job 2.12
+                return (List) build.getClass().getMethod("getChangeSets").invoke(build);
+            } catch (NoSuchMethodException x) { // something weird like ExternalRun
+                return Collections.emptyList();
+            }
         }
     }
 

@@ -25,7 +25,6 @@
 package org.jenkinsci.plugins.workflow.support.actions;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Predicates;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.console.AnnotatedLargeText;
 import hudson.console.ConsoleLogFilter;
@@ -47,13 +46,10 @@ import javax.annotation.Nonnull;
 import org.apache.commons.jelly.XMLOutput;
 import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
 import org.jenkinsci.plugins.workflow.actions.LogAction;
+import org.jenkinsci.plugins.workflow.actions.PersistentAction;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.flow.GraphListener;
-import org.jenkinsci.plugins.workflow.graph.BlockStartNode;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
-import org.jenkinsci.plugins.workflow.graphanalysis.LinearBlockHoppingScanner;
-import org.jenkinsci.plugins.workflow.steps.StepContext;
-import org.jenkinsci.plugins.workflow.steps.StepContextParameter;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.framework.io.ByteBuffer;
@@ -65,7 +61,7 @@ import org.kohsuke.stapler.framework.io.ByteBuffer;
  * @deprecated Use {@link AnnotatedLogAction} instead.
 */
 @Deprecated
-public class LogActionImpl extends LogAction implements FlowNodeAction {
+public class LogActionImpl extends LogAction implements FlowNodeAction, PersistentAction {
 
     private static final Logger LOGGER = Logger.getLogger(LogActionImpl.class.getName());
 
@@ -92,7 +88,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
         LOGGER.log(Level.FINE, "opened log for {0}", node.getDisplayFunctionName());
         graphListener.set(new GraphListener.Synchronous() {
             @Override public void onNewHead(FlowNode newNode) {
-                if (!isRunning(node)) {
+                if (!node.isActive()) {
                     node.getExecution().removeListener(graphListener.get());
                     result.getLogger().close();
                     LOGGER.log(Level.FINE, "closed log for {0}", node.getDisplayFunctionName());
@@ -107,9 +103,9 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
     private transient volatile File log;
     private String charset;
 
-    private LogActionImpl(FlowNode parent, Charset charset) {
-        if (!isRunning(parent)) {
-            throw new IllegalStateException("cannot start writing logs to a finished node " + parent);
+    private LogActionImpl(FlowNode parent, Charset charset) throws IOException {
+        if (!parent.isActive()) {
+            throw new IOException("cannot start writing logs to a finished node " + parent + " " + parent.getDisplayFunctionName() + " in " + parent.getExecution());
         }
         this.parent = parent;
         this.charset = charset.name();
@@ -125,9 +121,9 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
         try {
             getLogFile();
             if (!log.exists()) {
-                return new AnnotatedLargeText<>(new ByteBuffer(), getCharset(), !isRunning(parent), parent);
+                return new AnnotatedLargeText<>(new ByteBuffer(), getCharset(), !parent.isActive(), parent);
             }
-            return new AnnotatedLargeText<>(log, getCharset(), !isRunning(parent), parent);
+            return new AnnotatedLargeText<>(log, getCharset(), !parent.isActive(), parent);
         } catch (IOException e) {
             ByteBuffer buf = new ByteBuffer();
             PrintStream ps;
@@ -140,25 +136,6 @@ public class LogActionImpl extends LogAction implements FlowNodeAction {
             e.printStackTrace(ps);
             ps.close();
             return new AnnotatedLargeText<FlowNode>(buf, Charsets.UTF_8, true, parent);
-        }
-    }
-
-    /**
-     * Unlike {@link FlowNode#isRunning}, handles {@link BlockStartNode}s.
-     * Note that {@code WorkflowRun.copyLogs} will still currently refuse to consider steps
-     * which fail to obtain a {@link TaskListener} prior to invoking their body
-     * (for example by calling {@link StepContext#get} on demand rather than by using {@link StepContextParameter}).
-     */
-    private static boolean isRunning(FlowNode node) {
-        if (node instanceof BlockStartNode) {
-            for (FlowNode head : node.getExecution().getCurrentHeads()) {
-                if (new LinearBlockHoppingScanner().findFirstMatch(head, Predicates.equalTo(node)) != null) {
-                    return true;
-                }
-            }
-            return false;
-        } else {
-            return node.isRunning();
         }
     }
 

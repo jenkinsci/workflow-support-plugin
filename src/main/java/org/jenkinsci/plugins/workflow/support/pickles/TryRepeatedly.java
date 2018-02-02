@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.workflow.support.pickles;
 
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.ListenableFuture;
+import hudson.Functions;
 import hudson.console.ModelHyperlinkNote;
 import hudson.model.TaskListener;
 import java.io.IOException;
@@ -92,7 +93,12 @@ public abstract class TryRepeatedly<V> extends AbstractFuture<V> {
                     if (v == null) {
                         if (retriesRemaining == 0) {
                             try {
-                                printWaitingMessage(getOwner().getListener());
+                                TaskListener listener = getOwner().getListener();
+                                try {
+                                    printWaitingMessage(listener);
+                                } catch (Exception x) {
+                                    listener.getLogger().println(Functions.printThrowable(x).trim()); // TODO 2.43+ use Functions.printStackTrace
+                                }
                             } catch (IOException x) {
                                 LOGGER.log(Level.WARNING, null, x);
                             }
