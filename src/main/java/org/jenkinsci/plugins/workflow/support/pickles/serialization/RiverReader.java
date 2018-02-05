@@ -55,6 +55,9 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 
 import static org.apache.commons.io.IOUtils.*;
+import org.jboss.marshalling.ByteInput;
+import org.jenkinsci.plugins.scriptsecurity.sandbox.Whitelist;
+import org.jenkinsci.plugins.scriptsecurity.sandbox.groovy.GroovySandbox;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -144,13 +147,15 @@ public class RiverReader implements Closeable {
         config.setClassResolver(new SimpleClassResolver(classLoader));
         //config.setSerializabilityChecker(new SerializabilityCheckerImpl());
         config.setObjectResolver(combine(evr, ownerResolver));
-        final Unmarshaller eu = new RiverMarshallerFactory().createUnmarshaller(config);
+        Unmarshaller eu = new RiverMarshallerFactory().createUnmarshaller(config);
         eu.start(Marshalling.createByteInput(din));
+
+        final Unmarshaller sandboxed = new SandboxedUnmarshaller(eu);
 
         // start rehydrating, and when done make the unmarshaller available
         return Futures.transform(evr.rehydrate(pickleFutures), new Function<PickleResolver, Unmarshaller>() {
             public Unmarshaller apply(PickleResolver input) {
-                return eu;
+                return sandboxed;
             }
         });
         } catch (IOException x) {
@@ -202,4 +207,161 @@ public class RiverReader implements Closeable {
             }
         }
     }
+
+    /** Applies {@link GroovySandbox} to a delegate unmarshaller. */
+    private static final class SandboxedUnmarshaller implements Unmarshaller {
+
+        private final Unmarshaller delegate;
+
+        SandboxedUnmarshaller(Unmarshaller delegate) {
+            this.delegate = delegate;
+        }
+
+        @FunctionalInterface
+        private interface ReadSAM<T> {
+            T call() throws ClassNotFoundException, IOException;
+        }
+
+        private static <T> T sandbox(ReadSAM<T> lambda) throws ClassNotFoundException, IOException {
+            // TODO runInSandbox overloads are not friendly to lambdas due to checked exceptions.
+            // Would be nicer to define something like:
+            // public static final class GroovySandbox implements AutoCloseable {
+            //     public static GroovySandbox of(Whitelist wl);
+            //     @Override public void close() {…}
+            // }
+            // so you could write more simply:
+            // try (GroovySandbox sandbox = GroovySandbox.of(Whitelist.all())) {
+            //     return delegate.readObject();
+            // }
+            try {
+                return GroovySandbox.runInSandbox(lambda::call, Whitelist.all());
+            } catch (ClassNotFoundException x) {
+                throw x;
+            } catch (IOException x) {
+                throw x;
+            } catch (RuntimeException x) {
+                throw x;
+            } catch (Exception x) {
+                throw new AssertionError(x);
+            }
+        }
+
+        @Override public Object readObject() throws ClassNotFoundException, IOException {
+            return sandbox(() -> delegate.readObject());
+        }
+
+        @Override public Object readObjectUnshared() throws ClassNotFoundException, IOException {
+            return sandbox(() -> delegate.readObjectUnshared());
+        }
+
+        @Override public <T> T readObject(Class<T> type) throws ClassNotFoundException, IOException {
+            return sandbox(() -> delegate.readObject(type));
+        }
+
+        @Override public <T> T readObjectUnshared(Class<T> type) throws ClassNotFoundException, IOException {
+            return sandbox(() -> delegate.readObjectUnshared(type));
+        }
+
+        @Override public void start(ByteInput newInput) throws IOException {
+            delegate.start(newInput);
+        }
+
+        @Override public void clearInstanceCache() throws IOException {
+            delegate.clearInstanceCache();
+        }
+
+        @Override public void clearClassCache() throws IOException {
+            delegate.clearClassCache();
+        }
+
+        @Override public void finish() throws IOException {
+            delegate.finish();
+        }
+
+        @Override public int read() throws IOException {
+            return delegate.read();
+        }
+
+        @Override public int read(byte[] b) throws IOException {
+            return delegate.read(b);
+        }
+
+        @Override public int read(byte[] b, int off, int len) throws IOException {
+            return delegate.read(b, off, len);
+        }
+
+        @Override public long skip(long n) throws IOException {
+            return delegate.skip(n);
+        }
+
+        @Override public int available() throws IOException {
+            return delegate.available();
+        }
+
+        @Override public void close() throws IOException {
+            delegate.close();
+        }
+
+        @Override public void readFully(byte[] b) throws IOException {
+            delegate.readFully(b);
+        }
+
+        @Override public void readFully(byte[] b, int off, int len) throws IOException {
+            delegate.readFully(b, off, len);
+        }
+
+        @Override public int skipBytes(int n) throws IOException {
+            return delegate.skipBytes(n);
+        }
+
+        @Override public boolean readBoolean() throws IOException {
+            return delegate.readBoolean();
+        }
+
+        @Override public byte readByte() throws IOException {
+            return delegate.readByte();
+        }
+
+        @Override public int readUnsignedByte() throws IOException {
+            return delegate.readUnsignedByte();
+        }
+
+        @Override public short readShort() throws IOException {
+            return delegate.readShort();
+        }
+
+        @Override public int readUnsignedShort() throws IOException {
+            return delegate.readUnsignedShort();
+        }
+
+        @Override public char readChar() throws IOException {
+            return delegate.readChar();
+        }
+
+        @Override public int readInt() throws IOException {
+            return delegate.readInt();
+        }
+
+        @Override public long readLong() throws IOException {
+            return delegate.readLong();
+        }
+
+        @Override public float readFloat() throws IOException {
+            return delegate.readFloat();
+        }
+
+        @Override public double readDouble() throws IOException {
+            return delegate.readDouble();
+        }
+
+        @Override public String readLine() throws IOException {
+            return delegate.readLine();
+        }
+
+        @Override public String readUTF() throws IOException {
+            return delegate.readUTF();
+        }
+
+    }
+
 }
