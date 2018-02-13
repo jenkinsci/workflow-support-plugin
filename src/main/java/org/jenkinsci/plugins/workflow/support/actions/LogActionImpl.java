@@ -38,6 +38,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -75,15 +76,14 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
     public static @Nonnull TaskListener stream(final @Nonnull FlowNode node, @CheckForNull ConsoleLogFilter filter) throws IOException, InterruptedException {
         LogActionImpl la = node.getAction(LogActionImpl.class);
         if (la == null) {
-            // TODO: use UTF-8
-            la = new LogActionImpl(node, Charset.defaultCharset());
+            la = new LogActionImpl(node);
             node.addAction(la);
         }
         OutputStream os = new FileOutputStream(la.getLogFile(), true);
         if (filter != null) {
             os = filter.decorateLogger((AbstractBuild) null, os);
         }
-        final StreamTaskListener result = new StreamTaskListener(os);
+        final StreamTaskListener result = new StreamTaskListener(os, la.getCharset());
         final AtomicReference<GraphListener> graphListener = new AtomicReference<>();
         LOGGER.log(Level.FINE, "opened log for {0}", node.getDisplayFunctionName());
         graphListener.set(new GraphListener.Synchronous() {
@@ -103,12 +103,11 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
     private transient volatile File log;
     private String charset;
 
-    private LogActionImpl(FlowNode parent, Charset charset) throws IOException {
+    private LogActionImpl(FlowNode parent) throws IOException {
         if (!parent.isActive()) {
             throw new IOException("cannot start writing logs to a finished node " + parent + " " + parent.getDisplayFunctionName() + " in " + parent.getExecution());
         }
         this.parent = parent;
-        this.charset = charset.name();
     }
 
     @Restricted(DoNotUse.class) // Jelly
@@ -164,8 +163,11 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
     }
 
     private Charset getCharset() {
-        if(charset==null)   return Charset.defaultCharset();    // just being defensive
-        return Charset.forName(charset);
+        if (charset == null) { // new style
+            return StandardCharsets.UTF_8;
+        } else { // historical
+            return Charset.forName(charset);
+        }
     }
 
     @Override public String toString() {
