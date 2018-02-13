@@ -44,6 +44,7 @@ public class Timeout implements AutoCloseable {
 
     private static final Logger LOGGER = Logger.getLogger(Timeout.class.getName());
 
+    // TODO 2.105+ use ClassLoaderSanityThreadFactory from core
     static class ClassloaderSanityDaemonThreadFactory extends DaemonThreadFactory {
         public Thread newThread(Runnable r) {
             Thread t = super.newThread(r);
