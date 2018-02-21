@@ -33,6 +33,7 @@ import hudson.model.TaskListener;
 import hudson.scm.ChangeLogSet;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
+import hudson.triggers.TimerTrigger;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -293,4 +294,24 @@ public final class RunWrapper implements Serializable {
         }
     }
 
+    @Whitelisted
+    public boolean getIsStartedByUser() throws Exception {
+        return build().getCause(Cause.UserIdCause.class) != null;
+    }
+
+    @Whitelisted
+    public boolean getIsStartedByTimer() throws Exception {
+        return build().getCause(TimerTrigger.TimerTriggerCause.class) != null;
+    }
+
+    @Whitelisted
+    public boolean getIsStartedByUpstream() throws Exception {
+        return build().getCause(Cause.UpstreamCause.class) != null;
+    }
+
+    @Whitelisted
+    public String getUpstreamProjectName() throws Exception {
+        Cause.UpstreamCause cause = build().getCause(Cause.UpstreamCause.class);
+        return cause == null ? null : cause.getUpstreamProject();
+    }
 }

@@ -24,10 +24,13 @@
 
 package org.jenkinsci.plugins.workflow.support.steps.build;
 
+import hudson.model.Cause;
+import hudson.model.CauseAction;
 import hudson.model.FreeStyleProject;
 import hudson.model.Messages;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Result;
+import hudson.triggers.TimerTrigger;
 import java.util.regex.Pattern;
 
 import hudson.model.StringParameterDefinition;
@@ -177,7 +180,7 @@ public class RunWrapperTest {
                 WorkflowJob p = r.j.createProject(WorkflowJob.class, "this-job");
                 p.setDefinition(new CpsFlowDefinition(
                         "echo \"currentBuild.duration='${currentBuild.duration}'\"\n" +
-                                "echo \"currentBuild.durationString='${currentBuild.durationString}'\"\n", true));
+                        "echo \"currentBuild.durationString='${currentBuild.durationString}'\"\n", true));
                 WorkflowRun b = r.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
                 r.j.assertLogNotContains("currentBuild.duration='0'", b);
                 r.j.assertLogNotContains("currentBuild.durationString='" + Messages.Run_NotStartedYet() + "'", b);
@@ -204,6 +207,79 @@ public class RunWrapperTest {
                 r.j.assertLogContains("final currentBuild.currentResult='" + Result.UNSTABLE.toString() + "'", b);
                 r.j.assertLogContains("resultIsBetterOrEqualTo FAILURE: true", b);
                 r.j.assertLogContains("resultIsWorseOrEqualTo SUCCESS: true", b);
+            }
+        });
+    }
+
+    @Test public void getIsStartedByUser() {
+        r.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = r.j.createProject(WorkflowJob.class, "job-1");
+                p.setDefinition(new CpsFlowDefinition("echo \"isStartedByUser: ${currentBuild.isStartedByUser}\"\n", true));
+                Cause cause = new Cause.UserIdCause();
+                CauseAction action = new CauseAction(cause);
+                WorkflowRun b = r.j.assertBuildStatusSuccess(p.scheduleBuild2(0, action).get());
+                r.j.assertLogContains("isStartedByUser: true", b);
+            }
+        });
+        r.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = r.j.createProject(WorkflowJob.class, "job-2");
+                p.setDefinition(new CpsFlowDefinition("echo \"isStartedByUser: ${currentBuild.isStartedByUser}\"\n", true));
+                CauseAction action = new CauseAction();
+                WorkflowRun b = r.j.assertBuildStatusSuccess(p.scheduleBuild2(0, action).get());
+                r.j.assertLogContains("isStartedByUser: false", b);
+            }
+        });
+    }
+
+    @Test public void getIsStartedByTimer() {
+        r.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = r.j.createProject(WorkflowJob.class, "job-1");
+                p.setDefinition(new CpsFlowDefinition("echo \"isStartedByTimer: ${currentBuild.isStartedByTimer}\"\n", true));
+                Cause cause = new TimerTrigger.TimerTriggerCause();
+                CauseAction action = new CauseAction(cause);
+                WorkflowRun b = r.j.assertBuildStatusSuccess(p.scheduleBuild2(0, action).get());
+                r.j.assertLogContains("isStartedByTimer: true", b);
+            }
+        });
+        r.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = r.j.createProject(WorkflowJob.class, "job-2");
+                p.setDefinition(new CpsFlowDefinition("echo \"isStartedByTimer: ${currentBuild.isStartedByTimer}\"\n", true));
+                CauseAction action = new CauseAction();
+                WorkflowRun b = r.j.assertBuildStatusSuccess(p.scheduleBuild2(0, action).get());
+                r.j.assertLogContains("isStartedByTimer: false", b);
+            }
+        });
+    }
+
+    @Test public void getIsStartedByUpstream() {
+        r.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p1 = r.j.createProject(WorkflowJob.class, "job-1");
+                p1.setDefinition(new CpsFlowDefinition("echo 'job-1 runs'\n", true));
+                WorkflowRun r1 = r.j.assertBuildStatusSuccess(p1.scheduleBuild2(0).get());
+
+                WorkflowJob p2 = r.j.createProject(WorkflowJob.class, "job-2");
+                p2.setDefinition(new CpsFlowDefinition(
+                    "echo \"isStartedByUpstream: ${currentBuild.isStartedByUpstream}\"\n" +
+                    "echo \"upstreamProjectName: ${currentBuild.upstreamProjectName}\"", true));
+                Cause cause = new Cause.UpstreamCause(r1);
+                CauseAction action = new CauseAction(cause);
+                WorkflowRun r2 = r.j.assertBuildStatusSuccess(p2.scheduleBuild2(0, action).get());
+                r.j.assertLogContains("isStartedByUpstream: true", r2);
+                r.j.assertLogContains("upstreamProjectName: job-1", r2);
+            }
+        });
+        r.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = r.j.createProject(WorkflowJob.class, "job-3");
+                p.setDefinition(new CpsFlowDefinition("echo \"isStartedByUpstream: ${currentBuild.isStartedByUpstream}\"\n", true));
+                CauseAction action = new CauseAction();
+                WorkflowRun b = r.j.assertBuildStatusSuccess(p.scheduleBuild2(0, action).get());
+                r.j.assertLogContains("isStartedByUpstream: false", b);
             }
         });
     }
