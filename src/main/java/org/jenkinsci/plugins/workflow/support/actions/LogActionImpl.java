@@ -26,23 +26,30 @@ package org.jenkinsci.plugins.workflow.support.actions;
 
 import com.google.common.base.Charsets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Util;
 import hudson.console.AnnotatedLargeText;
 import hudson.console.ConsoleLogFilter;
 import hudson.model.AbstractBuild;
+import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.model.Queue.Executable;
 import hudson.util.StreamTaskListener;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+
 import org.apache.commons.jelly.XMLOutput;
 import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
 import org.jenkinsci.plugins.workflow.actions.LogAction;
@@ -50,6 +57,7 @@ import org.jenkinsci.plugins.workflow.actions.PersistentAction;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.flow.GraphListener;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.graph.FlowStartNode;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.framework.io.ByteBuffer;
@@ -78,6 +86,25 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
             node.addAction(la);
         }
         OutputStream os = new FileOutputStream(la.getLogFile(), true);
+        Executable executable = node.getExecution().getOwner().getExecutable();
+        if (executable instanceof Run) {
+          for (ConsoleLogFilter consoleLogFilter : ConsoleLogFilter.all()) {
+            if (!Util.isOverridden(ConsoleLogFilter.class,
+                consoleLogFilter.getClass(), "decorateLogger", Run.class, OutputStream.class)) {
+              LOGGER.log(Level.FINEST, "Ignoring ConsoleLogFilter not supporting Run: {0}", consoleLogFilter.getClass().getName());
+              continue;
+            }
+            OutputStream out;
+            out = consoleLogFilter.decorateLogger((Run<?, ?>) executable, os);
+            if (out != os) {
+              if (consoleLogFilter instanceof Serializable)  {
+                os = out;
+              } else {
+                LOGGER.log(Level.FINEST, "Ignoring ConsoleLogFilter not supporting Serialization: {0}", consoleLogFilter.getClass().getName());
+              }
+            }
+          }
+        }
         if (filter != null) {
             os = filter.decorateLogger((AbstractBuild) null, os);
         }
