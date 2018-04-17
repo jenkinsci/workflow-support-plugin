@@ -24,7 +24,7 @@ import java.util.List;
  class MockFlowExecution extends FlowExecution {
 
     List<FlowNode> heads = new ArrayList<FlowNode>();
-    FlowNodeStorage storage;
+    transient FlowNodeStorage storage;
 
     MockFlowExecution(@Nonnull FlowNodeStorage storage) {
         this.storage = storage;
