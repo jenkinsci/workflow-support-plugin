@@ -64,7 +64,7 @@
     <properties>
         <revision>2.19</revision>
         <changelist>-SNAPSHOT</changelist>
-        <jenkins.version>2.60.3</jenkins.version>
+        <jenkins.version>2.62</jenkins.version>
         <java.level>8</java.level>
         <no-test-jar>false</no-test-jar>
         <git-plugin.version>3.7.0</git-plugin.version>
@@ -151,7 +151,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-job</artifactId>
-            <version>2.12.2</version>
+            <version>2.21</version>
             <scope>test</scope>
         </dependency>
         <dependency>
