@@ -1,7 +1,6 @@
 package org.jenkinsci.plugins.workflow.support.visualization.table;
 
 import hudson.Extension;
-import hudson.views.Messages;
 import org.jenkinsci.plugins.workflow.visualization.table.FlowNodeViewColumn;
 import org.jenkinsci.plugins.workflow.visualization.table.FlowNodeViewColumnDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -23,7 +22,7 @@ public class StatusColumn extends FlowNodeViewColumn {
 
         @Override
         public String getDisplayName() {
-            return Messages.StatusColumn_DisplayName();
+            return "Status";
         }
     }
 }

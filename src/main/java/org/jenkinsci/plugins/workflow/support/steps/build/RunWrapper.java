@@ -107,6 +107,16 @@ public final class RunWrapper implements Serializable {
             build().setDisplayName(n);
         }
     }
+	
+    @Whitelisted
+    public void setKeepLog(boolean b) throws IOException {
+        if (!currentBuild) {
+            throw new SecurityException("can only set the keepLog property on the current build");
+        }
+        try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
+            build().keepLog(b);
+        }
+    }
 
     @Whitelisted
     public int getNumber() throws AbortException {
@@ -179,7 +189,12 @@ public final class RunWrapper implements Serializable {
     public String getFullDisplayName() throws AbortException {
         return build().getFullDisplayName();
     }
-
+    
+    @Whitelisted
+    public boolean isKeepLog() throws AbortException {
+        return build().isKeepLog();
+    }
+	
     @Whitelisted
     public String getProjectName() throws AbortException {
         return build().getParent().getName();
