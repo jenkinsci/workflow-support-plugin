@@ -60,7 +60,7 @@ public class AnnotatedLogActionTest {
             "Step two, third line.\n" +
             "</span><span class=\"pipeline-node-1\">More from step one.\n" +
             "</span>End of build.\n",
-            sw.toString());
+            sw.toString().replace("\r\n", "\n"));
     }
 
     // TODO test missing final newline
