@@ -182,7 +182,7 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction, Per
         return new DecoratedTaskListener(raw, null, prefix(id));
     }
 
-    private static class DecoratedTaskListener extends LessAbstractTaskListener {
+    private static class DecoratedTaskListener implements TaskListener {
         private static final long serialVersionUID = 1;
         /**
          * The listener we are delegating to, which was expected to be remotable.
