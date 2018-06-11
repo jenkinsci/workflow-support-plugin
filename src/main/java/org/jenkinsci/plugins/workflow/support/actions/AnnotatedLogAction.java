@@ -283,7 +283,9 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction, Per
             this.out = out;
         }
         @Override protected void eol(byte[] in, int sz) throws IOException {
-            assert sz >= 0 && sz <= in.length;
+            if (sz < 0 || sz > in.length) {
+                throw new IllegalArgumentException(sz + " vs. " + in.length);
+            }
             String id = null;
             int idx = Bytes.indexOf(in, INFIX);
             if (idx != -1) {
@@ -295,6 +297,9 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction, Per
                     out.write("<span class=\"pipeline-node-" + id + "\">");
                 }
                 int skip = idx + INFIX.length;
+                if (skip > sz) {
+                    throw new IllegalStateException(skip + " > " + sz + " in ‘" + new String(in, StandardCharsets.UTF_8) + "’");
+                }
                 in = Arrays.copyOfRange(in, skip, sz);
                 sz -= skip;
                 assert sz >= 0 && sz <= in.length;
