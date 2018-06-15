@@ -288,7 +288,7 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction, Per
             }
             String id = null;
             int idx = Bytes.indexOf(in, INFIX);
-            if (idx != -1) {
+            if (idx != -1) { // TODO to avoid ISE, must also check that it is within sz
                 id = new String(in, 0, idx, StandardCharsets.UTF_8);
                 if (!id.equals(currentId)) {
                     if (currentId != null) {
