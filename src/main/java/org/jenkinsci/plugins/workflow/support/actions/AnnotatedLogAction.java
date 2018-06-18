@@ -108,6 +108,7 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction, Per
      */
     @Override public AnnotatedLargeText<? extends FlowNode> getLogText() {
         ByteBuffer buf = new ByteBuffer();
+        // TODO allow the FlowExecutionOwner to implement this more efficiently
         try (InputStream whole = node.getExecution().getOwner().getLog(0); InputStream wholeBuffered = new BufferedInputStream(whole)) {
             ByteArrayOutputStream2 baos = new ByteArrayOutputStream2();
             byte[] prefix = prefix(node);
@@ -141,8 +142,6 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction, Per
         }
         return new AnnotatedLargeText<>(buf, StandardCharsets.UTF_8, !node.isActive(), node);
     }
-
-    // TODO probably need an API method in LogAction to obtain all log text from a block node and descendants (e.g., a parallel branch)
 
     /**
      * Used from <tt>console.jelly</tt> to write annotated log to the given output.
