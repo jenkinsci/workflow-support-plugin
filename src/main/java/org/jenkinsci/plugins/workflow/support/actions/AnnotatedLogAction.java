@@ -58,6 +58,7 @@ import org.jenkinsci.plugins.workflow.actions.PersistentAction;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.Beta;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.framework.io.ByteBuffer;
@@ -65,12 +66,16 @@ import org.kohsuke.stapler.framework.io.ByteBuffer;
 /**
  * A marker for a node which had some log text.
  */
+@Restricted(Beta.class)
 public class AnnotatedLogAction extends LogAction implements FlowNodeAction, PersistentAction {
 
     private static final Logger LOGGER = Logger.getLogger(AnnotatedLogAction.class.getName());
 
-    /** Could use anything, but nicer to use something visually distinct from typical output, and unlikely to be produced by non-step output such as SCM loading. */
-    @Restricted(NoExternalUse.class) // tests only
+    /**
+     * Division between a {@link FlowNode#getId} and a regular log line.
+     * Could use anything, but nicer to use something visually distinct from typical output,
+     * and unlikely to be produced by non-step output such as SCM loading.
+     */
     public static final String NODE_ID_SEP = "¦";
 
     private static final byte[] INFIX = NODE_ID_SEP.getBytes(StandardCharsets.UTF_8);
