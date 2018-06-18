@@ -29,7 +29,9 @@ import hudson.model.TaskListener;
 import hudson.util.StreamTaskListener;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import org.apache.commons.io.IOUtils;
 import static org.junit.Assert.*;
 import org.junit.Test;
@@ -60,6 +62,27 @@ public class AnnotatedLogActionTest {
             "Step two, third line.\n" +
             "</span><span class=\"pipeline-node-1\">More from step one.\n" +
             "</span>End of build.\n",
+            sw.toString().replace("\r\n", "\n"));
+    }
+
+    /**
+     * Checks what happens when code using {@link TaskListener#getLogger} prints a line with inadequate synchronization.
+     * Normally you use something like {@link PrintWriter#println(String)} which synchronizes and so delivers a complete line.
+     * Failures to do this can cause output from different steps (or general build output) to be interleaved at a sub-line level.
+     * This will not render well, but we need to ensure that the entire build log is not broken as a result.
+     */
+    @Test public void mangledLines() throws Exception {
+        StringWriter sw = new StringWriter();
+        IOUtils.copy(new ByteArrayInputStream((
+            "General output.\n" +
+            "1¦Step one, 2¦Step two, some line.\n" +
+            "another line.\n" +
+            "End of build.\n").getBytes(StandardCharsets.UTF_8)), AnnotatedLogAction.annotateHtml(sw, ConsoleAnnotator.initial(null), null));
+        assertEquals(
+            "General output.\n" +
+            "<span class=\"pipeline-node-1\">Step one, 2¦Step two, some line.\n" +
+            "</span>another line.\n" +
+            "End of build.\n",
             sw.toString().replace("\r\n", "\n"));
     }
 

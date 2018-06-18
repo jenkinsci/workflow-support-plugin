@@ -293,17 +293,14 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction, Per
             }
             String id = null;
             int idx = Bytes.indexOf(in, INFIX);
-            if (idx != -1) { // TODO to avoid ISE, must also check that it is within sz
+            int skip = idx + INFIX.length;
+            if (idx != -1 && skip <= sz) {
                 id = new String(in, 0, idx, StandardCharsets.UTF_8);
                 if (!id.equals(currentId)) {
                     if (currentId != null) {
                         out.write("</span>");
                     }
                     out.write("<span class=\"pipeline-node-" + id + "\">");
-                }
-                int skip = idx + INFIX.length;
-                if (skip > sz) {
-                    throw new IllegalStateException(skip + " > " + sz + " in ‘" + new String(in, StandardCharsets.UTF_8) + "’");
                 }
                 in = Arrays.copyOfRange(in, skip, sz);
                 sz -= skip;
