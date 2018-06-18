@@ -108,8 +108,9 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction, Per
      */
     @Override public AnnotatedLargeText<? extends FlowNode> getLogText() {
         ByteBuffer buf = new ByteBuffer();
+        boolean complete = !node.isActive();
         // TODO allow the FlowExecutionOwner to implement this more efficiently
-        try (InputStream whole = node.getExecution().getOwner().getLog(0); InputStream wholeBuffered = new BufferedInputStream(whole)) {
+        try (InputStream whole = node.getExecution().getOwner().getLog(0, complete); InputStream wholeBuffered = new BufferedInputStream(whole)) {
             ByteArrayOutputStream2 baos = new ByteArrayOutputStream2();
             byte[] prefix = prefix(node);
             READ: while (true) {
@@ -140,7 +141,7 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction, Per
         } catch (IOException x) {
             LOGGER.log(Level.WARNING, null, x);
         }
-        return new AnnotatedLargeText<>(buf, StandardCharsets.UTF_8, !node.isActive(), node);
+        return new AnnotatedLargeText<>(buf, StandardCharsets.UTF_8, complete, node);
     }
 
     /**
@@ -162,7 +163,7 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction, Per
     @Restricted(NoExternalUse.class) // for use from DefaultStepContext only
     public static @Nonnull TaskListener listenerFor(@Nonnull FlowNode node, @CheckForNull ConsoleLogFilter filter) throws IOException, InterruptedException {
         FlowExecutionOwner owner = node.getExecution().getOwner();
-        if (Util.isOverridden(FlowExecutionOwner.class, owner.getClass(), "getLog", long.class)) {
+        if (Util.isOverridden(FlowExecutionOwner.class, owner.getClass(), "getLog", long.class, boolean.class)) {
             return decorate(owner.getListener(), filter, node);
         } else { // old WorkflowRun which uses copyLogs
             return LogActionImpl.stream(node, filter);
