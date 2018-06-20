@@ -103,7 +103,14 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction, Per
                 node.addAction(new AnnotatedLogAction(node));
             }
             TaskListener listener = LogStorage.of(owner).nodeListener(node);
-            return filter != null ? new FilteringTaskListener(listener, filter) : listener;
+            if (filter != null) {
+                if (filter instanceof Serializable) {
+                    return new FilteringTaskListener(listener, filter);
+                } else {
+                    LOGGER.log(Level.WARNING, "{0} must implement Serializable to be used with Pipeline", filter.getClass());
+                }
+            }
+            return listener;
         }
     }
 
@@ -121,10 +128,7 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction, Per
         @SuppressFBWarnings(value="SE_BAD_FIELD", justification="The filter is expected to be serializable.")
         private final @Nonnull ConsoleLogFilter filter;
         private transient PrintStream logger;
-        FilteringTaskListener(TaskListener delegate, ConsoleLogFilter filter) {
-            if (filter != null && !(filter instanceof Serializable)) {
-                throw new IllegalArgumentException("Cannot pass a nonserializable " + filter.getClass());
-            }
+        FilteringTaskListener(@Nonnull TaskListener delegate, @Nonnull ConsoleLogFilter filter) {
             this.delegate = delegate;
             this.filter = filter;
         }
