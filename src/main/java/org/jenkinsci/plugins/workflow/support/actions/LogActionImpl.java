@@ -26,9 +26,13 @@ package org.jenkinsci.plugins.workflow.support.actions;
 
 import com.google.common.base.Charsets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.CloseProofOutputStream;
+import hudson.Util;
 import hudson.console.AnnotatedLargeText;
 import hudson.console.ConsoleLogFilter;
 import hudson.model.AbstractBuild;
+import hudson.model.Queue;
+import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.StreamTaskListener;
 import java.io.File;
@@ -44,6 +48,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.jelly.XMLOutput;
 import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
 import org.jenkinsci.plugins.workflow.actions.LogAction;
@@ -67,6 +72,19 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
     private static final Logger LOGGER = Logger.getLogger(LogActionImpl.class.getName());
 
     /**
+     * Try to determine whether a build corresponds to a version of {@code WorkflowRun} using {@code copyLogs}.
+     */
+    static boolean isOld(FlowExecutionOwner owner) {
+        try {
+            Queue.Executable exec = owner.getExecutable();
+            return exec instanceof Run && !Util.isOverridden(Run.class, exec.getClass(), "getLogFile");
+        } catch (IOException x) {
+            LOGGER.log(Level.WARNING, null, x);
+            return false; // err on the side of assuming plugins are updated
+        }
+    }
+
+    /**
      * Get or create the streaming log handle for a given flow node.
      * @param node the node
      * @param filter
@@ -80,6 +98,10 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
             node.addAction(la);
         }
         OutputStream os = new FileOutputStream(la.getLogFile(), true);
+        FlowExecutionOwner owner = node.getExecution().getOwner();
+        if (!isOld(owner)) { // in case after upgrade we had a running step using LogActionImpl
+            os = new TeeOutputStream(os, new CloseProofOutputStream(owner.getListener().getLogger()));
+        }
         if (filter != null) {
             os = filter.decorateLogger((AbstractBuild) null, os);
         }
