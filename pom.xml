@@ -28,7 +28,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.12</version>
+        <version>3.16-20180621.084622-1</version>
         <relativePath />
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -72,8 +72,8 @@
         <workflow-scm-step-plugin.version>2.6</workflow-scm-step-plugin.version>
         <workflow-step-api-plugin.version>2.13</workflow-step-api-plugin.version>
         <scm-api-plugin.version>2.2.6</scm-api-plugin.version>
+        <animal.sniffer.version>1.17-SNAPSHOT</animal.sniffer.version>
         <enforcer.skip>true</enforcer.skip> <!-- Ignore the higher classfile version for JBoss Marshallig until we resolve JENKINS-52014 and JENKINS-52006 -->
-        <animal.sniffer.skip>true</animal.sniffer.skip> <!-- Temporary for JENKINS-52007 -->
         <maven.test.skip>true</maven.test.skip>
     </properties>
     <dependencies>
