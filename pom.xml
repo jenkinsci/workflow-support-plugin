@@ -64,8 +64,8 @@
     <properties>
         <revision>2.19</revision>
         <changelist>-SNAPSHOT</changelist>
-        <jenkins-core.version>2.129-20180618.135411-1</jenkins-core.version>
-        <jenkins-war.version>2.129-20180618.135443-1</jenkins-war.version>
+        <jenkins-core.version>2.129-rc15784.940fadf41694</jenkins-core.version>
+        <jenkins-war.version>2.129-rc15784.940fadf41694</jenkins-war.version>
         <java.level>8</java.level>
         <no-test-jar>false</no-test-jar>
         <git-plugin.version>3.7.0</git-plugin.version>
@@ -73,7 +73,6 @@
         <workflow-step-api-plugin.version>2.13</workflow-step-api-plugin.version>
         <scm-api-plugin.version>2.2.6</scm-api-plugin.version>
         <enforcer.skip>true</enforcer.skip> <!-- Ignore the higher classfile version for JBoss Marshallig until we resolve JENKINS-52014 and JENKINS-52006 -->
-        <maven.test.skip>true</maven.test.skip>
     </properties>
     <dependencies>
         <dependency>
