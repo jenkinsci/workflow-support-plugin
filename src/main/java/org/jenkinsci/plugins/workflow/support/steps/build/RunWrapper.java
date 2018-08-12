@@ -49,6 +49,8 @@ import org.jenkinsci.plugins.workflow.support.actions.EnvironmentAction;
 
 /**
  * Allows {@link Whitelisted} access to selected attributes of a {@link Run} without requiring Jenkins API imports.
+ *
+ * NOTE: if modifying this class, please remember to manually update Runwrapper/help.html
  */
 public final class RunWrapper implements Serializable {
 
