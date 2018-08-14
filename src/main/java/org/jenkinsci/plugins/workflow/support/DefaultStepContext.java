@@ -40,8 +40,8 @@ import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
-import org.jenkinsci.plugins.workflow.support.actions.AnnotatedLogAction;
 import org.jenkinsci.plugins.workflow.support.actions.EnvironmentAction;
+import org.jenkinsci.plugins.workflow.support.actions.LogStorageAction;
 
 /**
  * Partial implementation of step context.
@@ -70,7 +70,7 @@ public abstract class DefaultStepContext extends StepContext {
             return value;
         } else if (key == TaskListener.class) {
             if (listener == null) {
-                listener = AnnotatedLogAction.listenerFor(getNode(), get(ConsoleLogFilter.class));
+                listener = LogStorageAction.listenerFor(getNode(), get(ConsoleLogFilter.class));
             }
             return key.cast(listener);
         } else if (Node.class.isAssignableFrom(key)) {

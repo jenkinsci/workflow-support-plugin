@@ -53,16 +53,16 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
- * A marker for a node which had some log text.
+ * A marker for a node which had some log text using {@link LogStorage#nodeListener}.
  */
 @Restricted(NoExternalUse.class) // for use from DefaultStepContext only
-public class AnnotatedLogAction extends LogAction implements FlowNodeAction, PersistentAction {
+public class LogStorageAction extends LogAction implements FlowNodeAction, PersistentAction {
 
-    private static final Logger LOGGER = Logger.getLogger(AnnotatedLogAction.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(LogStorageAction.class.getName());
 
     public transient FlowNode node;
 
-    private AnnotatedLogAction(FlowNode node) {
+    private LogStorageAction(FlowNode node) {
         if (!node.isActive()) {
             throw new IllegalStateException("cannot start writing logs to a finished node " + node);
         }
@@ -99,8 +99,8 @@ public class AnnotatedLogAction extends LogAction implements FlowNodeAction, Per
         if (LogActionImpl.isOld(owner)) {
             return LogActionImpl.stream(node, filter);
         } else {
-            if (node.getAction(AnnotatedLogAction.class) == null) {
-                node.addAction(new AnnotatedLogAction(node));
+            if (node.getAction(LogStorageAction.class) == null) {
+                node.addAction(new LogStorageAction(node));
             }
             TaskListener listener = LogStorage.of(owner).nodeListener(node);
             if (filter != null) {
