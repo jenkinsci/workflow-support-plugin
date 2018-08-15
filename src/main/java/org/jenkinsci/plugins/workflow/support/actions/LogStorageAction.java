@@ -96,7 +96,7 @@ public class LogStorageAction extends LogAction implements FlowNodeAction, Persi
     @SuppressWarnings("deprecation") // LogActionImpl here for backward compatibility
     public static @Nonnull TaskListener listenerFor(@Nonnull FlowNode node, @CheckForNull ConsoleLogFilter filter) throws IOException, InterruptedException {
         FlowExecutionOwner owner = node.getExecution().getOwner();
-        if (LogActionImpl.isOld(owner)) {
+        if (LogActionImpl.isOld(owner) || node.getAction(LogActionImpl.class) != null) {
             return LogActionImpl.stream(node, filter);
         } else {
             if (node.getAction(LogStorageAction.class) == null) {
