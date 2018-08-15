@@ -4,7 +4,10 @@
     <dt><code>currentResult</code></dt><dd>typically <code>SUCCESS</code>, <code>UNSTABLE</code>, or <code>FAILURE</code>. Will never be null.</dd>
     <dt><code>resultIsBetterOrEqualTo(String)</code></dt><dd>Compares the current build result to the provided result string (<code>SUCCESS</code>, <code>UNSTABLE</code>, or <code>FAILURE</code>) and returns true if the current build result is better than or equal to the provided result.</dd>
     <dt><code>resultIsWorseOrEqualTo(String)</code></dt><dd>Compares the current build result to the provided result string (<code>SUCCESS</code>, <code>UNSTABLE</code>, or <code>FAILURE</code>) and returns true if the current build result is worse than or equal to the provided result.</dd>
-    <dt><code>displayName</code></dt><dd>normally <code>#123</code> but sometimes set to, e.g., an SCM commit identifier</dd>
+    <dt><code>displayName</code></dt><dd>normally <code>#123</code> but sometimes set to, e.g., an SCM commit identifier.</dd>
+    <dt><code>fullDisplayName</code></dt><dd>normally <code>folder1 » folder2 » foo #123</code>.</dd>
+    <dt><code>projectName</code></dt><dd>Name of the project of this build, such as <code>foo</code>.</dd>
+    <dt><code>fullProjectName</code></dt><dd>Full name of the project of this build, including folders such as <code>folder1/folder2/foo</code>.</dd>
     <dt><code>description</code></dt><dd>additional information about the build</dd>
     <dt><code>id</code></dt><dd>normally <code>number</code> as a string</dd>
     <dt><code>timeInMillis</code></dt><dd>time since the epoch when the build was scheduled</dd>
@@ -15,6 +18,8 @@
     <dt><code>nextBuild</code></dt><dd>similarly</dd>
     <dt><code>absoluteUrl</code></dt><dd>URL of build index page</dd>
     <dt><code>buildVariables</code></dt><dd>for a non-Pipeline downstream build, offers access to a map of defined build variables; for a Pipeline downstream build, any variables set globally on <code>env</code></dd>
-    <dt><code>changeSets</code></dt><dd>a list of <a href="http://javadoc.jenkins-ci.org/hudson/scm/ChangeLogSet.html" target="_blank">changesets</a> coming from distinct SCM checkouts; each has a <code>kind</code> and is a list of commits; each commit has a <code>commitId</code>, <code>timestamp</code>, <code>msg</code>, <code>author</code>, and <code>affectedFiles</code> each of which has an <code>editType</code> and <code>path</code>; the value will not generally be <code>Serializable</code> so you may only access it inside a method marked <code>@NonCPS</code></dd>
-    <dt><code>rawBuild</code></dt><dd>a <code>hudson.model.Run</code> with <a href="http://javadoc.jenkins-ci.org/hudson/model/Run.html" target="_blank">further APIs</a>, only for trusted libraries or administrator-approved scripts outside the sandbox; the value will not be <code>Serializable</code> so you may only access it inside a method marked <code>@NonCPS</code></dd>
+    <dt><code>changeSets</code></dt><dd>a list of <a href="https://javadoc.jenkins-ci.org/hudson/scm/ChangeLogSet.html" target="_blank">changesets</a> coming from distinct SCM checkouts; each has a <code>kind</code> and is a list of commits; each commit has a <code>commitId</code>, <code>timestamp</code>, <code>msg</code>, <code>author</code>, and <code>affectedFiles</code> each of which has an <code>editType</code> and <code>path</code>; the value will not generally be <code>Serializable</code> so you may only access it inside a method marked <code>@NonCPS</code></dd>
+    <dt><code>upstreamBuilds</code></dt><dd>a list of upstream <a href="https://javadoc.jenkins.io/plugin/workflow-support/org/jenkinsci/plugins/workflow/support/steps/build/RunWrapper.html">builds</a>.  These are the builds of the upstream projects whose artifacts feed into this build.
+    <dt><code>rawBuild</code></dt><dd>a <code>hudson.model.Run</code> with <a href="https://javadoc.jenkins-ci.org/hudson/model/Run.html" target="_blank">further APIs</a>, only for trusted libraries or administrator-approved scripts outside the sandbox; the value will not be <code>Serializable</code> so you may only access it inside a method marked <code>@NonCPS</code></dd>
+    <dt><code>keepLog</code></dt><dd><code>true</code> if the log file for this build should be kept and not deleted.
 </dl>
