@@ -31,7 +31,6 @@ import hudson.console.ConsoleLogFilter;
 import hudson.model.AbstractBuild;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -63,9 +62,6 @@ public class LogStorageAction extends LogAction implements FlowNodeAction, Persi
     public transient FlowNode node;
 
     private LogStorageAction(FlowNode node) {
-        if (!node.isActive()) {
-            throw new IllegalStateException("cannot start writing logs to a finished node " + node);
-        }
         this.node = node;
     }
 

@@ -43,7 +43,6 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -54,7 +53,6 @@ import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
 import org.jenkinsci.plugins.workflow.actions.LogAction;
 import org.jenkinsci.plugins.workflow.actions.PersistentAction;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
-import org.jenkinsci.plugins.workflow.flow.GraphListener;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -105,20 +103,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
         if (filter != null) {
             os = filter.decorateLogger((AbstractBuild) null, os);
         }
-        final StreamTaskListener result = new StreamTaskListener(os, la.getCharset());
-        final AtomicReference<GraphListener> graphListener = new AtomicReference<>();
-        LOGGER.log(Level.FINE, "opened log for {0}", node.getDisplayFunctionName());
-        graphListener.set(new GraphListener.Synchronous() {
-            @Override public void onNewHead(FlowNode newNode) {
-                if (!node.isActive()) {
-                    node.getExecution().removeListener(graphListener.get());
-                    result.getLogger().close();
-                    LOGGER.log(Level.FINE, "closed log for {0}", node.getDisplayFunctionName());
-                }
-            }
-        });
-        node.getExecution().addListener(graphListener.get());
-        return result;
+        return new StreamTaskListener(os, la.getCharset());
     }
 
     private transient FlowNode parent;
@@ -126,9 +111,6 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
     private String charset;
 
     private LogActionImpl(FlowNode parent) throws IOException {
-        if (!parent.isActive()) {
-            throw new IOException("cannot start writing logs to a finished node " + parent + " " + parent.getDisplayFunctionName() + " in " + parent.getExecution());
-        }
         this.parent = parent;
     }
 
