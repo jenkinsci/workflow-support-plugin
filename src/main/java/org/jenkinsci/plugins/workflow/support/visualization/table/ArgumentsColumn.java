@@ -25,6 +25,7 @@
 package org.jenkinsci.plugins.workflow.support.visualization.table;
 
 import hudson.Extension;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.actions.ArgumentsAction;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.visualization.table.FlowNodeViewColumn;
@@ -39,7 +40,7 @@ public class ArgumentsColumn extends FlowNodeViewColumn {
     @DataBoundConstructor public ArgumentsColumn() {}
 
     public String get(FlowNode node) {
-        return ArgumentsAction.getStepArgumentsAsString(node);
+        return StringUtils.substring(ArgumentsAction.getStepArgumentsAsString(node), 0, 80);
     }
 
     @Extension public static class DescriptorImpl extends FlowNodeViewColumnDescriptor {
