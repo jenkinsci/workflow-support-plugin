@@ -30,7 +30,6 @@ import hudson.CloseProofOutputStream;
 import hudson.Util;
 import hudson.console.AnnotatedLargeText;
 import hudson.console.ConsoleLogFilter;
-import hudson.model.AbstractBuild;
 import hudson.model.Queue;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -54,6 +53,7 @@ import org.jenkinsci.plugins.workflow.actions.LogAction;
 import org.jenkinsci.plugins.workflow.actions.PersistentAction;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.log.TaskListenerDecorator;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.framework.io.ByteBuffer;
@@ -82,6 +82,11 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
         }
     }
 
+    @Deprecated
+    public static @Nonnull TaskListener stream(final @Nonnull FlowNode node, @CheckForNull ConsoleLogFilter filter) throws IOException, InterruptedException {
+        return stream(node, TaskListenerDecorator.fromConsoleLogFilter(filter));
+    }
+
     /**
      * Get or create the streaming log handle for a given flow node.
      * @param node the node
@@ -89,7 +94,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
      * @return a listener
      */
     @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE") // stream closed later
-    public static @Nonnull TaskListener stream(final @Nonnull FlowNode node, @CheckForNull ConsoleLogFilter filter) throws IOException, InterruptedException {
+    public static @Nonnull TaskListener stream(final @Nonnull FlowNode node, @CheckForNull TaskListenerDecorator decorator) throws IOException, InterruptedException {
         LogActionImpl la = node.getAction(LogActionImpl.class);
         if (la == null) {
             la = new LogActionImpl(node);
@@ -100,8 +105,8 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
         if (!isOld(owner)) { // in case after upgrade we had a running step using LogActionImpl
             os = new TeeOutputStream(os, new CloseProofOutputStream(owner.getListener().getLogger()));
         }
-        if (filter != null) {
-            os = filter.decorateLogger((AbstractBuild) null, os);
+        if (decorator != null) {
+            os = decorator.decorate(os);
         }
         return new StreamTaskListener(os, la.getCharset());
     }
