@@ -90,7 +90,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
     /**
      * Get or create the streaming log handle for a given flow node.
      * @param node the node
-     * @param filter
+     * @param decorator some filtering
      * @return a listener
      */
     @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE") // stream closed later
