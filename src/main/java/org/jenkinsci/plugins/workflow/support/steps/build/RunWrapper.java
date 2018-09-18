@@ -33,6 +33,7 @@ import hudson.model.TaskListener;
 import hudson.scm.ChangeLogSet;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -40,10 +41,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import jenkins.scm.RunWithSCM;
+
 import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.Whitelisted;
 import org.jenkinsci.plugins.workflow.support.actions.EnvironmentAction;
 
@@ -79,6 +82,18 @@ public final class RunWrapper implements Serializable {
             throw new AbortException("No build record " + externalizableId + " could be located.");
         }
         return r;
+    }
+
+    @Whitelisted
+    public List<Cause> getBuildCauses() {
+        return Collections.unmodifiableList(getRawBuild().getCauses());
+    }
+
+    @Whitelisted
+    public List<Cause> getBuildCauses(Class<Cause> causeType) {
+        return Collections.unmodifiableList(getRawBuild().getCauses().stream().filter(cause -> causeType.isInstance(cause)
+        ).collect
+                (Collectors.toList()));
     }
 
     @Whitelisted
