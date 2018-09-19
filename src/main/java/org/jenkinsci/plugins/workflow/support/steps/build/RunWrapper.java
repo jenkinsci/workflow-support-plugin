@@ -87,22 +87,24 @@ public final class RunWrapper implements Serializable {
 
     @Whitelisted
     public List<Cause> getBuildCauses() {
-        if (getRawBuild() != null) {
-            return Collections.unmodifiableList(getRawBuild().getCauses());
+        Run<?,?> run = getRawBuild();
+        if (run != null) {
+            return Collections.unmodifiableList(run.getCauses());
         }
         else {
-            return new ArrayList<Cause>();
+            return Collections.emptyList();
         }
     }
 
     @Whitelisted
     public List<Cause> getBuildCauses(Class<Cause> causeType) {
-        if (getRawBuild() != null) {
+        Run<?,?> run = getRawBuild();
+        if (run != null) {
             return Collections.unmodifiableList(
-                    getRawBuild().getCauses().stream().filter(cause -> causeType.isInstance(cause)).collect(Collectors.toList()));
+                    run.getCauses().stream().filter(cause -> causeType.isInstance(cause)).collect(Collectors.toList()));
         }
         else {
-            return new ArrayList<Cause>();
+            return Collections.emptyList();
         }
     }
 
