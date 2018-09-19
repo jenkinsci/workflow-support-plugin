@@ -105,7 +105,6 @@ public final class RunWrapper implements Serializable {
             return new ArrayList<Cause>();
         }
     }
-    }
 
     @Whitelisted
     public void setResult(String result) throws AbortException {
