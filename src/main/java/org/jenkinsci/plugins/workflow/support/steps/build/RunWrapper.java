@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -86,14 +87,13 @@ public final class RunWrapper implements Serializable {
 
     @Whitelisted
     public List<Cause> getBuildCauses() {
-        return Collections.unmodifiableList(getRawBuild().getCauses());
+        return Collections.unmodifiableList(Objects.requireNonNull(getRawBuild()).getCauses());
     }
 
     @Whitelisted
     public List<Cause> getBuildCauses(Class<Cause> causeType) {
-        return Collections.unmodifiableList(getRawBuild().getCauses().stream().filter(cause -> causeType.isInstance(cause)
-        ).collect
-                (Collectors.toList()));
+        return Collections.unmodifiableList(Objects.requireNonNull(getRawBuild().getCauses()).stream().filter(cause -> causeType
+                .isInstance(cause)).collect(Collectors.toList()));
     }
 
     @Whitelisted
