@@ -28,11 +28,15 @@ import hudson.Extension;
 import hudson.model.Action;
 import hudson.model.Item;
 import hudson.security.AccessControlled;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jenkins.model.TransientActionFactory;
+import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
@@ -44,6 +48,8 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  */
 @Restricted(NoExternalUse.class)
 public final class WorkspaceRunAction implements Action {
+
+    private static final Logger LOGGER = Logger.getLogger(WorkspaceRunAction.class.getName());
 
     public final FlowExecutionOwner owner;
 
@@ -63,9 +69,17 @@ public final class WorkspaceRunAction implements Action {
         return "ws";
     }
 
-    public List<WorkspaceActionImpl> getActions() throws Exception {
+    public List<WorkspaceActionImpl> getActions() {
+        FlowExecution exec;
+        try {
+            exec = owner.get();
+        } catch (IOException x) {
+            LOGGER.log(Level.WARNING, null, x);
+            // Broken flow, cannot display anything.
+            return Collections.emptyList();
+        }
         List<WorkspaceActionImpl> r = new ArrayList<>();
-        for (FlowNode node : new DepthFirstScanner().allNodes(owner.get())) {
+        for (FlowNode node : new DepthFirstScanner().allNodes(exec)) {
             for (WorkspaceActionImpl action : node.getActions(WorkspaceActionImpl.class)) {
                 r.add(action);
             }
