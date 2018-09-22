@@ -223,7 +223,7 @@
                 <artifactId>maven-hpi-plugin</artifactId>
                 <extensions>true</extensions>
                 <configuration>
-                    <compatibleSinceVersion>2.17</compatibleSinceVersion>
+                    <compatibleSinceVersion>2.21</compatibleSinceVersion>
                 </configuration>
             </plugin>
         </plugins>
