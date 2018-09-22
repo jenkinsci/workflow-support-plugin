@@ -28,7 +28,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.12</version>
+        <version>3.22</version>
         <relativePath />
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -62,19 +62,15 @@
         </pluginRepository>
     </pluginRepositories>
     <properties>
-        <revision>2.19</revision>
+        <revision>2.21</revision>
         <changelist>-SNAPSHOT</changelist>
-        <jenkins-core.version>2.129-20180618.135411-1</jenkins-core.version>
-        <jenkins-war.version>2.129-20180618.135443-1</jenkins-war.version>
+        <jenkins.version>2.62</jenkins.version>
         <java.level>8</java.level>
         <no-test-jar>false</no-test-jar>
         <git-plugin.version>3.7.0</git-plugin.version>
         <workflow-scm-step-plugin.version>2.6</workflow-scm-step-plugin.version>
         <workflow-step-api-plugin.version>2.13</workflow-step-api-plugin.version>
         <scm-api-plugin.version>2.2.6</scm-api-plugin.version>
-        <enforcer.skip>true</enforcer.skip> <!-- Ignore the higher classfile version for JBoss Marshallig until we resolve JENKINS-52014 and JENKINS-52006 -->
-        <animal.sniffer.skip>true</animal.sniffer.skip> <!-- Temporary for JENKINS-52007 -->
-        <maven.test.skip>true</maven.test.skip>
     </properties>
     <dependencies>
         <dependency>
@@ -101,7 +97,7 @@
             <!-- Requires Java 9+ -->
             <groupId>org.jboss.marshalling</groupId>
             <artifactId>jboss-marshalling-river</artifactId>
-            <version>2.0.5.Final</version> <!-- https://github.com/jglick/jboss-marshalling/compare/1.4.12.Final...1.4.12.jenkins-3 -->
+            <version>2.0.5.Final</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci</groupId>
@@ -225,6 +221,25 @@
                 <configuration>
                     <compatibleSinceVersion>2.21</compatibleSinceVersion>
                 </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>display-info</id>
+                        <configuration>
+                            <rules>
+                                <enforceBytecodeVersion>
+                                    <excludes combine.children="append">
+                                        <!-- Prevents enforcer complaining about multi-release JAR -->
+                                        <exclude>org.jboss.marshalling:jboss-marshalling-river</exclude>
+                                        <exclude>org.jboss.marshalling:jboss-marshalling</exclude>
+                                    </excludes>
+                                </enforceBytecodeVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
