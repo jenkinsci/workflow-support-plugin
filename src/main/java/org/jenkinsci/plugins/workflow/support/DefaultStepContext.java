@@ -41,6 +41,7 @@ import javax.annotation.Nonnull;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.flow.GraphListener;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.log.TaskListenerDecorator;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.support.actions.EnvironmentAction;
@@ -105,7 +106,7 @@ public abstract class DefaultStepContext extends StepContext {
             if (!node.isActive()) {
                 throw new IOException("cannot start writing logs to a finished node " + node + " " + node.getDisplayFunctionName() + " in " + node.getExecution());
             }
-            listener = LogStorageAction.listenerFor(node, get(ConsoleLogFilter.class));
+            listener = LogStorageAction.listenerFor(node, TaskListenerDecorator.merge(TaskListenerDecorator.fromConsoleLogFilter(get(ConsoleLogFilter.class)), get(TaskListenerDecorator.class)));
             LOGGER.log(Level.FINE, "opened log for {0}", node.getDisplayFunctionName());
             if (listener instanceof AutoCloseable) {
                 node.getExecution().addListener(new GraphListener.Synchronous() {
