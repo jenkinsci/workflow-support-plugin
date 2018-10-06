@@ -54,7 +54,7 @@ public final class WorkspaceActionImpl extends WorkspaceAction implements FlowNo
     @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification="TODO 1.653+ switch to Jenkins.getInstanceOrNull")
     public WorkspaceActionImpl(FilePath workspace, FlowNode parent) {
         node = FilePathUtils.getNodeName(workspace);
-        Jenkins j = Jenkins.getInstance();
+        Jenkins j = Jenkins.getInstanceOrNull();
         Node n = j == null ? null : node.isEmpty() ? j : j.getNode(node);
         labels = new TreeSet<LabelAtom>();
         if (n != null) {

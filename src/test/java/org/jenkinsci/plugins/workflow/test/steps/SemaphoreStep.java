@@ -54,7 +54,7 @@ public final class SemaphoreStep extends AbstractStepImpl implements Serializabl
     private static final class State {
         private static final Map<File,State> states = new HashMap<File,State>();
         static synchronized State get() {
-            File home = Jenkins.getActiveInstance().getRootDir();
+            File home = Jenkins.get().getRootDir();
             State state = states.get(home);
             if (state == null) {
                 state = new State();
