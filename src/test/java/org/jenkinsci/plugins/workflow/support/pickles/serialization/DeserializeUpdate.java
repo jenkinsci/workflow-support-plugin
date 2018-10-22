@@ -38,5 +38,7 @@ public class DeserializeUpdate {
         Assert.assertTrue(run.isBuilding());
         InputStepExecution ise = getInputStepExecution(run, "give me cheese");
         ise.doProceedEmpty();
+        r.waitForCompletion(run);
+        r.assertBuildStatusSuccess(run);
     }
 }
