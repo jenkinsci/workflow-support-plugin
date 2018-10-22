@@ -62,11 +62,12 @@
         </pluginRepository>
     </pluginRepositories>
     <properties>
-        <revision>2.21</revision>
+        <revision>2.22</revision>
         <changelist>-SNAPSHOT</changelist>
-        <jenkins.version>2.62</jenkins.version>
+        <jenkins.version>2.121.1</jenkins.version>
         <java.level>8</java.level>
         <no-test-jar>false</no-test-jar>
+        <useBeta>true</useBeta>
         <git-plugin.version>3.7.0</git-plugin.version>
         <workflow-scm-step-plugin.version>2.6</workflow-scm-step-plugin.version>
         <workflow-step-api-plugin.version>2.13</workflow-step-api-plugin.version>
@@ -81,7 +82,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-api</artifactId>
-            <version>2.25</version>
+            <version>2.30</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -120,7 +121,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>structs</artifactId>
-            <version>1.10</version>
+            <version>1.14</version>
             <scope>test</scope>
         </dependency>
         <dependency>
