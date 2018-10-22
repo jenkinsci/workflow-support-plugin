@@ -26,9 +26,12 @@ package org.jenkinsci.plugins.workflow.support.actions;
 
 import com.google.common.base.Charsets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.CloseProofOutputStream;
+import hudson.Util;
 import hudson.console.AnnotatedLargeText;
 import hudson.console.ConsoleLogFilter;
-import hudson.model.AbstractBuild;
+import hudson.model.Queue;
+import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.util.StreamTaskListener;
 import java.io.File;
@@ -39,18 +42,18 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.jelly.XMLOutput;
 import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
 import org.jenkinsci.plugins.workflow.actions.LogAction;
 import org.jenkinsci.plugins.workflow.actions.PersistentAction;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
-import org.jenkinsci.plugins.workflow.flow.GraphListener;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.log.TaskListenerDecorator;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.stapler.framework.io.ByteBuffer;
@@ -59,42 +62,53 @@ import org.kohsuke.stapler.framework.io.ByteBuffer;
  * {@link LogAction} implementation that stores per-node log file under {@link FlowExecutionOwner#getRootDir()}.
  *
  * @author Kohsuke Kawaguchi
- */
+ * @deprecated Use {@link LogStorageAction} instead.
+*/
+@Deprecated
 public class LogActionImpl extends LogAction implements FlowNodeAction, PersistentAction {
 
     private static final Logger LOGGER = Logger.getLogger(LogActionImpl.class.getName());
 
     /**
+     * Try to determine whether a build corresponds to a version of {@code WorkflowRun} using {@code copyLogs}.
+     */
+    static boolean isOld(FlowExecutionOwner owner) {
+        try {
+            Queue.Executable exec = owner.getExecutable();
+            return exec instanceof Run && !Util.isOverridden(Run.class, exec.getClass(), "getLogFile");
+        } catch (IOException x) {
+            LOGGER.log(Level.WARNING, null, x);
+            return false; // err on the side of assuming plugins are updated
+        }
+    }
+
+    @Deprecated
+    public static @Nonnull TaskListener stream(final @Nonnull FlowNode node, @CheckForNull ConsoleLogFilter filter) throws IOException, InterruptedException {
+        return stream(node, TaskListenerDecorator.fromConsoleLogFilter(filter));
+    }
+
+    /**
      * Get or create the streaming log handle for a given flow node.
      * @param node the node
-     * @param filter
+     * @param decorator some filtering
      * @return a listener
      */
     @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE") // stream closed later
-    public static @Nonnull TaskListener stream(final @Nonnull FlowNode node, @CheckForNull ConsoleLogFilter filter) throws IOException, InterruptedException {
+    public static @Nonnull TaskListener stream(final @Nonnull FlowNode node, @CheckForNull TaskListenerDecorator decorator) throws IOException, InterruptedException {
         LogActionImpl la = node.getAction(LogActionImpl.class);
         if (la == null) {
             la = new LogActionImpl(node);
             node.addAction(la);
         }
         OutputStream os = new FileOutputStream(la.getLogFile(), true);
-        if (filter != null) {
-            os = filter.decorateLogger((AbstractBuild) null, os);
+        FlowExecutionOwner owner = node.getExecution().getOwner();
+        if (!isOld(owner)) { // in case after upgrade we had a running step using LogActionImpl
+            os = new TeeOutputStream(os, new CloseProofOutputStream(owner.getListener().getLogger()));
         }
-        final StreamTaskListener result = new StreamTaskListener(os, la.getCharset());
-        final AtomicReference<GraphListener> graphListener = new AtomicReference<>();
-        LOGGER.log(Level.FINE, "opened log for {0}", node.getDisplayFunctionName());
-        graphListener.set(new GraphListener.Synchronous() {
-            @Override public void onNewHead(FlowNode newNode) {
-                if (!node.isActive()) {
-                    node.getExecution().removeListener(graphListener.get());
-                    result.getLogger().close();
-                    LOGGER.log(Level.FINE, "closed log for {0}", node.getDisplayFunctionName());
-                }
-            }
-        });
-        node.getExecution().addListener(graphListener.get());
-        return result;
+        if (decorator != null) {
+            os = decorator.decorate(os);
+        }
+        return new StreamTaskListener(os, la.getCharset());
     }
 
     private transient FlowNode parent;
@@ -102,9 +116,6 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
     private String charset;
 
     private LogActionImpl(FlowNode parent) throws IOException {
-        if (!parent.isActive()) {
-            throw new IOException("cannot start writing logs to a finished node " + parent + " " + parent.getDisplayFunctionName() + " in " + parent.getExecution());
-        }
         this.parent = parent;
     }
 

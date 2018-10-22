@@ -34,19 +34,25 @@ import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
+import org.jenkinsci.plugins.workflow.flow.GraphListener;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.log.TaskListenerDecorator;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.support.actions.EnvironmentAction;
-import org.jenkinsci.plugins.workflow.support.actions.LogActionImpl;
+import org.jenkinsci.plugins.workflow.support.actions.LogStorageAction;
 
 /**
  * Partial implementation of step context.
  */
 public abstract class DefaultStepContext extends StepContext {
+
+    private static final Logger LOGGER = Logger.getLogger(DefaultStepContext.class.getName());
 
     /**
      * To prevent double instantiation of task listener, once we create it we keep it here.
@@ -62,17 +68,14 @@ public abstract class DefaultStepContext extends StepContext {
         if (key == EnvVars.class) {
             Run<?,?> run = get(Run.class);
             EnvironmentAction a = run == null ? null : run.getAction(EnvironmentAction.class);
-            EnvVars customEnvironment = a != null ? a.getEnvironment() : run.getEnvironment(get(TaskListener.class));
+            EnvVars customEnvironment = a != null ? a.getEnvironment() : run.getEnvironment(getExecution().getOwner().getListener());
             return key.cast(EnvironmentExpander.getEffectiveEnvironment(customEnvironment, (EnvVars) value, get(EnvironmentExpander.class)));
         } else if (key == Launcher.class) {
             return key.cast(makeLauncher((Launcher) value));
         } else if (value != null) {
             return value;
         } else if (key == TaskListener.class) {
-            if (listener == null) {
-                listener = LogActionImpl.stream(getNode(), get(ConsoleLogFilter.class));
-            }
-            return key.cast(listener);
+            return key.cast(getListener());
         } else if (Node.class.isAssignableFrom(key)) {
             Computer c = get(Computer.class);
             Node n = null;
@@ -95,6 +98,33 @@ public abstract class DefaultStepContext extends StepContext {
             // unrecognized key
             return null;
         }
+    }
+
+    private synchronized TaskListener getListener() throws IOException, InterruptedException {
+        if (listener == null) {
+            FlowNode node = getNode();
+            if (!node.isActive()) {
+                throw new IOException("cannot start writing logs to a finished node " + node + " " + node.getDisplayFunctionName() + " in " + node.getExecution());
+            }
+            listener = LogStorageAction.listenerFor(node, TaskListenerDecorator.merge(TaskListenerDecorator.fromConsoleLogFilter(get(ConsoleLogFilter.class)), get(TaskListenerDecorator.class)));
+            LOGGER.log(Level.FINE, "opened log for {0}", node.getDisplayFunctionName());
+            if (listener instanceof AutoCloseable) {
+                node.getExecution().addListener(new GraphListener.Synchronous() {
+                    @Override public void onNewHead(FlowNode newNode) {
+                        if (!node.isActive()) {
+                            node.getExecution().removeListener(this);
+                            LOGGER.log(Level.FINE, "closing log for {0}", node.getDisplayFunctionName());
+                            try {
+                                ((AutoCloseable) listener).close();
+                            } catch (Exception x) {
+                                LOGGER.log(Level.WARNING, null, x);
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        return listener;
     }
 
     private <T> T castOrNull(Class<T> key, Object o) {
