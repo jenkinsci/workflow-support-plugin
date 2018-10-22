@@ -97,7 +97,13 @@
         <dependency>
             <groupId>org.jboss.marshalling</groupId>
             <artifactId>jboss-marshalling-river</artifactId>
-            <version>1.4.12.jenkins-3</version> <!-- https://github.com/jglick/jboss-marshalling/compare/1.4.12.Final...1.4.12.jenkins-3 -->
+            <version>2.0.5.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci</groupId>
+            <artifactId>annotation-indexer</artifactId>
+            <version>1.12</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
