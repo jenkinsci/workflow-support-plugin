@@ -44,7 +44,6 @@ public class TimeoutTest {
         try (Timeout timeout = Timeout.limit(5, TimeUnit.SECONDS)) {
             Thread.sleep(1_000);
         }
-        Thread.sleep(5_000);
     }
 
     @Test public void failed() throws Exception {
@@ -54,7 +53,14 @@ public class TimeoutTest {
         } catch (InterruptedException x) {
             // good
         }
-        Thread.sleep(1_000);
+    }
+
+    @Test(expected = InterruptedException.class)
+    public void testInterruptedException() throws InterruptedException {
+        try (Timeout timeout = Timeout.limit(5, TimeUnit.SECONDS)) {
+            Thread.sleep(10_000);
+            fail("should have timed out");
+        }
     }
 
     @Test public void hung() throws Exception {
