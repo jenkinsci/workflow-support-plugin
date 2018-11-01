@@ -263,12 +263,12 @@ public class RunWrapperTest {
                                   + "\"userId\":\"tester\",\"userName\":\"anonymous\"}]", run);
 
             // test filtering build causes
-            job.setDefinition(new CpsFlowDefinition("echo currentBuild.getBuildCauses(hudson.model.Cause$UserIdCause)"
+            job.setDefinition(new CpsFlowDefinition("echo currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause')"
                                                     + ".toString()\n"
-                                                    + "assert currentBuild.getBuildCauses(hudson.model"
-                                                    + ".Cause$UserIdCause).size() == 1\n"
-                                                    + "assert currentBuild.getBuildCauses(hudson.model"
-                                                    + ".Cause$UserIdCause)[0].userId == 'tester2'\n",
+                                                    + "assert currentBuild.getBuildCauses('hudson.model"
+                                                    + ".Cause$UserIdCause').size() == 1\n"
+                                                    + "assert currentBuild.getBuildCauses('hudson.model"
+                                                    + ".Cause$UserIdCause')[0].userId == 'tester2'\n",
                                                     true));
 
             run = r.j.assertBuildStatusSuccess(job.scheduleBuild2(0,new CauseAction(new Cause

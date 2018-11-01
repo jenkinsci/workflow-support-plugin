@@ -150,17 +150,28 @@ public final class RunWrapper implements Serializable {
         }
     }
 
+    /**
+     * Filters the returned list by the type of <code>Cause</code> class passed as input
+     * ex. <code>getBuildCauess('hudson.model.Cause$UserIdCause')</code> would return only
+     * <code>Cause</code>s of that type
+     *
+     * @param className A string containing the fully qualified name for the class type to filter the result list by
+     * @return a <code>JSONArray</code> of <code>Cause</code>s of the specified type
+     * @throws IOException
+     */
     @Whitelisted
-    public JSONArray getBuildCauses(Class<Cause> clazz) throws IOException {
+    public JSONArray getBuildCauses(String className) throws IOException, ClassNotFoundException {
+        Class clazz = Class.forName(className);
         JSONArray result = new JSONArray();
-        StringWriter w = new StringWriter();
 
         for(Cause cause : build().getCauses()) {
             if (clazz.isInstance(cause)) {
+                StringWriter w = new StringWriter();
                 CauseAction causeAction = new CauseAction(cause);
                 DataWriter writer = JSON.createDataWriter(causeAction, w);
                 Model<CauseAction> model = new ModelBuilder().get(CauseAction.class);
                 model.writeTo(causeAction, writer);
+                // return a slightlly cleaner object by removing the outer object
                 result.add(JSONObject.fromObject(w.toString()).getJSONArray("causes").get(0));
             }
         }
