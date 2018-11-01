@@ -232,6 +232,7 @@ public class RunWrapperTest {
     }
 
     @Test
+    @Issue("JENKINS-54227")
     public void buildCauseTest() {
         r.addStep(new Statement() {
             @Override
