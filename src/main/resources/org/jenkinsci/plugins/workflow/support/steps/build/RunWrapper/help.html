@@ -1,4 +1,6 @@
 <dl>
+    <dt><code>getBuildCauses</code></dt><dd>Returns a JSON array of build causes for the current build</dd>
+    <dt><b>EXPERIMENTAL - MAY CHANGE</b>  <code>getBuildCauses(String causeClass)</code></dt><dd>Takes a string representing the fully qualified <code>Cause</code> class and returns a <code>JSON array</code> of build causes filtered by that type for the current build, or an empty <code>JSON array</code> if no causes of the specified type apply to the current build</code></dd>
     <dt><code>number</code></dt><dd>build number (integer)</dd>
     <dt><code>result</code></dt><dd>typically <code>SUCCESS</code>, <code>UNSTABLE</code>, or <code>FAILURE</code> (<em>may</em> be null for an ongoing build)</dd>
     <dt><code>currentResult</code></dt><dd>typically <code>SUCCESS</code>, <code>UNSTABLE</code>, or <code>FAILURE</code>. Will never be null.</dd>

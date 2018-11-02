@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.workflow.support.steps.build;
 import hudson.AbortException;
 import hudson.model.AbstractBuild;
 import hudson.model.Cause;
+import hudson.model.CauseAction;
 import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -35,6 +36,7 @@ import hudson.security.ACL;
 import hudson.security.ACLContext;
 import java.io.IOException;
 import java.io.Serializable;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,8 +46,14 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 import jenkins.scm.RunWithSCM;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.whitelists.Whitelisted;
 import org.jenkinsci.plugins.workflow.support.actions.EnvironmentAction;
+import org.kohsuke.stapler.export.DataWriter;
+import org.kohsuke.stapler.export.Model;
+import org.kohsuke.stapler.export.ModelBuilder;
+import static org.kohsuke.stapler.export.Flavor.JSON;
 
 /**
  * Allows {@link Whitelisted} access to selected attributes of a {@link Run} without requiring Jenkins API imports.
@@ -123,6 +131,39 @@ public final class RunWrapper implements Serializable {
     @Whitelisted
     public int getNumber() throws AbortException {
         return build().getNumber();
+    }
+
+    @Whitelisted
+    public JSONArray getBuildCauses() throws IOException, ClassNotFoundException {
+        return getBuildCauses("hudson.model.Cause");
+    }
+
+    /**
+     * Filters the returned list by the type of <code>Cause</code> class passed as input
+     * ex. <code>getBuildCauess('hudson.model.Cause$UserIdCause')</code> would return only
+     * <code>Cause</code>s of that type
+     *
+     * @param className A string containing the fully qualified name for the class type to filter the result list by
+     * @return a <code>JSONArray</code> of <code>Cause</code>s of the specified type
+     * @throws IOException
+     */
+    @Whitelisted
+    public JSONArray getBuildCauses(String className) throws IOException, ClassNotFoundException {
+        Class clazz = Class.forName(className);
+        JSONArray result = new JSONArray();
+
+        for(Cause cause : build().getCauses()) {
+            if (clazz.isInstance(cause)) {
+                StringWriter w = new StringWriter();
+                CauseAction causeAction = new CauseAction(cause);
+                DataWriter writer = JSON.createDataWriter(causeAction, w);
+                Model<CauseAction> model = new ModelBuilder().get(CauseAction.class);
+                model.writeTo(causeAction, writer);
+                // return a slightlly cleaner object by removing the outer object
+                result.add(JSONObject.fromObject(w.toString()).getJSONArray("causes").get(0));
+            }
+        }
+        return result;
     }
 
     @Whitelisted
