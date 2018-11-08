@@ -26,10 +26,16 @@ package org.jenkinsci.plugins.workflow.support.steps.build;
 
 import hudson.AbortException;
 import hudson.model.AbstractBuild;
+import hudson.model.BooleanParameterValue;
 import hudson.model.Cause;
 import hudson.model.CauseAction;
+import hudson.model.JobParameterValue;
+import hudson.model.ParametersAction;
+import hudson.model.ParameterValue;
 import hudson.model.Result;
 import hudson.model.Run;
+import hudson.model.RunParameterValue;
+import hudson.model.StringParameterValue;
 import hudson.model.TaskListener;
 import hudson.scm.ChangeLogSet;
 import hudson.security.ACL;
@@ -333,6 +339,112 @@ public final class RunWrapper implements Serializable {
             } catch (NoSuchMethodException x) { // something weird like ExternalRun
                 return Collections.emptyList();
             }
+        }
+    }
+
+    /**
+     * Get declared build parameters the job was launched with.
+     *
+     * Includes only parameters that the job specifies it accepts. To get
+     * additional parameters that may have been submitted as untrusted user
+     * input use {@link ParametersAction#getAllParameters} on the raw
+     * {@link Run} object.
+     *
+     * Parameters marked as "isSensitive" are returned as a raw
+     * {@link ParameterValue} object, so they may only be inspected
+     * if the script security context permits it.
+     *
+     * Return values are Java objects of parameter-specific types, some of
+     * which may not be usable by scripts without whitelisting or library
+     * helpers. Built-in parameter types are reported as:
+     *
+     * <ul>
+     *  <li><b>{@link StringParameterValue}</b>: <code>String</code></li>
+     *  <li><b>{@link BooleanParameterValue}</b>: <code>Boolean</code></li>
+     *  <li><b>{@link PasswordParameterValue}</b>: the <code>PasswordParameterValue</code> object (restricted)</li>
+     *  <li><b>{@link RunParameterValue}</b>: <code>{@link RunWrapper}</code></li>
+     *  <li><b>{@link JobParameterValue}</b>: <code>{@link Job}</code> (restricted)</li>
+     *  <li><b>{@link FileParameterValue}</b>: <code><a href="https://commons.apache.org/proper/commons-fileupload/apidocs/org/apache/commons/fileupload/FileItem.html">org.apache.commons.fileupload.FileItem</a></code> (restricted)</li>
+     * </ul>
+     *
+     * Scripts will generally want to use <code>instanceof</code> tests to
+     * determine how to handle the parameters.
+     *
+     * @returns Map of parameter names to parameter values, or null if the job was not parameterised
+     * @see ParametersAction#getParameters
+     * @see #getAllBuildParameters
+     * @see ParametersDefinitionProperty
+     */
+    @Whitelisted
+    public @Nonnull Map<String,Object> getBuildParameters() throws AbortException {
+        Run<?,?> build = build();
+        ParametersAction params = build.getAction(ParametersAction.class);
+        if (params == null) {
+            return null;
+        } else {
+            Map<String,Object> wrappedParams = new HashMap<>();
+
+            for(Map.Entry<String, HashMap> entry : params.getParameters()) {
+                final ParameterValue param = entry.getValue();
+                Object wrapped;
+                if (param == null) {
+                    wrapped = null;
+                } else if (param.isSensitive()) {
+                    // Return PasswordParameterValue and any others marked
+                    // sensitive unchanged, so the script can only do anything
+                    // with them if the relevant methods are whitelisted.
+                    wrapped = param;
+                } else if (param.instanceOf(RunParameterValue.class)) {
+                    wrapped = new RunWrapper((Run)param.getValue(), false);
+                } else {
+                    wrapped = param.getValue();
+                }
+                wrappedParams.put(entry.getKey(), wrapped);
+            }
+
+            return wrappedParams;
+        }
+    }
+
+    /**
+     * Get declared build parameters the job was launched with.
+     *
+     * Like {@link #getBuildParameters} but returns string values
+     * for all parameters. The string representation is specific
+     * to the parameter type. Sensitive parameters are returned
+     * with a placeholder string of asterisks.
+     *
+     * This output is mainly useful for displaying to the user.
+     *
+     * @see #getBuildParameters
+     */
+    @Whitelisted
+    public @Nonnull Map<String,String> getBuildParametersAsStrings() throws AbortException {
+        Run<?,?> build = build();
+        ParametersAction params = build.getAction(ParametersAction.class);
+        if (params == null) {
+            return null;
+        } else {
+            Map<String,Object> wrappedParams = new HashMap<>();
+
+            for(Map.Entry<String, HashMap> entry : params.getParameters()) {
+                final ParameterValue param = entry.getValue();
+                Object wrapped;
+                if (param == null) {
+                    wrapped = null;
+                } else if (param.isSensitive()) {
+                    wrapped = "********";
+                } else if (param.instanceOf(RunParameterValue.class)) {
+                    wrapped = param.getValue().getFullName();
+                } else if (param.instanceOf(JobParameterValue.class)) {
+                    wrapped = param.getValue().getFullName();
+                } else {
+                    wrapped = param.getValue().toString();
+                }
+                wrappedParams.put(entry.getKey(), wrapped);
+            }
+
+            return wrappedParams;
         }
     }
 
