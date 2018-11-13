@@ -24,6 +24,8 @@
 
 package org.jenkinsci.plugins.workflow.support.steps.build;
 
+import hudson.model.Cause;
+import hudson.model.CauseAction;
 import hudson.model.FreeStyleProject;
 import hudson.model.Messages;
 import hudson.model.ParametersDefinitionProperty;
@@ -227,6 +229,57 @@ public class RunWrapperTest {
                 r.j.assertLogContains("b.buildVariables.param='something'", b);
             }
         });
+    }
+
+    @Test
+    @Issue("JENKINS-54227")
+    public void buildCauseTest() {
+        r.addStep(new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+            WorkflowJob job = r.j.createProject(WorkflowJob.class, "test");
+            // test with a single build cause
+            job.setDefinition(new CpsFlowDefinition("echo currentBuild.getBuildCauses().toString()\n"
+                                                    + "assert currentBuild.getBuildCauses().size() == 1\n"
+                                                    + "assert currentBuild.getBuildCauses()[0].userId == 'tester'\n",
+                                                    true));
+            WorkflowRun run = r.j.assertBuildStatusSuccess(job.scheduleBuild2(0, new CauseAction(new Cause
+                    .UserIdCause("tester"))));
+            r.j.assertLogContains("[{\"_class\":\"hudson.model.Cause$UserIdCause\",\"shortDescription\":\"Started by user anonymous\",\"userId\":\"tester\",\"userName\":\"anonymous\"}]",run);
+
+            // test with mutiple build causes
+            job.setDefinition(new CpsFlowDefinition("echo currentBuild.getBuildCauses().toString()\n"
+                                                    + "assert currentBuild.getBuildCauses().size() == 2\n"
+                                                    + "assert currentBuild.getBuildCauses()[0].note == 'this is a note'\n"
+                                                    + "assert currentBuild.getBuildCauses()[1].userId == 'tester'\n",
+                                                    true));
+
+            run = r.j.assertBuildStatusSuccess(job.scheduleBuild2(0,new CauseAction(new Cause
+                .RemoteCause("upstream.host","this is a note"), new Cause.UserIdCause("tester"))));
+            r.j.assertLogContains("[{\"_class\":\"hudson.model.Cause$RemoteCause\",\"shortDescription\":\"Started by "
+                                  + "remote host upstream.host with note: this is a note\",\"addr\":\"upstream"
+                                  + ".host\",\"note\":\"this is a note\"},{\"_class\":\"hudson.model"
+                                  + ".Cause$UserIdCause\",\"shortDescription\":\"Started by user anonymous\","
+                                  + "\"userId\":\"tester\",\"userName\":\"anonymous\"}]", run);
+
+            // test filtering build causes
+            job.setDefinition(new CpsFlowDefinition("echo currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause')"
+                                                    + ".toString()\n"
+                                                    + "assert currentBuild.getBuildCauses('hudson.model"
+                                                    + ".Cause$UserIdCause').size() == 1\n"
+                                                    + "assert currentBuild.getBuildCauses('hudson.model"
+                                                    + ".Cause$UserIdCause')[0].userId == 'tester2'\n",
+                                                    true));
+
+            run = r.j.assertBuildStatusSuccess(job.scheduleBuild2(0,new CauseAction(new Cause
+                    .RemoteCause("upstream.host","this is a note"), new Cause.UserIdCause("tester2"))));
+            r.j.assertLogContains("[{\"_class\":\"hudson.model"
+                                  + ".Cause$UserIdCause\",\"shortDescription\":\"Started by user anonymous\","
+                                  + "\"userId\":\"tester2\",\"userName\":\"anonymous\"}]", run);
+
+            }
+        });
+
     }
 
     @Issue("JENKINS-31576")
