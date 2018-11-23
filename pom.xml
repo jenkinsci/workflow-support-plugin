@@ -28,7 +28,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.22</version>
+        <version>3.29-20181123.180542-2</version>
         <relativePath />
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -62,10 +62,11 @@
         </pluginRepository>
     </pluginRepositories>
     <properties>
-        <revision>2.23</revision>
+        <revision>3.0-java11-alpha-1</revision>
         <changelist>-SNAPSHOT</changelist>
         <jenkins.version>2.121.1</jenkins.version>
         <java.level>8</java.level>
+        <plugin.minimumJavaVersion>11</plugin.minimumJavaVersion>
         <no-test-jar>false</no-test-jar>
         <useBeta>true</useBeta>
         <git-plugin.version>3.7.0</git-plugin.version>
@@ -230,7 +231,7 @@
                 <artifactId>maven-hpi-plugin</artifactId>
                 <extensions>true</extensions>
                 <configuration>
-                    <compatibleSinceVersion>2.21</compatibleSinceVersion>
+                    <compatibleSinceVersion>3.0</compatibleSinceVersion>
                 </configuration>
             </plugin>
             <plugin>
