@@ -61,7 +61,7 @@ public final class POSTHyperlinkNote extends HyperlinkNote {
             if (req != null) {
                 url = req.getContextPath() + url;
             } else {
-                Jenkins j = Jenkins.getInstance();
+                Jenkins j = Jenkins.getInstanceOrNull();
                 if (j != null) {
                     String rootUrl = j.getRootUrl();
                     if (rootUrl != null) {
