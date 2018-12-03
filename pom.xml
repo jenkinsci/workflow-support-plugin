@@ -92,7 +92,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>script-security</artifactId>
-            <version>1.39</version>
+            <version>1.48</version>
         </dependency>
         <dependency>
             <groupId>org.jboss.marshalling</groupId>
@@ -127,7 +127,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>structs</artifactId>
-            <version>1.14</version>
+            <version>1.17</version>
             <scope>test</scope>
         </dependency>
         <dependency>
