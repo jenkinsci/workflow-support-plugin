@@ -7,6 +7,7 @@ import org.jenkinsci.plugins.workflow.support.steps.input.InputAction;
 import org.jenkinsci.plugins.workflow.support.steps.input.InputStepExecution;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
@@ -32,6 +33,7 @@ public class DeserializeUpdate {
 
     @Test
     @LocalData
+    @Ignore
     public void testBasicSerializeDeserialize() throws Exception {
         WorkflowJob job = Jenkins.getInstance().getItemByFullName("serial-format", WorkflowJob.class);
         WorkflowRun run = job.getLastBuild();
