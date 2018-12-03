@@ -58,6 +58,9 @@ import static org.kohsuke.stapler.export.Flavor.JSON;
 /**
  * Allows {@link Whitelisted} access to selected attributes of a {@link Run} without requiring Jenkins API imports.
  *
+ * See the help for currentBuild in snippet-generator's globals list for
+ * details on these fields.
+ *
  * NOTE: if modifying this class, please remember to manually update Runwrapper/help.html
  */
 public final class RunWrapper implements Serializable {
@@ -265,6 +268,13 @@ public final class RunWrapper implements Serializable {
         return build().getId();
     }
 
+    /**
+     * Get environment variables defined in the build.
+     *
+     * This does <b>not</b> report build parameters for parameterised builds,
+     * only the build environment. If a child job is a Pipeline job (WorkflowRun),
+     * any variables set during script execution are captured and reported.
+     */
     @Whitelisted
     public @Nonnull Map<String,String> getBuildVariables() throws AbortException {
         Run<?,?> build = build();
