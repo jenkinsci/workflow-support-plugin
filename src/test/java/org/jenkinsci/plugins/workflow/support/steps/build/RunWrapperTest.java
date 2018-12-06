@@ -277,9 +277,14 @@ public class RunWrapperTest {
                                   + ".Cause$UserIdCause\",\"shortDescription\":\"Started by user anonymous\","
                                   + "\"userId\":\"tester2\",\"userName\":\"anonymous\"}]", run);
 
+            // test handling CNF exception returns empty array
+            job.setDefinition(new CpsFlowDefinition("assert currentBuild.getBuildCauses('class.does.not.exist').size() == 0\n",
+                                                    true));
+
+            run = r.j.assertBuildStatusSuccess(job.scheduleBuild2(0,new CauseAction(new Cause
+                    .RemoteCause("upstream.host","this is a note"), new Cause.UserIdCause("tester2"))));
             }
         });
-
     }
 
     @Issue("JENKINS-31576")

@@ -42,9 +42,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
+import jenkins.model.Jenkins;
 import jenkins.scm.RunWithSCM;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -69,6 +72,8 @@ public final class RunWrapper implements Serializable {
 
     private final String externalizableId;
     private final boolean currentBuild;
+
+    private static final Logger LOGGER = Logger.getLogger(RunWrapper.class.getName());
 
     public RunWrapper(Run<?,?> build, boolean currentBuild) {
         this.externalizableId = build.getExternalizableId();
@@ -152,8 +157,16 @@ public final class RunWrapper implements Serializable {
      */
     @Whitelisted
     public JSONArray getBuildCauses(String className) throws IOException, ClassNotFoundException {
-        Class clazz = Class.forName(className);
+        final ClassLoader cl = Jenkins.get().pluginManager.uberClassLoader;
         JSONArray result = new JSONArray();
+        final Class clazz;
+
+        try {
+            clazz = cl.loadClass(className);
+        } catch (ClassNotFoundException cnfe) {
+            LOGGER.log(Level.WARNING, "No class found for {0}", className);
+            return result;
+        }
 
         for(Cause cause : build().getCauses()) {
             if (clazz.isInstance(cause)) {
