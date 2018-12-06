@@ -96,7 +96,7 @@
             <version>1.39</version>
         </dependency>
         <dependency>
-            <!-- Requires Java 9+ -->
+            <!-- Required for running with Java 9+ -->
             <groupId>org.jboss.marshalling</groupId>
             <artifactId>jboss-marshalling-river</artifactId>
             <version>2.0.5.Final</version>
