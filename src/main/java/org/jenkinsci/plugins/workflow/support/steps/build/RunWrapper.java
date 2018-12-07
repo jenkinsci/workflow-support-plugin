@@ -151,25 +151,18 @@ public final class RunWrapper implements Serializable {
      * ex. <code>getBuildCauess('hudson.model.Cause$UserIdCause')</code> would return only
      * <code>Cause</code>s of that type
      *
+     * You can also filter the list to contain all causes that are a subclass of <code>className</code>
+     *
      * @param className A string containing the fully qualified name for the class type to filter the result list by
      * @return a <code>JSONArray</code> of <code>Cause</code>s of the specified type
      * @throws IOException
      */
     @Whitelisted
     public JSONArray getBuildCauses(String className) throws IOException, ClassNotFoundException {
-        final ClassLoader cl = Jenkins.get().pluginManager.uberClassLoader;
         JSONArray result = new JSONArray();
-        final Class clazz;
-
-        try {
-            clazz = cl.loadClass(className);
-        } catch (ClassNotFoundException cnfe) {
-            LOGGER.log(Level.WARNING, "No class found for {0}", className);
-            return result;
-        }
 
         for(Cause cause : build().getCauses()) {
-            if (clazz.isInstance(cause)) {
+            if (isClassOrSubclass(cause.getClass(), className)) {
                 StringWriter w = new StringWriter();
                 CauseAction causeAction = new CauseAction(cause);
                 DataWriter writer = JSON.createDataWriter(causeAction, w);
@@ -180,6 +173,21 @@ public final class RunWrapper implements Serializable {
             }
         }
         return result;
+    }
+
+    private boolean isClassOrSubclass(Class<?> clazz, String classNameToCheck) {
+        String causeClassName = clazz.getName();
+        if (causeClassName.equals("java.lang.Object")) {
+            return false;
+        } else if (causeClassName.equals(classNameToCheck)) {
+            return true;
+        } else {
+            if (causeClassName.contains("$")) {
+                return isClassOrSubclass(clazz.getEnclosingClass(), classNameToCheck);
+            } else {
+                return isClassOrSubclass(clazz.getClass().getSuperclass(), classNameToCheck);
+            }
+        }
     }
 
     @Whitelisted

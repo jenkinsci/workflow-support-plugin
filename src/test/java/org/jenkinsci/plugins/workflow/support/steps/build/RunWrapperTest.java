@@ -277,7 +277,7 @@ public class RunWrapperTest {
                                   + ".Cause$UserIdCause\",\"shortDescription\":\"Started by user anonymous\","
                                   + "\"userId\":\"tester2\",\"userName\":\"anonymous\"}]", run);
 
-            // test handling CNF exception returns empty array
+            // test that an empty JSONArray is returned when no build cause of specified type is found
             job.setDefinition(new CpsFlowDefinition("assert currentBuild.getBuildCauses('class.does.not.exist').size() == 0\n",
                                                     true));
 
