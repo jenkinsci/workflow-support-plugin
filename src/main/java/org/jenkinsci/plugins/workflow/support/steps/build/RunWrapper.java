@@ -138,7 +138,18 @@ public final class RunWrapper implements Serializable {
 
     @Whitelisted
     public JSONArray getBuildCauses() throws IOException, ClassNotFoundException {
-        return getBuildCauses("hudson.model.Cause");
+        JSONArray result = new JSONArray();
+
+        for(Cause cause : build().getCauses()) {
+            StringWriter w = new StringWriter();
+            CauseAction causeAction = new CauseAction(cause);
+            DataWriter writer = JSON.createDataWriter(causeAction, w);
+            Model<CauseAction> model = new ModelBuilder().get(CauseAction.class);
+            model.writeTo(causeAction, writer);
+            // return a slightlly cleaner object by removing the outer object
+            result.add(JSONObject.fromObject(w.toString()).getJSONArray("causes").get(0));
+        }
+        return result;
     }
 
     /**
@@ -151,12 +162,11 @@ public final class RunWrapper implements Serializable {
      * @throws IOException
      */
     @Whitelisted
-    public JSONArray getBuildCauses(String className) throws IOException, ClassNotFoundException {
-        Class clazz = Class.forName(className);
+    public JSONArray getBuildCauses(String className) throws IOException {
         JSONArray result = new JSONArray();
 
         for(Cause cause : build().getCauses()) {
-            if (clazz.isInstance(cause)) {
+            if (className.equals(cause.getClass().getName())) {
                 StringWriter w = new StringWriter();
                 CauseAction causeAction = new CauseAction(cause);
                 DataWriter writer = JSON.createDataWriter(causeAction, w);
