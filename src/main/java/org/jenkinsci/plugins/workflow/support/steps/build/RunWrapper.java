@@ -172,7 +172,7 @@ public final class RunWrapper implements Serializable {
                 DataWriter writer = JSON.createDataWriter(causeAction, w);
                 Model<CauseAction> model = new ModelBuilder().get(CauseAction.class);
                 model.writeTo(causeAction, writer);
-                // return a slightlly cleaner object by removing the outer object
+                // return a slightly cleaner object by removing the outer object
                 result.add(JSONObject.fromObject(w.toString()).getJSONArray("causes").get(0));
             }
         }
