@@ -60,7 +60,6 @@ public class RunWrapperTest {
     @Rule public GitSampleRepoRule sampleRepo1 = new GitSampleRepoRule();
     @Rule public GitSampleRepoRule sampleRepo2 = new GitSampleRepoRule();
 
-    @Ignore("Still has problems with new JBoss Marshalling, temporarily disabled while debugging.")
     @Test public void historyAndPickling() {
         r.addStep(new Statement() {
             @Override public void evaluate() throws Throwable {
