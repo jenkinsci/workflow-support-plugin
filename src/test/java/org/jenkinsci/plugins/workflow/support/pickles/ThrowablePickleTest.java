@@ -47,7 +47,6 @@ public class ThrowablePickleTest {
     @Rule public LoggerRule logging = new LoggerRule().record(ThrowablePickle.class, Level.FINE);
 
     @Issue("JENKINS-51390")
-    @Ignore("Still has problems with new JBoss Marshalling, temporarily disabled while debugging.")
     @Test public void smokes() throws Exception {
         String beName = BadException.class.getName();
         rr.then(r -> {
