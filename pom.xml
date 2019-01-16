@@ -28,7 +28,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.32</version>
+        <version>3.33</version>
         <relativePath />
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -68,6 +68,7 @@
         <java.level>8</java.level>
         <no-test-jar>false</no-test-jar>
         <useBeta>true</useBeta>
+        <hpi.compatibleSinceVersion>3.0</hpi.compatibleSinceVersion>
         <git-plugin.version>3.7.0</git-plugin.version>
         <workflow-scm-step-plugin.version>2.6</workflow-scm-step-plugin.version>
         <workflow-step-api-plugin.version>2.13</workflow-step-api-plugin.version>
@@ -217,16 +218,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.jenkins-ci.tools</groupId>
-                <artifactId>maven-hpi-plugin</artifactId>
-                <extensions>true</extensions>
-                <configuration>
-                    <compatibleSinceVersion>3.0</compatibleSinceVersion>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 </project>
