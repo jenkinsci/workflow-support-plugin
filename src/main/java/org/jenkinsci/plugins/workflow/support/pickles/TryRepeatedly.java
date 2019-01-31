@@ -97,7 +97,7 @@ public abstract class TryRepeatedly<V> extends AbstractFuture<V> {
                                 try {
                                     printWaitingMessage(listener);
                                 } catch (Exception x) {
-                                    listener.getLogger().println(Functions.printThrowable(x).trim()); // TODO 2.43+ use Functions.printStackTrace
+                                    Functions.printStackTrace(x, listener.getLogger());
                                 }
                             } catch (IOException x) {
                                 LOGGER.log(Level.WARNING, null, x);
