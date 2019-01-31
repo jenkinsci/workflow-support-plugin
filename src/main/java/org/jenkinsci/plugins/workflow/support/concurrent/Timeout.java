@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.workflow.support.concurrent;
 import hudson.FilePath;
 import hudson.Util;
 import hudson.remoting.VirtualChannel;
+import hudson.util.ClassLoaderSanityThreadFactory;
 import hudson.util.DaemonThreadFactory;
 import hudson.util.NamingThreadFactory;
 import java.util.concurrent.Executors;
@@ -44,17 +45,7 @@ public class Timeout implements AutoCloseable {
 
     private static final Logger LOGGER = Logger.getLogger(Timeout.class.getName());
 
-    // TODO 2.105+ use ClassLoaderSanityThreadFactory from core
-    static class ClassloaderSanityDaemonThreadFactory extends DaemonThreadFactory {
-        public Thread newThread(Runnable r) {
-            Thread t = super.newThread(r);
-            t.setContextClassLoader(Timeout.class.getClassLoader());
-            return t;
-        }
-    }
-
-
-    private static final ScheduledExecutorService interruptions = Executors.newSingleThreadScheduledExecutor(new NamingThreadFactory(new ClassloaderSanityDaemonThreadFactory(), "Timeout.interruptions"));
+    private static final ScheduledExecutorService interruptions = Executors.newSingleThreadScheduledExecutor(new NamingThreadFactory(new ClassLoaderSanityThreadFactory(new DaemonThreadFactory()), "Timeout.interruptions"));
 
     private final Thread thread;
     private volatile boolean completed;
