@@ -71,7 +71,7 @@
         <hpi.compatibleSinceVersion>3.0</hpi.compatibleSinceVersion>
         <git-plugin.version>3.7.0</git-plugin.version>
         <workflow-scm-step-plugin.version>2.7</workflow-scm-step-plugin.version>
-        <workflow-step-api-plugin.version>2.19-rc508.410020b15345</workflow-step-api-plugin.version>
+        <workflow-step-api-plugin.version>2.19</workflow-step-api-plugin.version>
         <scm-api-plugin.version>2.2.6</scm-api-plugin.version>
     </properties>
     <dependencies>
@@ -123,7 +123,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>structs</artifactId>
-            <version>1.14</version>
+            <version>1.17</version>
             <scope>test</scope>
         </dependency>
         <dependency>
