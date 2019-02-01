@@ -24,7 +24,6 @@
 
 package org.jenkinsci.plugins.workflow.support.actions;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.FilePath;
 import hudson.model.DirectoryBrowserSupport;
 import hudson.model.Item;
@@ -51,7 +50,6 @@ public final class WorkspaceActionImpl extends WorkspaceAction implements FlowNo
     private final Set<LabelAtom> labels;
     private transient FlowNode parent;
 
-    @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification="TODO 1.653+ switch to Jenkins.getInstanceOrNull")
     public WorkspaceActionImpl(FilePath workspace, FlowNode parent) {
         node = FilePathUtils.getNodeName(workspace);
         Jenkins j = Jenkins.getInstanceOrNull();
