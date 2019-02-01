@@ -68,14 +68,15 @@ public abstract class DefaultStepContext extends StepContext {
         if (key == EnvVars.class) {
             Run<?,?> run = get(Run.class);
             EnvironmentAction a = run == null ? null : run.getAction(EnvironmentAction.class);
-            EnvVars customEnvironment = a != null ? a.getEnvironment() : run.getEnvironment(getExecution().getOwner().getListener());
-            return key.cast(EnvironmentExpander.getEffectiveEnvironment(customEnvironment, (EnvVars) value, get(EnvironmentExpander.class)));
+            TaskListener taskListener = getListener(true);
+            EnvVars customEnvironment = a != null ? a.getEnvironment() : run.getEnvironment(taskListener);
+            return key.cast(EnvironmentExpander.getEffectiveEnvironment(customEnvironment, (EnvVars) value, get(EnvironmentExpander.class), this, taskListener));
         } else if (key == Launcher.class) {
             return key.cast(makeLauncher((Launcher) value));
         } else if (value != null) {
             return value;
         } else if (key == TaskListener.class) {
-            return key.cast(getListener());
+            return key.cast(getListener(false));
         } else if (Node.class.isAssignableFrom(key)) {
             Computer c = get(Computer.class);
             Node n = null;
@@ -100,11 +101,15 @@ public abstract class DefaultStepContext extends StepContext {
         }
     }
 
-    private synchronized TaskListener getListener() throws IOException, InterruptedException {
+    private synchronized TaskListener getListener(boolean allowInactive) throws IOException, InterruptedException {
         if (listener == null) {
             FlowNode node = getNode();
             if (!node.isActive()) {
-                throw new IOException("cannot start writing logs to a finished node " + node + " " + node.getDisplayFunctionName() + " in " + node.getExecution());
+                if (allowInactive) {
+                    return getExecution().getOwner().getListener();
+                } else {
+                    throw new IOException("cannot start writing logs to a finished node " + node + " " + node .getDisplayFunctionName() + " in " + node.getExecution());
+                }
             }
             listener = LogStorageAction.listenerFor(node, TaskListenerDecorator.merge(TaskListenerDecorator.fromConsoleLogFilter(get(ConsoleLogFilter.class)), get(TaskListenerDecorator.class)));
             LOGGER.log(Level.FINE, "opened log for {0}", node.getDisplayFunctionName());
