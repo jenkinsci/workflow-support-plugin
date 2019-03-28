@@ -30,6 +30,7 @@ import hudson.model.Node;
 import hudson.model.Run;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Set;
 import java.util.logging.Level;
@@ -100,8 +101,13 @@ public class DynamicContextTest {
         }
         @Override public OutputStream decorate(OutputStream logger) throws IOException, InterruptedException {
             return new LineTransformationOutputStream() {
+                final String prefix = "[" + message + "] ";
                 @Override protected void eol(byte[] b, int len) throws IOException {
-                    logger.write(("[" + message + "] ").getBytes());
+                    if (new String(b, 0, len, StandardCharsets.UTF_8).contains(prefix)) {
+                        // See caveat in DynamicContext about idempotency.
+                    } else {
+                        logger.write(prefix.getBytes());
+                    }
                     logger.write(b, 0, len);
                 }
                 @Override public void close() throws IOException {
@@ -166,7 +172,10 @@ public class DynamicContextTest {
                     LOGGER.log(Level.INFO, "merging {0} with {1}", new Object[] {original, subsequent});
                     invoker.withContext(TaskListenerDecorator.merge(original, subsequent));
                 } else {
-                    DynamicContext.invokeNonNesting(invoker, getContext(), new DecoratorContext());
+                    DynamicContext original = getContext().get(DynamicContext.class);
+                    DecoratorContext subsequent = new DecoratorContext();
+                    LOGGER.log(Level.INFO, "merging {0} with {1}", new Object[] {original, subsequent});
+                    invoker.withContext(DynamicContext.merge(original, subsequent));
                 }
                 invoker.withCallback(BodyExecutionCallback.wrap(getContext())).start();
                 return false;

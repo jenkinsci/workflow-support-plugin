@@ -71,7 +71,7 @@
         <hpi.compatibleSinceVersion>3.0</hpi.compatibleSinceVersion>
         <git-plugin.version>3.7.0</git-plugin.version>
         <workflow-scm-step-plugin.version>2.7</workflow-scm-step-plugin.version>
-        <workflow-step-api-plugin.version>2.20-SNAPSHOT</workflow-step-api-plugin.version> <!-- TODO https://github.com/jenkinsci/workflow-step-api-plugin/pull/42 -->
+        <workflow-step-api-plugin.version>2.20-rc518.2c3c8443b920</workflow-step-api-plugin.version> <!-- TODO https://github.com/jenkinsci/workflow-step-api-plugin/pull/42 -->
         <scm-api-plugin.version>2.2.6</scm-api-plugin.version>
     </properties>
     <dependencies>
