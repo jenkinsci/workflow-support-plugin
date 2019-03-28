@@ -34,6 +34,8 @@ import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -42,6 +44,7 @@ import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.flow.GraphListener;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.log.TaskListenerDecorator;
+import org.jenkinsci.plugins.workflow.steps.DynamicContext;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.support.actions.EnvironmentAction;
@@ -59,12 +62,33 @@ public abstract class DefaultStepContext extends StepContext {
      */
     private transient TaskListener listener;
 
+    private static final ThreadLocal<Set<Class<?>>> dynamicContextClasses = ThreadLocal.withInitial(HashSet::new);
+
     /**
      * Uses {@link #doGet} but automatically translates certain kinds of objects into others.
      * <p>{@inheritDoc}
      */
+    @SuppressWarnings("Convert2Lambda") // javac just gets way too confused here
     @Override public final <T> T get(Class<T> key) throws IOException, InterruptedException {
-        T value = doGet(key);
+        T value = null;
+        DynamicContext dynamicContext = doGet(DynamicContext.class);
+        if (dynamicContext != null) {
+            Set<Class<?>> dynamicStack = dynamicContextClasses.get();
+            if (dynamicStack.add(key)) { // thus, being newly added to the stack
+                try {
+                    value = dynamicContext.get(key, new DynamicContext.DelegatedContext() {
+                        @Override public <T2> T2 get(Class<T2> otherKey) throws IOException, InterruptedException {
+                            return DefaultStepContext.this.get(otherKey);
+                        }
+                    });
+                } finally {
+                    dynamicStack.remove(key);
+                }
+            }
+        }
+        if (value == null) {
+            value = doGet(key);
+        }
         if (key == EnvVars.class) {
             Run<?,?> run = get(Run.class);
             EnvironmentAction a = run == null ? null : run.getAction(EnvironmentAction.class);
