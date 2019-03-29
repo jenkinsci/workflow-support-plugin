@@ -30,6 +30,7 @@ import hudson.model.Node;
 import hudson.model.Run;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Set;
@@ -40,24 +41,26 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.log.TaskListenerDecorator;
-import org.jenkinsci.plugins.workflow.steps.BodyExecutionCallback;
 import org.jenkinsci.plugins.workflow.steps.BodyInvoker;
 import org.jenkinsci.plugins.workflow.steps.DynamicContext;
 import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
+import org.jenkinsci.plugins.workflow.steps.StepExecutions;
 import org.junit.ClassRule;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.jvnet.hudson.test.BuildWatcher;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.LoggerRule;
 import org.jvnet.hudson.test.TestExtension;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
+@Issue("JENKINS-41854")
 public class DynamicContextTest {
 
     private static final Logger LOGGER = Logger.getLogger(DynamicContextTest.class.getName());
@@ -152,41 +155,125 @@ public class DynamicContextTest {
             return "DecoratorContext";
         }
     }
-    public static final class DecoratorStep extends Step {
+    public static final class DecoratorStep extends Step implements Serializable {
         @DataBoundConstructor public DecoratorStep() {}
         @DataBoundSetter public @CheckForNull String message;
         @Override public StepExecution start(StepContext context) throws Exception {
-            return new Execution(context, message);
+            return StepExecutions.block(context, this::start);
         }
-        private static final class Execution extends StepExecution {
-            private final @CheckForNull String message;
-            Execution(StepContext context, @CheckForNull String message) {
-                super(context);
-                this.message = message;
-            }
-            @Override public boolean start() throws Exception {
-                BodyInvoker invoker = getContext().newBodyInvoker();
-                if (message != null) {
-                    TaskListenerDecorator original = getContext().get(TaskListenerDecorator.class);
-                    DecoratorImpl subsequent = new DecoratorImpl(message);
-                    LOGGER.log(Level.INFO, "merging {0} with {1}", new Object[] {original, subsequent});
-                    invoker.withContext(TaskListenerDecorator.merge(original, subsequent));
-                } else {
-                    DynamicContext original = getContext().get(DynamicContext.class);
-                    DecoratorContext subsequent = new DecoratorContext();
-                    LOGGER.log(Level.INFO, "merging {0} with {1}", new Object[] {original, subsequent});
-                    invoker.withContext(DynamicContext.merge(original, subsequent));
-                }
-                invoker.withCallback(BodyExecutionCallback.wrap(getContext())).start();
-                return false;
+        private void start(StepContext context, BodyInvoker invoker) throws Exception {
+            if (message != null) {
+                TaskListenerDecorator original = context.get(TaskListenerDecorator.class);
+                DecoratorImpl subsequent = new DecoratorImpl(message);
+                LOGGER.log(Level.INFO, "merging {0} with {1}", new Object[] {original, subsequent});
+                invoker.withContext(TaskListenerDecorator.merge(original, subsequent));
+            } else {
+                DynamicContext original = context.get(DynamicContext.class);
+                DecoratorContext subsequent = new DecoratorContext();
+                LOGGER.log(Level.INFO, "merging {0} with {1}", new Object[] {original, subsequent});
+                invoker.withContext(DynamicContext.merge(original, subsequent));
             }
         }
-        @TestExtension public static final class DescriptorImpl extends StepDescriptor {
+        @TestExtension("smokes") public static final class DescriptorImpl extends StepDescriptor {
+            @Override public String getFunctionName() {
+                return "decorate";
+            }
             @Override public Set<? extends Class<?>> getRequiredContext() {
                 return Collections.emptySet();
             }
+            @Override public boolean takesImplicitBlockArgument() {
+                return true;
+            }
+        }
+    }
+
+    @Test public void dynamicVsStatic() throws Exception {
+        WorkflowJob p = r.createProject(WorkflowJob.class, "p");
+        p.setDefinition(new CpsFlowDefinition(
+            "withStaticMessage('one') {\n" +
+            "  echo(/one: ${getMessage()}/)\n" +
+            "  withDynamicMessage('two') {\n" +
+            "    echo(/two: ${getMessage()}/)\n" +
+            "    withStaticMessage('three') {\n" +
+            "      echo(/three: ${getMessage()}/)\n" +
+            "    }\n" +
+            "  }\n" +
+            "}", true));
+        WorkflowRun b = r.buildAndAssertSuccess(p);
+        r.assertLogContains("one: one", b);
+        r.assertLogContains("two: two", b);
+        // Yes this is lame (we would prefer three: three),
+        // but this cannot be solved without moving the implementation to workflow-cps
+        // by interpreting DynamicContext in ContextVariableSet.
+        // That _might_ also help the idempotency issue mentioned above.
+        r.assertLogContains("three: two", b);
+    }
+    private static final class Message implements Serializable {
+        final String text;
+        Message(String text) {
+            this.text = text;
+        }
+    }
+    public static final class GetMessageStep extends Step {
+        @DataBoundConstructor public GetMessageStep() {}
+        @Override public StepExecution start(StepContext context) throws Exception {
+            return StepExecutions.synchronous(context, GetMessageStep::run);
+        }
+        private static Object run(StepContext context) throws Exception {
+            Message message = context.get(Message.class);
+            return message != null ? message.text : null;
+        }
+        @TestExtension("dynamicVsStatic") public static final class DescriptorImpl extends StepDescriptor {
             @Override public String getFunctionName() {
-                return "decorate";
+                return "getMessage";
+            }
+            @Override public Set<? extends Class<?>> getRequiredContext() {
+                return Collections.emptySet();
+            }
+        }
+    }
+    public static final class WithStaticMessageStep extends Step implements Serializable {
+        public final String text;
+        @DataBoundConstructor public WithStaticMessageStep(String text) {
+            this.text = text;
+        }
+        @Override public StepExecution start(StepContext context) throws Exception {
+            return StepExecutions.block(context, (_context, invoker) -> invoker.withContext(new Message(text)));
+        }
+        @TestExtension("dynamicVsStatic") public static final class DescriptorImpl extends StepDescriptor {
+            @Override public String getFunctionName() {
+                return "withStaticMessage";
+            }
+            @Override public Set<? extends Class<?>> getRequiredContext() {
+                return Collections.emptySet();
+            }
+            @Override public boolean takesImplicitBlockArgument() {
+                return true;
+            }
+        }
+    }
+    public static final class WithDynamicMessageStep extends Step implements Serializable {
+        public final String text;
+        @DataBoundConstructor public WithDynamicMessageStep(String text) {
+            this.text = text;
+        }
+        @Override public StepExecution start(StepContext context) throws Exception {
+            return StepExecutions.block(context, (_context, invoker) -> invoker.withContext(DynamicContext.merge(context.get(DynamicContext.class), new DC())));
+        }
+        private final class DC extends DynamicContext.Typed<Message> {
+            @Override protected Class<Message> type() {
+                return Message.class;
+            }
+            @Override protected Message get(DelegatedContext context) throws IOException, InterruptedException {
+                return new Message(text);
+            }
+        }
+        @TestExtension("dynamicVsStatic") public static final class DescriptorImpl extends StepDescriptor {
+            @Override public String getFunctionName() {
+                return "withDynamicMessage";
+            }
+            @Override public Set<? extends Class<?>> getRequiredContext() {
+                return Collections.emptySet();
             }
             @Override public boolean takesImplicitBlockArgument() {
                 return true;
