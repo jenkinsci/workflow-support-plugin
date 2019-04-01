@@ -28,8 +28,8 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
+import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.pickles.Pickle;
 import org.jenkinsci.plugins.workflow.pickles.PickleFactory;
 import org.jenkinsci.plugins.workflow.steps.DynamicContext;
@@ -62,8 +62,9 @@ public final class PickleDynamicContext extends DynamicContext {
 
     @Override public <T> T get(Class<T> key, DelegatedContext context) throws IOException, InterruptedException {
         if (key.isAssignableFrom(type)) {
-            FlowExecutionOwner owner = context.get(FlowExecution.class).getOwner();
-            LOGGER.log(Level.FINE, "rehydrating a {0} for {1}", new Object[] {pickle, owner});
+            FlowNode node = context.get(FlowNode.class);
+            FlowExecutionOwner owner = node.getExecution().getOwner();
+            LOGGER.log(Level.FINE, "rehydrating a {0} for {1} in {2}", new Object[] {pickle, node, /* TODO unnecessary as of https://github.com/jenkinsci/workflow-api-plugin/pull/87 */owner});
             try {
                 return key.cast(pickle.rehydrate(owner).get());
             } catch (ExecutionException x) {
