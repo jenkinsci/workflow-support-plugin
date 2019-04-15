@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.workflow.support;
 
 import hudson.EnvVars;
 import hudson.Launcher;
+import hudson.FilePath;
 import hudson.LauncherDecorator;
 import hudson.console.ConsoleLogFilter;
 import hudson.model.Computer;
@@ -33,6 +34,7 @@ import hudson.model.Job;
 import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.model.TopLevelItem;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -73,6 +75,8 @@ public abstract class DefaultStepContext extends StepContext {
             return key.cast(EnvironmentExpander.getEffectiveEnvironment(customEnvironment, (EnvVars) value, get(EnvironmentExpander.class), this, taskListener));
         } else if (key == Launcher.class) {
             return key.cast(makeLauncher((Launcher) value));
+        } else if (key == FilePath.class) {
+            return key.cast(getFilepath((FilePath)value));
         } else if (value != null) {
             return value;
         } else if (key == TaskListener.class) {
@@ -151,6 +155,31 @@ public abstract class DefaultStepContext extends StepContext {
             launcher = decorator.decorate(launcher, n);
         }
         return launcher;
+    }
+
+    private @CheckForNull FilePath getFilepath(@CheckForNull FilePath path) throws IOException, InterruptedException {
+        // If connection was closed during executing pipeline script,
+        // after resuming some FilePath channel may be broken.
+        // That leads to ClosedChannelException error.
+        // So get actual FilePath on each request path
+        FilePath result = path;
+        
+        if (path != null && path.getChannel() != null) {
+            Node node = get(Node.class);
+            Run run = get(Run.class);
+            if (node != null && run != null)
+            {
+                Job job = run.getParent();
+                TopLevelItem topItem = castOrNull(TopLevelItem.class, job);
+                if (topItem != null)
+                {
+                    FilePath workspace = node.getWorkspaceFor(topItem);
+                    if ( workspace != null)
+                        result = new FilePath( workspace.getChannel(), path.getRemote() );
+                }
+            }
+        }
+        return result;
     }
 
     /**
