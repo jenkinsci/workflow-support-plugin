@@ -63,7 +63,7 @@ public class LogStorageAction extends LogAction implements FlowNodeAction, Persi
     }
 
     /**
-     * Used from <tt>console.jelly</tt> to write annotated log to the given output.
+     * Used from <code>console.jelly</code> to write annotated log to the given output.
      */
     @Restricted(DoNotUse.class) // Jelly
     public void writeLogTo(long offset, XMLOutput out) throws IOException {
