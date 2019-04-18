@@ -25,6 +25,7 @@
 package org.jenkinsci.plugins.workflow.support;
 
 import hudson.EnvVars;
+import hudson.ExtensionList;
 import hudson.Launcher;
 import hudson.LauncherDecorator;
 import hudson.console.ConsoleLogFilter;
@@ -62,7 +63,24 @@ public abstract class DefaultStepContext extends StepContext {
      */
     private transient TaskListener listener;
 
-    private static final ThreadLocal<Set<Class<?>>> dynamicContextClasses = ThreadLocal.withInitial(HashSet::new);
+    private static final ThreadLocal<Set<DynamicContextQuery>> dynamicContextClasses = ThreadLocal.withInitial(HashSet::new);
+
+    private static final class DynamicContextQuery {
+        final DynamicContext dynamicContext;
+        final Class<?> key;
+        DynamicContextQuery(DynamicContext dynamicContext, Class<?> key) {
+            this.dynamicContext = dynamicContext;
+            this.key = key;
+        }
+        @Override public boolean equals(Object obj) {
+            return obj instanceof DynamicContextQuery &&
+                dynamicContext == ((DynamicContextQuery) obj).dynamicContext &&
+                key == ((DynamicContextQuery) obj).key;
+        }
+        @Override public int hashCode() {
+            return dynamicContext.hashCode() ^ key.hashCode();
+        }
+    }
 
     /**
      * Uses {@link #doGet} but automatically translates certain kinds of objects into others.
@@ -71,18 +89,21 @@ public abstract class DefaultStepContext extends StepContext {
     @SuppressWarnings("Convert2Lambda") // javac just gets way too confused here
     @Override public final <T> T get(Class<T> key) throws IOException, InterruptedException {
         T value = null;
-        DynamicContext dynamicContext = doGet(DynamicContext.class);
-        if (dynamicContext != null) {
-            Set<Class<?>> dynamicStack = dynamicContextClasses.get();
-            if (dynamicStack.add(key)) { // thus, being newly added to the stack
+        for (DynamicContext dynamicContext : ExtensionList.lookup(DynamicContext.class)) {
+            DynamicContextQuery query = new DynamicContextQuery(dynamicContext, key);
+            Set<DynamicContextQuery> dynamicStack = dynamicContextClasses.get();
+            if (dynamicStack.add(query)) { // thus, being newly added to the stack
                 try {
                     value = dynamicContext.get(key, new DynamicContext.DelegatedContext() {
                         @Override public <T2> T2 get(Class<T2> otherKey) throws IOException, InterruptedException {
                             return DefaultStepContext.this.get(otherKey);
                         }
                     });
+                    if (value != null) {
+                        break;
+                    }
                 } finally {
-                    dynamicStack.remove(key);
+                    dynamicStack.remove(query);
                 }
             }
         }

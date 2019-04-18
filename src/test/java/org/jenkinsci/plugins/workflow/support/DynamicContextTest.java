@@ -126,11 +126,14 @@ public class DynamicContextTest {
             return "DecoratorImpl[" + message + "]";
         }
     }
-    private static final class DecoratorContext extends DynamicContext.Typed<TaskListenerDecorator> {
+    @TestExtension("smokes") public static final class DecoratorContext extends DynamicContext.Typed<TaskListenerDecorator> {
         @Override protected Class<TaskListenerDecorator> type() {
             return TaskListenerDecorator.class;
         }
         @Override protected TaskListenerDecorator get(DelegatedContext context) throws IOException, InterruptedException {
+            if (context.get(YesPleaseDecorate.class) == null) {
+                return null;
+            }
             // Exercising lookup of something which is special-cased in DefaultStepContext.get.
             Run<?, ?> build = context.get(Run.class);
             assertNotNull(build);
@@ -155,6 +158,7 @@ public class DynamicContextTest {
             return "DecoratorContext";
         }
     }
+    private static final class YesPleaseDecorate implements Serializable {}
     public static final class DecoratorStep extends Step implements Serializable {
         @DataBoundConstructor public DecoratorStep() {}
         @DataBoundSetter public @CheckForNull String message;
@@ -168,10 +172,7 @@ public class DynamicContextTest {
                 LOGGER.log(Level.INFO, "merging {0} with {1}", new Object[] {original, subsequent});
                 invoker.withContext(TaskListenerDecorator.merge(original, subsequent));
             } else {
-                DynamicContext original = context.get(DynamicContext.class);
-                DecoratorContext subsequent = new DecoratorContext();
-                LOGGER.log(Level.INFO, "merging {0} with {1}", new Object[] {original, subsequent});
-                invoker.withContext(DynamicContext.merge(original, subsequent));
+                invoker.withContext(new YesPleaseDecorate());
             }
         }
         @TestExtension("smokes") public static final class DescriptorImpl extends StepDescriptor {
@@ -252,21 +253,28 @@ public class DynamicContextTest {
             }
         }
     }
+    private static final class DynamicMessage implements Serializable {
+        final String text;
+        DynamicMessage(String text) {
+            this.text = text;
+        }
+    }
+    @TestExtension("dynamicVsStatic") public static final class DC extends DynamicContext.Typed<Message> {
+        @Override protected Class<Message> type() {
+            return Message.class;
+        }
+        @Override protected Message get(DelegatedContext context) throws IOException, InterruptedException {
+            DynamicMessage dynamicMessage = context.get(DynamicMessage.class);
+            return dynamicMessage != null ? new Message(dynamicMessage.text) : null;
+        }
+    }
     public static final class WithDynamicMessageStep extends Step implements Serializable {
         public final String text;
         @DataBoundConstructor public WithDynamicMessageStep(String text) {
             this.text = text;
         }
         @Override public StepExecution start(StepContext context) throws Exception {
-            return StepExecutions.block(context, (_context, invoker) -> invoker.withContext(DynamicContext.merge(context.get(DynamicContext.class), new DC())));
-        }
-        private final class DC extends DynamicContext.Typed<Message> {
-            @Override protected Class<Message> type() {
-                return Message.class;
-            }
-            @Override protected Message get(DelegatedContext context) throws IOException, InterruptedException {
-                return new Message(text);
-            }
+            return StepExecutions.block(context, (_context, invoker) -> invoker.withContext(new DynamicMessage(text)));
         }
         @TestExtension("dynamicVsStatic") public static final class DescriptorImpl extends StepDescriptor {
             @Override public String getFunctionName() {
