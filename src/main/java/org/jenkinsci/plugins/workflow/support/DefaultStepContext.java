@@ -140,6 +140,8 @@ public abstract class DefaultStepContext extends StepContext {
             return castOrNull(key, get(Run.class).getParent());
         } else if (FlowExecution.class.isAssignableFrom(key)) {
             return castOrNull(key,getExecution());
+        } else if (FlowNode.class.isAssignableFrom(key)) {
+            return castOrNull(key, getNode());
         } else {
             // unrecognized key
             return null;
@@ -205,11 +207,13 @@ public abstract class DefaultStepContext extends StepContext {
 
     /**
      * Finds the associated execution.
+     * Automatically available from {@link #get}.
      */
     protected abstract @Nonnull FlowExecution getExecution() throws IOException;
 
     /**
      * Finds the associated node.
+     * Automatically available from {@link #get}.
      */
     protected abstract @Nonnull FlowNode getNode() throws IOException;
 
