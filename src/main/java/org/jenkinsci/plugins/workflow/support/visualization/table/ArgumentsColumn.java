@@ -40,7 +40,9 @@ public class ArgumentsColumn extends FlowNodeViewColumn {
     @DataBoundConstructor public ArgumentsColumn() {}
 
     public String get(FlowNode node) {
-        return StringUtils.substring(ArgumentsAction.getStepArgumentsAsString(node), 0, 80);
+        if(StringUtils.length(ArgumentsAction.getStepArgumentsAsString(node))>77)
+            return StringUtils.substring(ArgumentsAction.getStepArgumentsAsString(node), 0, 77) + "...";
+        return ArgumentsAction.getStepArgumentsAsString(node);
     }
 
     @Extension public static class DescriptorImpl extends FlowNodeViewColumnDescriptor {

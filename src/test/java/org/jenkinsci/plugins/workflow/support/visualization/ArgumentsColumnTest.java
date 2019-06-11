@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.graph.StepNode;
 import org.jenkinsci.plugins.workflow.steps.Step;
@@ -81,6 +82,7 @@ public class ArgumentsColumnTest extends Step {
 
         String s = col.get(f);
         assertTrue(s.length()<=80);
+        assertTrue(StringUtils.right(s, 3).equals("..."));
     }
 
 
