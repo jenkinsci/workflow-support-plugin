@@ -35,7 +35,7 @@
     <artifactId>workflow-support</artifactId>
     <version>${revision}${changelist}</version>
     <packaging>hpi</packaging>
-    <name>Pipeline: Supporting APIs</name>
+    <name>Pipeline: Support</name>
     <url>https://wiki.jenkins.io/display/JENKINS/Pipeline+Supporting+APIs+Plugin</url>
     <licenses>
         <license>
