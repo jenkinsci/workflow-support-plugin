@@ -120,7 +120,17 @@ public final class RunWrapper implements Serializable {
             build().setDisplayName(n);
         }
     }
-	
+
+    @Whitelisted
+    public void setProjectDescription(String d) throws IOException {
+        if (!currentBuild) {
+            throw new SecurityException("can only set the description on the project of the current build");
+        }
+        try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
+            build().getParent().setDescription(d);
+        }
+    }
+
     @Whitelisted
     public void setKeepLog(boolean b) throws IOException {
         if (!currentBuild) {
@@ -259,6 +269,11 @@ public final class RunWrapper implements Serializable {
     @Whitelisted
     public String getFullProjectName() throws AbortException {
         return build().getParent().getFullName();
+    }
+
+    @Whitelisted
+    public String getProjectDescription() throws AbortException {
+        return build().getParent().getDescription();
     }
 
     @Whitelisted

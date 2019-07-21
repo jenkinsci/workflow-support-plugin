@@ -309,6 +309,25 @@ public class RunWrapperTest {
         });
     }
 
+    @Issue("JENKINS-58586")
+    @Test public void projectDescription() {
+        r.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = r.j.jenkins.createProject(WorkflowJob.class, "p");
+                final String d1 = "this-description";
+                final String d2 = "that-description";
+                p.setDescription(d1);
+                p.setDefinition(new CpsFlowDefinition(
+                        "echo \"currentBuild.projectDescription='${currentBuild.projectDescription}'\"\n" +
+                        "currentBuild.projectDescription='" + d2 + "'\n" +
+                        "echo \"currentBuild.projectDescription='${currentBuild.projectDescription}'\"\n", true));
+                WorkflowRun b = r.j.assertBuildStatusSuccess(p.scheduleBuild2(0).get());
+                r.j.assertLogContains("currentBuild.projectDescription='" + d1 + "'", b);
+                r.j.assertLogContains("currentBuild.projectDescription='" + d2 + "'", b);
+            }
+        });
+    }
+
     // Like org.hamcrest.text.MatchesPattern.matchesPattern(String) but doing a substring, not whole-string, match:
     private static Matcher<String> containsRegexp(final String rx) {
         return new SubstringMatcher(rx) {
