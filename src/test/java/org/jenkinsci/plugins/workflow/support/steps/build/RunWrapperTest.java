@@ -311,12 +311,9 @@ public class RunWrapperTest {
 
     // Like org.hamcrest.text.MatchesPattern.matchesPattern(String) but doing a substring, not whole-string, match:
     private static Matcher<String> containsRegexp(final String rx) {
-        return new SubstringMatcher(rx) {
+        return new SubstringMatcher("containing the regexp", false, rx) {
             @Override protected boolean evalSubstringOf(String string) {
                 return Pattern.compile(rx).matcher(string).find();
-            }
-            @Override protected String relationship() {
-                return "containing the regexp";
             }
         };
     }
