@@ -154,7 +154,7 @@ public final class RunWrapper implements Serializable {
 
     /**
      * Filters the returned list by the type of <code>Cause</code> class passed as input
-     * ex. <code>getBuildCauess('hudson.model.Cause$UserIdCause')</code> would return only
+     * ex. <code>getBuildCauses('hudson.model.Cause$UserIdCause')</code> would return only
      * <code>Cause</code>s of that type
      *
      * @param className A string containing the fully qualified name for the class type to filter the result list by
