@@ -120,12 +120,9 @@ public final class RunWrapper implements Serializable {
             build().setDisplayName(n);
         }
     }
-	
+
     @Whitelisted
     public void setKeepLog(boolean b) throws IOException {
-        if (!currentBuild) {
-            throw new SecurityException("can only set the keepLog property on the current build");
-        }
         try (ACLContext ctx = ACL.as(ACL.SYSTEM)) {
             build().keepLog(b);
         }
