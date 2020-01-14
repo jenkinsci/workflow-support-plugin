@@ -268,6 +268,42 @@ public final class RunWrapper implements Serializable {
     }
 
     @Whitelisted
+    public @CheckForNull RunWrapper getPreviousBuildInProgress() throws AbortException {
+        Run<?,?> previousBuild = build().getPreviousBuildInProgress();
+        return previousBuild != null ? new RunWrapper(previousBuild, false) : null;
+    }
+
+    @Whitelisted
+    public @CheckForNull RunWrapper getPreviousBuiltBuild() throws AbortException {
+        Run<?,?> previousBuild = build().getPreviousBuiltBuild();
+        return previousBuild != null ? new RunWrapper(previousBuild, false) : null;
+    }
+
+    @Whitelisted
+    public @CheckForNull RunWrapper getPreviousCompletedBuild() throws AbortException {
+        Run<?,?> previousBuild = build().getPreviousCompletedBuild();
+        return previousBuild != null ? new RunWrapper(previousBuild, false) : null;
+    }
+
+    @Whitelisted
+    public @CheckForNull RunWrapper getPreviousFailedBuild() throws AbortException {
+        Run<?,?> previousBuild = build().getPreviousFailedBuild();
+        return previousBuild != null ? new RunWrapper(previousBuild, false) : null;
+    }
+
+    @Whitelisted
+    public @CheckForNull RunWrapper getPreviousNotFailedBuild() throws AbortException {
+        Run<?,?> previousBuild = build().getPreviousNotFailedBuild();
+        return previousBuild != null ? new RunWrapper(previousBuild, false) : null;
+    }
+
+    @Whitelisted
+    public @CheckForNull RunWrapper getPreviousSuccessfulBuild() throws AbortException {
+        Run<?,?> previousBuild = build().getPreviousSuccessfulBuild();
+        return previousBuild != null ? new RunWrapper(previousBuild, false) : null;
+    }
+
+    @Whitelisted
     public @CheckForNull RunWrapper getNextBuild() throws AbortException {
         Run<?,?> nextBuild = build().getNextBuild();
         return nextBuild != null ? new RunWrapper(nextBuild, false) : null;

@@ -16,8 +16,14 @@
     <dt><code>startTimeInMillis</code></dt><dd>time since the epoch when the build started running</dd>
     <dt><code>duration</code></dt><dd>duration of the build in milliseconds</dd>
     <dt><code>durationString</code></dt><dd>a human-readable representation of the build duration</dd>
-    <dt><code>previousBuild</code></dt><dd>another similar object, or null</dd>
-    <dt><code>nextBuild</code></dt><dd>similarly</dd>
+    <dt><code>previousBuild</code></dt><dd>previous build of the project, or null</dd>
+    <dt><code>previousBuildInProgress</code></dt><dd>previous build of the project that is currently building, or null</dd>
+    <dt><code>previousBuiltBuild</code></dt><dd>previous build of the project that has been built (may be currently building), or null</dd>
+    <dt><code>previousCompletedBuild</code></dt><dd>previous build of the project that has last finished building, or null</dd>
+    <dt><code>previousFailedBuild</code></dt><dd>previous build of the project that has last failed to build, or null</dd>
+    <dt><code>previousNotFailedBuild</code></dt><dd>previous build of the project that did not fail to build (eg. result is successful or unstable), or null</dd>
+    <dt><code>previousSuccessfulBuild</code></dt><dd>previous build of the project that has successfully built, or null</dd>
+    <dt><code>nextBuild</code></dt><dd>next build of the project, or null</dd>
     <dt><code>absoluteUrl</code></dt><dd>URL of build index page</dd>
     <dt><code>buildVariables</code></dt><dd>for a non-Pipeline downstream build, offers access to a map of defined build variables; for a Pipeline downstream build, any variables set globally on <code>env</code> at the time the build ends. Child Pipeline jobs can use this to report additional information to the parent job by setting variables in <code>env</code>. Note that build parameters are <i>not</i> shown in <code>buildVariables</code>.</dd>
     <dt><code>changeSets</code></dt><dd>a list of <a href="https://javadoc.jenkins-ci.org/hudson/scm/ChangeLogSet.html" target="_blank">changesets</a> coming from distinct SCM checkouts; each has a <code>kind</code> and is a list of commits; each commit has a <code>commitId</code>, <code>timestamp</code>, <code>msg</code>, <code>author</code>, and <code>affectedFiles</code> each of which has an <code>editType</code> and <code>path</code>; the value will not generally be <code>Serializable</code> so you may only access it inside a method marked <code>@NonCPS</code></dd>
