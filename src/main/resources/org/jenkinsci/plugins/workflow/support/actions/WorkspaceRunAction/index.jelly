@@ -25,11 +25,11 @@ THE SOFTWARE.
 
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout" xmlns:st="jelly:stapler" xmlns:t="/lib/hudson">
-    <l:layout title="Workspaces">
+    <l:layout title="${%Workspaces}">
         ${h.checkPermission(it.owner.executable.parent, it.owner.executable.parent.WORKSPACE)}
         <st:include page="sidepanel.jelly" it="${it.owner.executable}"/>
         <l:main-panel>
-            <h1>Workspaces for ${it.owner.executable.fullDisplayName}</h1>
+            <h1>${%Workspacesfor(it.owner.executable.fullDisplayName)}</h1>
             <ul>
                 <j:forEach var="a" items="${it.actions}">
                     <li>
