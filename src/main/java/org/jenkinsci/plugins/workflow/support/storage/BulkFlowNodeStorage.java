@@ -123,12 +123,12 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
 
     @Override
     @CheckForNull
-    public FlowNode getNode(@Nonnull String id) throws IOException {
+    public synchronized FlowNode getNode(@Nonnull String id) throws IOException {
         Tag t = getOrLoadNodes().get(id);
         return (t != null) ? t.node : null;
     }
 
-    public void storeNode(@Nonnull FlowNode n, boolean delayWritingActions) throws IOException {
+    public synchronized void storeNode(@Nonnull FlowNode n, boolean delayWritingActions) throws IOException {
         Tag t = getOrLoadNodes().get(n.getId());
         if (t != null) {
             t.node = n;
@@ -144,7 +144,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
     }
 
     @Override
-    public void storeNode(FlowNode n) throws IOException {
+    public synchronized void storeNode(FlowNode n) throws IOException {
         flushNode(n);
     }
 
@@ -154,13 +154,13 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
      * @throws IOException
      */
     @Override
-    public void flushNode(@Nonnull FlowNode n) throws IOException {
+    public synchronized void flushNode(@Nonnull FlowNode n) throws IOException {
         storeNode(n, false);
     }
 
     /** Force persisting any nodes that had writing deferred */
     @Override
-    public void flush() throws IOException {
+    public synchronized void flush() throws IOException {
         if (nodes != null && isModified) {
             if (!dir.exists()) {
                 IOUtils.mkdirs(dir);
@@ -171,7 +171,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
         }
     }
 
-    public List<Action> loadActions(@Nonnull FlowNode node) throws IOException {
+    public synchronized List<Action> loadActions(@Nonnull FlowNode node) throws IOException {
         Tag t = getOrLoadNodes().get(node.getId());
         return (t != null) ? t.actions() : Collections.<Action>emptyList();
     }
@@ -179,7 +179,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
     /**
      * Just stores this one node
      */
-    public void saveActions(@Nonnull FlowNode node, @Nonnull List<Action> actions) throws IOException {
+    public synchronized void saveActions(@Nonnull FlowNode node, @Nonnull List<Action> actions) throws IOException {
         HashMap<String, Tag> map = getOrLoadNodes();
         Tag t = map.get(node.getId());
         if (t != null) {
@@ -193,7 +193,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
     }
 
     /** Have we written everything to disk that we need to, or is there something waiting to be written */
-    public boolean isPersistedFully() {
+    public synchronized boolean isPersistedFully() {
         return !isModified;
     }
 
