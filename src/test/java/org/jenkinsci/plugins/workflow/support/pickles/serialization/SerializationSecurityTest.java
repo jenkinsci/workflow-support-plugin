@@ -256,8 +256,8 @@ public class SerializationSecurityTest {
     private static void safe(JenkinsRule r, WorkflowRun b) throws Exception {
         assertNull(r.jenkins.getSystemMessage());
         assertEquals(Result.FAILURE, b.getResult());
+        r.waitForMessage("staticMethod jenkins.model.Jenkins getInstance", b);
         r.assertLogNotContains("should not still have", b);
-        r.assertLogContains("staticMethod jenkins.model.Jenkins getInstance", b);
     }
 
 }
