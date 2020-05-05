@@ -28,7 +28,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.54</version>
+        <version>4.1</version>
         <relativePath />
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -64,36 +64,39 @@
     <properties>
         <revision>3.5</revision>
         <changelist>-SNAPSHOT</changelist>
-        <jenkins.version>2.138.4</jenkins.version>
+        <jenkins.version>2.176.4</jenkins.version>
         <java.level>8</java.level>
         <no-test-jar>false</no-test-jar>
         <useBeta>true</useBeta>
         <hpi.compatibleSinceVersion>3.0</hpi.compatibleSinceVersion>
-        <git-plugin.version>3.7.0</git-plugin.version>
-        <workflow-scm-step-plugin.version>2.7</workflow-scm-step-plugin.version>
-        <workflow-step-api-plugin.version>2.20</workflow-step-api-plugin.version>
-        <scm-api-plugin.version>2.2.6</scm-api-plugin.version>
     </properties>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.jenkins.tools.bom</groupId>
+                <artifactId>bom-2.176.x</artifactId>
+                <version>9</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-step-api</artifactId>
-            <version>${workflow-step-api-plugin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-api</artifactId>
-            <version>2.36</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>scm-api</artifactId>
-            <version>${scm-api-plugin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>script-security</artifactId>
-            <version>1.39</version>
         </dependency>
         <dependency>
             <!-- Required for running with Java 9+ -->
@@ -104,110 +107,74 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-step-api</artifactId>
-            <version>${workflow-step-api-plugin.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>1.9.5</version>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.hamcrest</groupId>
-                    <artifactId>hamcrest-core</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>structs</artifactId>
-            <version>1.18</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-cps</artifactId>
-            <version>2.42</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-scm-step</artifactId>
-            <version>${workflow-scm-step-plugin.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>scm-api</artifactId>
-            <version>${scm-api-plugin.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-durable-task-step</artifactId>
-            <version>2.9</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-job</artifactId>
-            <version>2.36</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-basic-steps</artifactId>
-            <version>2.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
-            <version>${git-plugin.version}</version>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>commons-codec</groupId>
-                    <artifactId>commons-codec</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.jenkins-ci</groupId>
-                    <artifactId>annotation-indexer</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
-            <version>${git-plugin.version}</version>
             <classifier>tests</classifier>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jenkins-ci</groupId>
-                    <artifactId>annotation-indexer</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>mailer</artifactId>
-            <version>1.19</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>junit</artifactId>
-            <version>1.20</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>pipeline-build-step</artifactId>
-            <version>2.5</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

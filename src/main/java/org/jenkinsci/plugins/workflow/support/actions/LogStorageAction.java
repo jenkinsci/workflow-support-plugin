@@ -67,7 +67,15 @@ public class LogStorageAction extends LogAction implements FlowNodeAction, Persi
      */
     @Restricted(DoNotUse.class) // Jelly
     public void writeLogTo(long offset, XMLOutput out) throws IOException {
-        getLogText().writeHtmlTo(offset, out.asWriter());
+        // Similar to Run#writeWholeLogTo but terminates even if node.isActive(). Adapated from WorkflowRun.writeLogTo.
+        long pos = offset;
+        while (true) {
+            long pos2 = getLogText().writeHtmlTo(pos, out.asWriter());
+            if (pos2 <= pos) {
+                break;
+            }
+            pos = pos2;
+        }
     }
 
     /**
