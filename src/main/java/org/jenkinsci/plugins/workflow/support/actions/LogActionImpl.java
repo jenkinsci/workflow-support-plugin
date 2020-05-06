@@ -159,6 +159,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
     /**
      * Used from <code>console.jelly</code> to write annotated log to the given output.
      */
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED", justification = "Deprecated and unused code, only exists for compatibility with old builds")
     @Restricted(DoNotUse.class) // Jelly
     public void writeLogTo(long offset, XMLOutput out) throws IOException {
         AnnotatedLargeText l = getLogText();
