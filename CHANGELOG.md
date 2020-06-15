@@ -1,5 +1,12 @@
 ## Changelog
 
+### 3.5
+
+Release date: 2020-06-15
+
+- Fix: Traversing a Pipeline execution using the `FlowGraphTable` API (used primarily for the Pipeline Steps view) could cause infinite loops for corrupted Pipelines in rare cases. ([JENKINS-62545](https://issues.jenkins-ci.org/browse/JENKINS-62545))
+- Internal: Update minimum required Jenkins version to 2.176.4, update parent POM, and update dependencies. ([PR 106](https://github.com/jenkinsci/workflow-support-plugin/pull/106))
+
 ### 3.4
 
 Release date: 2020-01-15
