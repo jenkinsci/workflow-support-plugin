@@ -1,5 +1,11 @@
 ## Changelog
 
+### 3.6
+
+Release date: 2020-11-05
+
+- Fix: Mask password parameters using the new EnvironmentExpander API from [workflow-step-api](https://github.com/jenkinsci/workflow-step-api-plugin/pull/57). ([PR 110](https://github.com/jenkinsci/workflow-support-plugin/pull/110))([JENKINS-47101](https://issues.jenkins-ci.org/browse/JENKINS-47101))
+
 ### 3.5
 
 Release date: 2020-06-15
