@@ -45,6 +45,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import hudson.util.Secret;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.flow.GraphListener;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
@@ -194,7 +195,8 @@ public abstract class DefaultStepContext extends StepContext {
             ParametersAction action = run.getAction(ParametersAction.class);
             if (action != null) {
                 passwordParameterVariables = action.getParameters().stream()
-                        .filter(PasswordParameterValue.class::isInstance)
+                        .filter(e -> PasswordParameterValue.class.isInstance(e)
+                                        && !((Secret) e.getValue()).getPlainText().isEmpty())
                         .map(ParameterValue::getName)
                         .collect(Collectors.toCollection(() -> new HashSet<>())); // Make sure the set is serializable.
             } else {
