@@ -195,7 +195,7 @@ public abstract class DefaultStepContext extends StepContext {
             ParametersAction action = run.getAction(ParametersAction.class);
             if (action != null) {
                 passwordParameterVariables = action.getParameters().stream()
-                        .filter(e -> PasswordParameterValue.class.isInstance(e)
+                        .filter(e -> e instanceof PasswordParameterValue
                                         && !((Secret) e.getValue()).getPlainText().isEmpty())
                         .map(ParameterValue::getName)
                         .collect(Collectors.toCollection(() -> new HashSet<>())); // Make sure the set is serializable.
