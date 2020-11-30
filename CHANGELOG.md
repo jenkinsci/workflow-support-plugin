@@ -1,5 +1,11 @@
 ## Changelog
 
+### 3.7
+
+Release date: 2020-11-30
+
+- Fix: Do not add empty password parameters to the sensitive variable list.([JENKINS-64282](https://issues.jenkins-ci.org/browse/JENKINS-64282))
+
 ### 3.6
 
 Release date: 2020-11-05
