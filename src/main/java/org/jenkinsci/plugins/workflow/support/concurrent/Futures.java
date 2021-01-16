@@ -65,7 +65,7 @@ public abstract class Futures {
      *     });}</pre>
      *
      * <p>Note: This overload of {@code addCallback} is designed for cases in
-     * which the callack is fast and lightweight, as the method does not accept
+     * which the callback is fast and lightweight, as the method does not accept
      * an {@code Executor} in which to perform the the work. For heavier
      * callbacks, this overload carries some caveats: First, the thread that the
      * callback runs in depends on whether the input {@code Future} is done at the
@@ -74,7 +74,7 @@ public abstract class Futures {
      * callback in the thread that calls {@code addCallback} or {@code
      * Future.cancel}. Second, callbacks may run in an internal thread of the
      * system responsible for the input {@code Future}, such as an RPC network
-     * thread. Finally, during the execution of a {@code sameThreadExecutor}
+     * thread. Finally, during the execution of a {@code newDirectExecutorService}
      * callback, all other registered but unexecuted listeners are prevented from
      * running, even if those listeners are to run in other executors.
      *
@@ -87,7 +87,7 @@ public abstract class Futures {
      */
     public static <V> void addCallback(ListenableFuture<V> future,
         FutureCallback<? super V> callback) {
-      addCallback(future, callback, MoreExecutors.sameThreadExecutor());
+      addCallback(future, callback, MoreExecutors.newDirectExecutorService());
     }
 
     /**
@@ -115,8 +115,8 @@ public abstract class Futures {
      *
      * When the callback is fast and lightweight consider {@linkplain
      * Futures#addCallback(ListenableFuture, FutureCallback) the other overload}
-     * or explicit use of {@link MoreExecutors#sameThreadExecutor
-     * sameThreadExecutor}. For heavier callbacks, this choice carries some
+     * or explicit use of {@link MoreExecutors#newDirectExecutorService
+     * newDirectExecutorService}. For heavier callbacks, this choice carries some
      * caveats: First, the thread that the callback runs in depends on whether
      * the input {@code Future} is done at the time {@code addCallback} is called
      * and on whether the input {@code Future} is ever cancelled. In particular,
@@ -124,7 +124,7 @@ public abstract class Futures {
      * {@code addCallback} or {@code Future.cancel}. Second, callbacks may run in
      * an internal thread of the system responsible for the input {@code Future},
      * such as an RPC network thread. Finally, during the execution of a {@code
-     * sameThreadExecutor} callback, all other registered but unexecuted
+     * newDirectExecutorService} callback, all other registered but unexecuted
      * listeners are prevented from running, even if those listeners are to run
      * in other executors.
      *
@@ -218,7 +218,7 @@ public abstract class Futures {
      * thread that called {@code transform}. Second, transformations may run in
      * an internal thread of the system responsible for the input {@code Future},
      * such as an RPC network thread. Finally, during the execution of a {@code
-     * sameThreadExecutor} transformation, all other registered but unexecuted
+     * newDirectExecutorService} transformation, all other registered but unexecuted
      * listeners are prevented from running, even if those listeners are to run
      * in other executors.
      *
@@ -240,7 +240,7 @@ public abstract class Futures {
      */
     public static <I, O> ListenableFuture<O> transform(ListenableFuture<I> future,
         final Function<? super I, ? extends O> function) {
-      return Futures.<I, O>transform(future, function, MoreExecutors.sameThreadExecutor());
+      return Futures.<I, O>transform(future, function, MoreExecutors.newDirectExecutorService());
     }
 
     /**
@@ -272,7 +272,7 @@ public abstract class Futures {
      * <p>Note: For cases in which the transformation is fast and lightweight,
      * consider {@linkplain Futures#transform(ListenableFuture, Function) the
      * other overload} or explicit use of {@link
-     * MoreExecutors#sameThreadExecutor}. For heavier transformations, this
+     * MoreExecutors#newDirectExecutorService}. For heavier transformations, this
      * choice carries some caveats: First, the thread that the transformation
      * runs in depends on whether the input {@code Future} is done at the time
      * {@code transform} is called. In particular, if called late, {@code
@@ -280,7 +280,7 @@ public abstract class Futures {
      * {@code transform}.  Second, transformations may run in an internal thread
      * of the system responsible for the input {@code Future}, such as an RPC
      * network thread.  Finally, during the execution of a {@code
-     * sameThreadExecutor} transformation, all other registered but unexecuted
+     * newDirectExecutorService} transformation, all other registered but unexecuted
      * listeners are prevented from running, even if those listeners are to run
      * in other executors.
      *
@@ -324,7 +324,7 @@ public abstract class Futures {
     public static <V> ListenableFuture<List<V>> allAsList(
         ListenableFuture<? extends V>... futures) {
       return new ListFuture<V>(ImmutableList.copyOf(futures), true,
-          MoreExecutors.sameThreadExecutor());
+          MoreExecutors.newDirectExecutorService());
     }
 
     /**
@@ -347,7 +347,7 @@ public abstract class Futures {
     public static <V> ListenableFuture<List<V>> allAsList(
         Iterable<? extends ListenableFuture<? extends V>> futures) {
       return new ListFuture<V>(ImmutableList.copyOf(futures), true,
-          MoreExecutors.sameThreadExecutor());
+          MoreExecutors.newDirectExecutorService());
     }
 
     /**
@@ -379,14 +379,14 @@ public abstract class Futures {
      * <p>Note: For cases in which the work of creating the derived future is
      * fast and lightweight, consider {@linkplain Futures#chain(ListenableFuture,
      * Function) the other overload} or explicit use of {@code
-     * sameThreadExecutor}. For heavier derivations, this choice carries some
+     * newDirectExecutorService}. For heavier derivations, this choice carries some
      * caveats: First, the thread that the derivation runs in depends on whether
      * the input {@code Future} is done at the time {@code chain} is called. In
      * particular, if called late, {@code chain} will run the derivation in the
      * thread that called {@code chain}. Second, derivations may run in an
      * internal thread of the system responsible for the input {@code Future},
      * such as an RPC network thread. Finally, during the execution of a {@code
-     * sameThreadExecutor} {@code chain} function, all other registered but
+     * newDirectExecutorService} {@code chain} function, all other registered but
      * unexecuted listeners are prevented from running, even if those listeners
      * are to run in other executors.
      *
