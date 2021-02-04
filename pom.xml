@@ -28,7 +28,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.1</version>
+        <version>4.15</version>
         <relativePath />
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -75,8 +75,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.176.x</artifactId>
-                <version>16</version>
+                <artifactId>bom-2.222.x</artifactId>
+                <version>21</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -123,11 +123,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>structs</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-cps</artifactId>
             <scope>test</scope>
@@ -167,16 +162,6 @@
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
             <classifier>tests</classifier>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>mailer</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
