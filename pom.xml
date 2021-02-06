@@ -28,7 +28,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.1</version>
+        <version>4.15</version>
         <relativePath />
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -64,7 +64,7 @@
     <properties>
         <revision>3.8</revision>
         <changelist>-SNAPSHOT</changelist>
-        <jenkins.version>2.273-rc30689.09147672b85b</jenkins.version>
+        <jenkins.version>2.273-rc30689.09147672b85b</jenkins.version> <!-- TODO https://github.com/jenkinsci/jenkins/pull/5059 -->
         <java.level>8</java.level>
         <no-test-jar>false</no-test-jar>
         <useBeta>true</useBeta>
@@ -75,8 +75,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.176.x</artifactId>
-                <version>16</version>
+                <artifactId>bom-2.277.x</artifactId>
+                <version>23</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -90,6 +90,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-api</artifactId>
+            <version>2.42-rc1048.8d974b8c4ed5</version> <!-- TODO https://github.com/jenkinsci/workflow-api-plugin/pull/135 -->
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -120,11 +121,6 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>structs</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -167,16 +163,6 @@
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
             <classifier>tests</classifier>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>mailer</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
