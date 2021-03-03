@@ -208,7 +208,7 @@ class ChainingListenableFuture<I, O>
               ChainingListenableFuture.this.outputFuture = null;
             }
           }
-        }, MoreExecutors.newDirectExecutorService());
+        }, Futures.newExecutorService());
     } catch (UndeclaredThrowableException e) {
       // Set the cause of the exception as this future's exception
       setException(e.getCause());

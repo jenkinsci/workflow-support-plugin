@@ -75,7 +75,7 @@ class ListFuture<V> extends AbstractFuture<List<V>> {
           // Let go of the memory held by other futures
           ListFuture.this.futures = null;
         }
-      }, MoreExecutors.newDirectExecutorService());
+      }, Futures.newExecutorService());
 
       // Now begin the "real" initialization.
 
