@@ -310,7 +310,7 @@ public abstract class Futures {
     /**
      * Returns an {@link ExecutorService} to be used as a parameter in other methods.
      * It calls {@code MoreExecutors#newDirectExecutorService} or falls back to {@code MoreExecutors#sameThreadExecutor}
-     * for compatibility with older (< 18.0) versions of guava.
+     * for compatibility with older (&lt; 18.0) versions of guava.
      *
      * @since TODO
      */
@@ -320,7 +320,7 @@ public abstract class Futures {
                 Method method = MoreExecutors.class.getMethod("newDirectExecutorService");
                 return (ExecutorService) method.invoke(null);
             } catch (NoSuchMethodException e) {
-                // guava older than 18, fallback to `sameThreadExecutor`
+                // Guava older than 18, fall back to `sameThreadExecutor`
                 Method method = MoreExecutors.class.getMethod("sameThreadExecutor");
                 return (ExecutorService) method.invoke(null);
             }
