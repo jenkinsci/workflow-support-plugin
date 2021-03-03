@@ -307,6 +307,13 @@ public abstract class Futures {
       return chain(future, wrapperFunction, executor);
     }
 
+    /**
+     * Returns an {@link ExecutorService} to be used as a parameter in other methods.
+     * It calls {@code MoreExecutors#newDirectExecutorService} or falls back to {@code MoreExecutors#sameThreadExecutor}
+     * for compatibility with older (< 18.0) versions of guava.
+     *
+     * @since TODO
+     */
     public static ExecutorService newExecutorService() {
         try {
             try {
