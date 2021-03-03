@@ -317,11 +317,12 @@ public abstract class Futures {
     public static ExecutorService newExecutorService() {
         try {
             try {
-                Method method = MoreExecutors.class.getMethod("newDirectExecutorService");
+                // Guava older than 18
+                Method method = MoreExecutors.class.getMethod("sameThreadExecutor");
                 return (ExecutorService) method.invoke(null);
             } catch (NoSuchMethodException e) {
-                // Guava older than 18, fall back to `sameThreadExecutor`
-                Method method = MoreExecutors.class.getMethod("sameThreadExecutor");
+                // TODO invert this to prefer the newer guava method once guava is upgrade in Jenkins core
+                Method method = MoreExecutors.class.getMethod("newDirectExecutorService");
                 return (ExecutorService) method.invoke(null);
             }
         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e ) {
