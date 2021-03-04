@@ -1,5 +1,12 @@
 ## Changelog
 
+### 3.8
+
+Release date: 2021-03-04
+
+- Make plugin compatible with Guava 21.0 and newer.([PR 114](https://github.com/jenkinsci/workflow-support-plugin/pull/114))
+- Internal: Update LTS baseline. ([PR 115](https://github.com/jenkinsci/workflow-support-plugin/pull/115))
+
 ### 3.7
 
 Release date: 2020-11-30
