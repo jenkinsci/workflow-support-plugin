@@ -3,7 +3,6 @@ package org.jenkinsci.plugins.workflow.support.concurrent;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.UndeclaredThrowableException;
@@ -30,6 +29,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  * in a {@code UndeclaredThrowableException} so that this class can get
  * access to the cause.
  */
+@Deprecated
 class ChainingListenableFuture<I, O>
     extends AbstractFuture<O> implements Runnable {
 
@@ -208,7 +208,7 @@ class ChainingListenableFuture<I, O>
               ChainingListenableFuture.this.outputFuture = null;
             }
           }
-        }, Futures.newExecutorService());
+        }, MoreExecutors.directExecutor());
     } catch (UndeclaredThrowableException e) {
       // Set the cause of the exception as this future's exception
       setException(e.getCause());
