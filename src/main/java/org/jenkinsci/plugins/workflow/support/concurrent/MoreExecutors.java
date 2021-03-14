@@ -57,7 +57,7 @@ public final class MoreExecutors {
    *       tasks -- even tasks that are not themselves {@code directExecutor} tasks.
    *   <li>If many such tasks are chained together (such as with {@code
    *       future.transform(...).transform(...).transform(...)....}), they may overflow the stack.
-   *       (In simple cases, callers can avoid this by registering all tasks with the same {@link
+   *       (In simple cases, callers can avoid this by registering all tasks with the same {@code
    *       MoreExecutors#newSequentialExecutor} wrapper around {@code directExecutor()}. More
    *       complex cases may require using thread pools or making deeper changes.)
    * </ul>
@@ -76,7 +76,7 @@ public final class MoreExecutors {
    * }
    * }</pre>
    *
-   * <p>This should be preferred to {@link #newDirectExecutorService()} because implementing the
+   * <p>This should be preferred to {@code #newDirectExecutorService()} because implementing the
    * {@link ExecutorService} subinterface necessitates significant performance overhead.
    *
    *
