@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 
 import java.util.List;
 import java.util.concurrent.CancellationException;
@@ -75,7 +74,7 @@ class ListFuture<V> extends AbstractFuture<List<V>> {
           // Let go of the memory held by other futures
           ListFuture.this.futures = null;
         }
-      }, Futures.newExecutorService());
+      }, MoreExecutors.directExecutor());
 
       // Now begin the "real" initialization.
 

@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 
 import javax.annotation.Nullable;
@@ -70,7 +69,7 @@ public abstract class Futures {
      * Note: If the callback is slow or heavyweight, consider {@linkplain
      * #addCallback(ListenableFuture, FutureCallback, Executor) supplying an
      * executor}. If you do not supply an executor, {@code addCallback} will use
-     * {@link MoreExecutors#sameThreadExecutor sameThreadExecutor}, which carries
+     * a {@linkplain MoreExecutors#directExecutor direct executor}, which carries
      * some caveats for heavier operations. For example, the callback may run on
      * an unpredictable or undesirable thread:
      *
@@ -97,7 +96,7 @@ public abstract class Futures {
      */
     public static <V> void addCallback(ListenableFuture<V> future,
         FutureCallback<? super V> callback) {
-      addCallback(future, callback, newExecutorService());
+      addCallback(future, callback, MoreExecutors.directExecutor());
     }
 
     /**
@@ -125,7 +124,7 @@ public abstract class Futures {
      *
      * When the callback is fast and lightweight, consider {@linkplain
      * #addCallback(ListenableFuture, FutureCallback) omitting the executor} or
-     * explicitly specifying {@code sameThreadExecutor}. However, be aware of the
+     * explicitly specifying {@code directExecutor}. However, be aware of the
      * caveats documented in the link above.
      *
      * <p>For a more general interface to attach a completion listener to a
@@ -214,9 +213,9 @@ public abstract class Futures {
      * (whether the {@code Future} itself is slow or heavyweight to complete is
      * irrelevant), consider {@linkplain #transform(ListenableFuture,
      * AsyncFunction, Executor) supplying an executor}. If you do not supply an
-     * executor, {@code transform} will use {@link
-     * MoreExecutors#sameThreadExecutor sameThreadExecutor}, which carries some
-     * caveats for heavier operations. For example, the call to {@code
+     * executor, {@code transform} will use a
+     * {@linkplain MoreExecutors#directExecutor direct executor}, which carries
+     * some caveats for heavier operations. For example, the call to {@code
      * function.apply} may run on an unpredictable or undesirable thread:
      *
      * <ul>
@@ -249,7 +248,7 @@ public abstract class Futures {
      */
     public static <I, O> ListenableFuture<O> transform(ListenableFuture<I> input,
             AsyncFunction<? super I, ? extends O> function) {
-        return transform(input, function, MoreExecutors.sameThreadExecutor());
+        return transform(input, function, MoreExecutors.directExecutor());
     }
 
     /**
@@ -281,7 +280,7 @@ public abstract class Futures {
      * <p>When the execution of {@code function.apply} is fast and lightweight
      * (though the {@code Future} it returns need not meet these criteria),
      * consider {@linkplain #transform(ListenableFuture, AsyncFunction) omitting
-     * the executor} or explicitly specifying {@code sameThreadExecutor}.
+     * the executor} or explicitly specifying {@code directExecutor}.
      * However, be aware of the caveats documented in the link above.
      *
      * @param input The future to transform
@@ -320,10 +319,10 @@ public abstract class Futures {
      *
      * Note: If the transformation is slow or heavyweight, consider {@linkplain
      * #transform(ListenableFuture, Function, Executor) supplying an executor}.
-     * If you do not supply an executor, {@code transform} will use {@link
-     * MoreExecutors#sameThreadExecutor sameThreadExecutor}, which carries some
-     * caveats for heavier operations.  For example, the call to {@code
-     * function.apply} may run on an unpredictable or undesirable thread:
+     * If you do not supply an executor, {@code transform} will use an inline
+     * executor, which carries some caveats for heavier operations.  For example,
+     * the call to {@code function.apply} may run on an unpredictable or
+     * undesirable thread:
      *
      * <ul>
      * <li>If the input {@code Future} is done at the time {@code transform} is
@@ -357,7 +356,7 @@ public abstract class Futures {
      */
     public static <I, O> ListenableFuture<O> transform(ListenableFuture<I> input,
         final Function<? super I, ? extends O> function) {
-      return transform(input, function, MoreExecutors.sameThreadExecutor());
+      return transform(input, function, MoreExecutors.directExecutor());
     }
 
     /**
@@ -388,7 +387,7 @@ public abstract class Futures {
      *
      * <p>When the transformation is fast and lightweight, consider {@linkplain
      * #transform(ListenableFuture, Function) omitting the executor} or
-     * explicitly specifying {@code sameThreadExecutor}. However, be aware of the
+     * explicitly specifying {@code directExecutor}. However, be aware of the
      * caveats documented in the link above.
      *
      * @param input The future to transform
@@ -454,7 +453,7 @@ public abstract class Futures {
     public static <V> ListenableFuture<List<V>> allAsList(
         ListenableFuture<? extends V>... futures) {
       return new ListFuture<V>(ImmutableList.copyOf(futures), true,
-          newExecutorService());
+          MoreExecutors.directExecutor());
     }
 
     /**
@@ -477,6 +476,6 @@ public abstract class Futures {
     public static <V> ListenableFuture<List<V>> allAsList(
         Iterable<? extends ListenableFuture<? extends V>> futures) {
       return new ListFuture<V>(ImmutableList.copyOf(futures), true,
-          newExecutorService());
+          MoreExecutors.directExecutor());
     }
 }
