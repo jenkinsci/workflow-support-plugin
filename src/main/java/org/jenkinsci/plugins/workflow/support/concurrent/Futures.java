@@ -25,12 +25,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
 import javax.annotation.Nullable;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.util.concurrent.Uninterruptibles.getUninterruptibly;
@@ -408,29 +405,6 @@ public abstract class Futures {
               }
           };
       return transform(input, wrapperFunction, executor);
-    }
-
-    /**
-     * Returns an {@link ExecutorService} to be used as a parameter in other methods.
-     * It calls {@code MoreExecutors#newDirectExecutorService} or falls back to {@code MoreExecutors#sameThreadExecutor}
-     * for compatibility with older (&lt; 18.0) versions of guava.
-     *
-     * @since TODO
-     */
-    public static ExecutorService newExecutorService() {
-        try {
-            try {
-                // Guava older than 18
-                Method method = MoreExecutors.class.getMethod("sameThreadExecutor");
-                return (ExecutorService) method.invoke(null);
-            } catch (NoSuchMethodException e) {
-                // TODO invert this to prefer the newer guava method once guava is upgrade in Jenkins core
-                Method method = MoreExecutors.class.getMethod("newDirectExecutorService");
-                return (ExecutorService) method.invoke(null);
-            }
-        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e ) {
-            throw new RuntimeException(e);
-        }
     }
 
     /**
