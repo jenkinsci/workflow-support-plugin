@@ -15,6 +15,8 @@
 package org.jenkinsci.plugins.workflow.support.concurrent;
 
 import com.google.common.annotations.GwtCompatible;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import java.util.concurrent.Executor;
 
 /**
@@ -22,6 +24,7 @@ import java.util.concurrent.Executor;
  * execute}.
  */
 @GwtCompatible
+@Restricted(NoExternalUse.class)
 enum DirectExecutor implements Executor {
   INSTANCE;
 

@@ -41,6 +41,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.getUninterrupti
  *
  * @author Guava
  */
+@Deprecated
 public abstract class Futures {
     /**
      * Registers separate success and failure callbacks to be run when the {@code

@@ -29,6 +29,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  * in a {@code UndeclaredThrowableException} so that this class can get
  * access to the cause.
  */
+@Deprecated
 class ChainingListenableFuture<I, O>
     extends AbstractFuture<O> implements Runnable {
 

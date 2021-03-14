@@ -36,6 +36,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.getUninterrupti
    * each component future to fill out the value in the List when that future
    * completes.
    */
+@Deprecated
 class ListFuture<V> extends AbstractFuture<List<V>> {
     ImmutableList<? extends ListenableFuture<? extends V>> futures;
     final boolean allMustSucceed;
