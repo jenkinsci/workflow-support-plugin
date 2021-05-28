@@ -31,13 +31,21 @@ import hudson.console.ConsoleLogFilter;
 import hudson.model.Computer;
 import hudson.model.Job;
 import hudson.model.Node;
+import hudson.model.ParameterValue;
+import hudson.model.ParametersAction;
+import hudson.model.PasswordParameterValue;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import hudson.util.Secret;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.flow.GraphListener;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
@@ -77,6 +85,9 @@ public abstract class DefaultStepContext extends StepContext {
             return value;
         } else if (key == TaskListener.class) {
             return key.cast(getListener(false));
+        } else if (key == EnvironmentExpander.class) {
+            // Only called when `value == null` so that it does not override expanders contributed by steps.
+            return key.cast(new PasswordParameterEnvironmentExpander(get(Run.class)));
         } else if (Node.class.isAssignableFrom(key)) {
             Computer c = get(Computer.class);
             Node n = null;
@@ -171,5 +182,37 @@ public abstract class DefaultStepContext extends StepContext {
      * Automatically available from {@link #get}.
      */
     protected abstract @Nonnull FlowNode getNode() throws IOException;
+
+    /**
+     * Default implementation of {@link EnvironmentExpander} that recognizes password parameters as sensitive variables.
+     */
+    private static class PasswordParameterEnvironmentExpander extends EnvironmentExpander {
+        private static final long serialVersionUID = 1L;
+
+        private final Set<String> passwordParameterVariables;
+
+        public PasswordParameterEnvironmentExpander(Run<?, ?> run) {
+            ParametersAction action = run.getAction(ParametersAction.class);
+            if (action != null) {
+                passwordParameterVariables = action.getParameters().stream()
+                        .filter(e -> e instanceof PasswordParameterValue
+                                        && !((Secret) e.getValue()).getPlainText().isEmpty())
+                        .map(ParameterValue::getName)
+                        .collect(Collectors.toCollection(() -> new HashSet<>())); // Make sure the set is serializable.
+            } else {
+                passwordParameterVariables = Collections.emptySet();
+            }
+        }
+
+        @Override
+        public void expand(EnvVars ev) {
+            // Do nothing.
+        }
+
+        @Override
+        public Set<String> getSensitiveVariables() {
+            return passwordParameterVariables;
+        }
+    }
 
 }

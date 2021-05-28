@@ -62,7 +62,7 @@ public final class WorkspaceRunAction implements Action {
     }
 
     @Override public String getDisplayName() {
-        return "Workspaces";
+        return Messages.workspaces();
     }
 
     @Override public String getUrlName() {

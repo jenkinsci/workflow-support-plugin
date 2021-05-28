@@ -2,3 +2,6 @@ target
 work
 *.iml
 .idea
+
+# macOS
+.DS_Store

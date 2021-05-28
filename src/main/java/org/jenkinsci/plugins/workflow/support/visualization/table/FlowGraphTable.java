@@ -14,10 +14,12 @@ import org.jenkinsci.plugins.workflow.visualization.table.FlowNodeViewColumnDesc
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import java.util.function.Function;
 
 /**
  * Data model behind the tree list view of a flow graph
@@ -294,6 +296,14 @@ public class FlowGraphTable {
             return this.durationMillis;
         }
 
+        private Row getNextGraphSibling() {
+            return nextGraphSibling;
+        }
+
+        private Row getNextTreeSibling() {
+            return nextTreeSibling;
+        }
+
         public String getDurationString() {
             if (!this.hasTiming) {
                 return "no timing";
@@ -327,10 +337,7 @@ public class FlowGraphTable {
         }
 
         void addGraphSibling(Row r) {
-            Row s = this;
-            while (s.nextGraphSibling !=null) {
-                s = s.nextGraphSibling;
-            }
+            Row s = findLastSibling(this, Row::getNextGraphSibling);
             s.nextGraphSibling = r;
 
             if (s.hasStartTime && r.hasStartTime) {
@@ -352,16 +359,26 @@ public class FlowGraphTable {
         void addTreeSibling(Row r) {
             if (r.isEnd())  return;
 
-            Row s = this;
-            while (s.nextTreeSibling !=null) {
-                s = s.nextTreeSibling;
-            }
+            Row s = findLastSibling(this, Row::getNextTreeSibling);
             s.nextTreeSibling = r;
 
             if (s.hasStartTime && r.hasStartTime) { // Store timing
                 s.durationMillis = (r.startTimeMillis-s.startTimeMillis);
                 s.hasTiming = true;
             }
+        }
+
+        private Row findLastSibling(Row r, Function<Row, Row> siblingGetter) {
+            Row s = r;
+            IdentityHashMap<Row, Boolean> visited = new IdentityHashMap<>(Collections.singletonMap(s, true));
+            while (siblingGetter.apply(s) != null) {
+                Row nextS = siblingGetter.apply(s);
+                if (visited.put(nextS, true) != null) {
+                    throw new IllegalStateException("Saw " + nextS.node + " twice when finding siblings of " + r.node);
+                }
+                s = nextS;
+            }
+            return s;
         }
     }
 }

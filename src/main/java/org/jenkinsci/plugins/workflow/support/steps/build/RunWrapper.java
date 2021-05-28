@@ -154,7 +154,7 @@ public final class RunWrapper implements Serializable {
 
     /**
      * Filters the returned list by the type of <code>Cause</code> class passed as input
-     * ex. <code>getBuildCauess('hudson.model.Cause$UserIdCause')</code> would return only
+     * ex. <code>getBuildCauses('hudson.model.Cause$UserIdCause')</code> would return only
      * <code>Cause</code>s of that type
      *
      * @param className A string containing the fully qualified name for the class type to filter the result list by
@@ -264,6 +264,42 @@ public final class RunWrapper implements Serializable {
     @Whitelisted
     public @CheckForNull RunWrapper getPreviousBuild() throws AbortException {
         Run<?,?> previousBuild = build().getPreviousBuild();
+        return previousBuild != null ? new RunWrapper(previousBuild, false) : null;
+    }
+
+    @Whitelisted
+    public @CheckForNull RunWrapper getPreviousBuildInProgress() throws AbortException {
+        Run<?,?> previousBuild = build().getPreviousBuildInProgress();
+        return previousBuild != null ? new RunWrapper(previousBuild, false) : null;
+    }
+
+    @Whitelisted
+    public @CheckForNull RunWrapper getPreviousBuiltBuild() throws AbortException {
+        Run<?,?> previousBuild = build().getPreviousBuiltBuild();
+        return previousBuild != null ? new RunWrapper(previousBuild, false) : null;
+    }
+
+    @Whitelisted
+    public @CheckForNull RunWrapper getPreviousCompletedBuild() throws AbortException {
+        Run<?,?> previousBuild = build().getPreviousCompletedBuild();
+        return previousBuild != null ? new RunWrapper(previousBuild, false) : null;
+    }
+
+    @Whitelisted
+    public @CheckForNull RunWrapper getPreviousFailedBuild() throws AbortException {
+        Run<?,?> previousBuild = build().getPreviousFailedBuild();
+        return previousBuild != null ? new RunWrapper(previousBuild, false) : null;
+    }
+
+    @Whitelisted
+    public @CheckForNull RunWrapper getPreviousNotFailedBuild() throws AbortException {
+        Run<?,?> previousBuild = build().getPreviousNotFailedBuild();
+        return previousBuild != null ? new RunWrapper(previousBuild, false) : null;
+    }
+
+    @Whitelisted
+    public @CheckForNull RunWrapper getPreviousSuccessfulBuild() throws AbortException {
+        Run<?,?> previousBuild = build().getPreviousSuccessfulBuild();
         return previousBuild != null ? new RunWrapper(previousBuild, false) : null;
     }
 
