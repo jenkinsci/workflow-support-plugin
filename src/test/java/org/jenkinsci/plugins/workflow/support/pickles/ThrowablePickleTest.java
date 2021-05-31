@@ -37,24 +37,24 @@ import org.junit.Rule;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.LoggerRule;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
+import org.jvnet.hudson.test.JenkinsSessionRule;
 
 public class ThrowablePickleTest {
 
     @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public RestartableJenkinsRule rr = new RestartableJenkinsRule();
+    @Rule public JenkinsSessionRule sessions = new JenkinsSessionRule();
     @Rule public LoggerRule logging = new LoggerRule().record(ThrowablePickle.class, Level.FINE);
 
     @Issue("JENKINS-51390")
-    @Test public void smokes() throws Exception {
+    @Test public void smokes() throws Throwable {
         String beName = BadException.class.getName();
-        rr.then(r -> {
+        sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition("try {throw new " + beName + "()} catch (x) {semaphore 'wait'; echo(/caught a $x/)}", true));
             WorkflowRun b = p.scheduleBuild2(0).waitForStart();
             SemaphoreStep.waitForStart("wait/1", b);
         });
-        rr.then(r -> {
+        sessions.then(r -> {
             WorkflowRun b = r.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1);
             SemaphoreStep.success("wait/1", null);
             r.assertBuildStatusSuccess(r.waitForCompletion(b));

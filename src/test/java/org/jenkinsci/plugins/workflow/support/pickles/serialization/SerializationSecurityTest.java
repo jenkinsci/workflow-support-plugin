@@ -41,19 +41,19 @@ import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.For;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
+import org.jvnet.hudson.test.JenkinsSessionRule;
 
 @Issue("SECURITY-699")
 public class SerializationSecurityTest {
 
     @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
 
-    @Rule public RestartableJenkinsRule rr = new RestartableJenkinsRule();
+    @Rule public JenkinsSessionRule sessions = new JenkinsSessionRule();
     
     /** @see SerializableClass#callWriteObject */
     @For(RiverWriter.class)
-    @Test public void writeObjectChecksSandbox() {
-        rr.then(r -> {
+    @Test public void writeObjectChecksSandbox() throws Throwable {
+        sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
                 "class Hack {\n" +
@@ -70,8 +70,8 @@ public class SerializationSecurityTest {
 
     /** @see SerializableClass#callWriteReplace */
     @For(RiverWriter.class)
-    @Test public void writeReplaceChecksSandbox() {
-        rr.then(r -> {
+    @Test public void writeReplaceChecksSandbox() throws Throwable {
+        sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
                 "class Hack {\n" +
@@ -89,8 +89,8 @@ public class SerializationSecurityTest {
 
     /** @see RiverMarshaller#doWriteObject */
     @For(RiverWriter.class)
-    @Test public void writeExternalChecksSandbox() {
-        rr.then(r -> {
+    @Test public void writeExternalChecksSandbox() throws Throwable {
+        sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
                 "class Hack implements Externalizable {\n" +
@@ -108,8 +108,8 @@ public class SerializationSecurityTest {
 
     /** @see SerializableClass#callReadObject */
     @For(RiverReader.class)
-    @Test public void readObjectChecksSandbox() {
-        rr.then(r -> {
+    @Test public void readObjectChecksSandbox() throws Throwable {
+        sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
                 "class Hack {\n" +
@@ -122,7 +122,7 @@ public class SerializationSecurityTest {
                 "echo(/should not still have $hack/)", true));
             SemaphoreStep.waitForStart("wait/1", p.scheduleBuild2(0).waitForStart());
         });
-        rr.then(r -> {
+        sessions.then(r -> {
             SemaphoreStep.success("wait/1", null);
             safe(r, r.waitForCompletion(r.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1)));
         });
@@ -131,8 +131,8 @@ public class SerializationSecurityTest {
 
     /** @see SerializableClass#callReadResolve */
     @For(RiverReader.class)
-    @Test public void readResolveChecksSandbox() {
-        rr.then(r -> {
+    @Test public void readResolveChecksSandbox() throws Throwable {
+        sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
                 "class Hack {\n" +
@@ -145,7 +145,7 @@ public class SerializationSecurityTest {
                 "echo(/should not still have $hack/)", true));
             SemaphoreStep.waitForStart("wait/1", p.scheduleBuild2(0).waitForStart());
         });
-        rr.then(r -> {
+        sessions.then(r -> {
             SemaphoreStep.success("wait/1", null);
             safe(r, r.waitForCompletion(r.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1)));
         });
@@ -153,8 +153,8 @@ public class SerializationSecurityTest {
 
     /** @see RiverUnmarshaller#doReadNewObject */
     @For(RiverReader.class)
-    @Test public void readExternalChecksSandbox() {
-        rr.then(r -> {
+    @Test public void readExternalChecksSandbox() throws Throwable {
+        sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
                 "class Hack implements Externalizable {\n" +
@@ -168,7 +168,7 @@ public class SerializationSecurityTest {
                 "echo(/should not still have $hack/)", true));
             SemaphoreStep.waitForStart("wait/1", p.scheduleBuild2(0).waitForStart());
         });
-        rr.then(r -> {
+        sessions.then(r -> {
             SemaphoreStep.success("wait/1", null);
             safe(r, r.waitForCompletion(r.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1)));
         });
@@ -176,8 +176,8 @@ public class SerializationSecurityTest {
 
     /** @see SerializableClass#callNoArgConstructor */
     @For(RiverReader.class)
-    @Test public void externalizableNoArgConstructorChecksSandbox() {
-        rr.then(r -> {
+    @Test public void externalizableNoArgConstructorChecksSandbox() throws Throwable {
+        sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
                 "class Hack implements Externalizable {\n" +
@@ -193,7 +193,7 @@ public class SerializationSecurityTest {
                 "echo(/should not still have $hack/)", true));
             SemaphoreStep.waitForStart("wait/1", p.scheduleBuild2(0).waitForStart());
         });
-        rr.then(r -> {
+        sessions.then(r -> {
             SemaphoreStep.success("wait/1", null);
             safe(r, r.waitForCompletion(r.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1)));
         });
@@ -204,8 +204,8 @@ public class SerializationSecurityTest {
      * @see SerializableClass#callObjectInputConstructor
      */
     @For(RiverReader.class)
-    @Test public void externalizableObjectInputConstructorChecksSandbox() {
-        rr.then(r -> {
+    @Test public void externalizableObjectInputConstructorChecksSandbox() throws Throwable {
+        sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
                 "class Hack implements Externalizable {\n" +
@@ -221,15 +221,15 @@ public class SerializationSecurityTest {
                 "echo(/should not still have $hack/)", true));
             SemaphoreStep.waitForStart("wait/1", p.scheduleBuild2(0).waitForStart());
         });
-        rr.then(r -> {
+        sessions.then(r -> {
             SemaphoreStep.success("wait/1", null);
             safe(r, r.waitForCompletion(r.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1)));
         });
     }
 
     @Ignore("does not currently work (fails on `new Replacer`), since CpsWhitelist & GroovyClassLoaderWhitelist are not in .all()")
-    @Test public void harmlessCallsPassSandbox() {
-        rr.then(r -> {
+    @Test public void harmlessCallsPassSandbox() throws Throwable {
+        sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
                 "class Fine {\n" +
@@ -247,7 +247,7 @@ public class SerializationSecurityTest {
                 "echo(/but we do have $fine/)", true));
             SemaphoreStep.waitForStart("wait/1", p.scheduleBuild2(0).waitForStart());
         });
-        rr.then(r -> {
+        sessions.then(r -> {
             SemaphoreStep.success("wait/1", null);
             r.assertLogContains("but we do have something safe", r.assertBuildStatusSuccess(r.waitForCompletion(r.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1))));
         });
