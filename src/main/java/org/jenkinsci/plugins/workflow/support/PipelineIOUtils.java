@@ -34,7 +34,7 @@ public class PipelineIOUtils {
 
     /**
      * Convenience method to transparently write data directly or atomically using {@link
-     * hudson.util.AtomicFileWriter}, without or without {@link FileChannel#force} (i.e., {@code
+     * hudson.util.AtomicFileWriter}, with or without {@link FileChannel#force} (i.e., {@code
      * fsync} or {@code FlushFileBuffers}).
      *
      * @param toWrite Object to write to file
