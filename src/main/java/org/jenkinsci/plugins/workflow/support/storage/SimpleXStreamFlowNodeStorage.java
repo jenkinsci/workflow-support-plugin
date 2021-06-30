@@ -179,7 +179,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
 
     private void writeNode(FlowNode node, List<Action> actions) throws IOException {
         nodeCache.put(node.getId(), node);
-        PipelineIOUtils.writeByXStream(new Tag(node, actions), getNodeFile(node.getId()), XSTREAM, !this.isAvoidAtomicWrite());
+        PipelineIOUtils.writeByXStream(new Tag(node, actions), getNodeFile(node.getId()), XSTREAM, !this.isAvoidAtomicWrite(), !this.isAvoidForce());
     }
 
     /**

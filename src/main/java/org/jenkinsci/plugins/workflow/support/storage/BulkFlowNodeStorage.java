@@ -78,6 +78,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
         this.dir = dir;
         this.nodes = null;
         this.setAvoidAtomicWrite(true);
+        this.setAvoidForce(true);
     }
 
     /** Loads the nodes listing, lazily - so loading the {@link FlowExecution} doesn't trigger a more complex load. */
@@ -165,7 +166,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
             if (!dir.exists()) {
                 IOUtils.mkdirs(dir);
             }
-            PipelineIOUtils.writeByXStream(nodes, getStoreFile(), XSTREAM, !this.isAvoidAtomicWrite());
+            PipelineIOUtils.writeByXStream(nodes, getStoreFile(), XSTREAM, !this.isAvoidAtomicWrite(), !this.isAvoidForce());
 
             isModified = false;
         }
