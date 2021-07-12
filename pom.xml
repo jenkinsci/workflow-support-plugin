@@ -64,7 +64,7 @@
     <properties>
         <revision>3.9</revision>
         <changelist>-SNAPSHOT</changelist>
-        <jenkins.version>2.300-rc31329.23a941f5b44f</jenkins.version> <!-- TODO https://github.com/jenkinsci/jenkins/pull/5599 -->
+        <jenkins.version>2.302-rc31361.d0e8e1ae1985</jenkins.version> <!-- TODO https://github.com/jenkinsci/jenkins/pull/5599 -->
         <java.level>8</java.level>
         <no-test-jar>false</no-test-jar>
         <useBeta>true</useBeta>

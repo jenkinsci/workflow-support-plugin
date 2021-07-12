@@ -53,8 +53,8 @@ public class PipelineIOUtils {
             boolean force)
             throws IOException {
         if (atomicWrite) {
-            XmlFile file = new XmlFile(xstream, location);
-            file.write(toWrite, force);
+            XmlFile file = new XmlFile(xstream, location, force);
+            file.write(toWrite);
         } else {
             try(OutputStream os = new BufferedOutputStream(
                     Files.newOutputStream(location.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))){
