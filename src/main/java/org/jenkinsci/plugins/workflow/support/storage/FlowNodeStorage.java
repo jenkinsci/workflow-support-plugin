@@ -29,6 +29,8 @@ import org.jenkinsci.plugins.workflow.graph.FlowActionStorage;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 
 import java.io.IOException;
+import java.nio.channels.FileChannel;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -46,6 +48,7 @@ import javax.annotation.Nonnull;
 public abstract class FlowNodeStorage implements FlowActionStorage {
     // Set up as "avoid" because an unset field will default to false when deserializing and not explicitly set.
     private transient boolean avoidAtomicWrite = false;
+    private transient boolean avoidForce = false;
 
     /** If true, we use non-atomic write of XML files for this storage. See {@link hudson.util.AtomicFileWriter}. */
     public boolean isAvoidAtomicWrite() {
@@ -56,6 +59,22 @@ public abstract class FlowNodeStorage implements FlowActionStorage {
      */
     public void setAvoidAtomicWrite(boolean avoidAtomicWrite){
         this.avoidAtomicWrite = avoidAtomicWrite;
+    }
+
+    /**
+     * If true, avoid the use of {@link FileChannel#force} (i.e., {@code fsync} or {@code
+     * FlushFileBuffers}) for XML files for this storage.
+     */
+    public boolean isAvoidForce() {
+        return avoidForce;
+    }
+
+    /**
+     * Set whether or not we should avoid using {@link FileChannel#force} (i.e., {@code fsync} or
+     * {@code FlushFileBuffers}) for node files.
+     */
+    public void setAvoidForce(boolean avoidForce) {
+        this.avoidForce = avoidForce;
     }
 
     /**
