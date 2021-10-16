@@ -25,7 +25,6 @@
 package org.jenkinsci.plugins.workflow.support.pickles.serialization;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.IOUtils;
@@ -49,6 +48,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -191,7 +191,8 @@ public class RiverReader implements Closeable {
     }
 
     private ObjectResolver combine(ObjectResolver... resolvers) {
-        List<ObjectResolver> _resolvers = Lists.newArrayList(resolvers);
+        List<ObjectResolver> _resolvers = new ArrayList<>();
+        Collections.addAll(_resolvers, resolvers);
         if (customResolver != null) {
             _resolvers.add(0, customResolver);
         }
