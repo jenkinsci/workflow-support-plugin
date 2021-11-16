@@ -118,7 +118,7 @@ public class RiverReader implements Closeable {
             throw new IOException("Invalid stream header");
 
         short v = din.readShort();
-        if (v!=1)
+        if (v!= RiverWriter.VERSION)
             throw new IOException("Unexpected stream version: "+v);
 
         return din.readInt();
