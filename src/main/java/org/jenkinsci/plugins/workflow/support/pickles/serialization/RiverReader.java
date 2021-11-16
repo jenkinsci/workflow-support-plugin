@@ -28,6 +28,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.remoting.HexDump;
 import org.apache.commons.io.IOUtils;
 import org.jboss.marshalling.ChainingObjectResolver;
 import org.jboss.marshalling.Marshalling;
@@ -53,8 +54,8 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
+import org.apache.commons.io.FileUtils;
 
-import static org.apache.commons.io.IOUtils.*;
 import org.jboss.marshalling.ByteInput;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.Whitelist;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.groovy.GroovySandbox;
@@ -73,6 +74,9 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  * @author Kohsuke Kawaguchi
  */
 public class RiverReader implements Closeable {
+
+    private static final Logger LOGGER = Logger.getLogger(RiverReader.class.getName());
+
     private final File file;
     private final ClassLoader classLoader;
     /**
@@ -164,9 +168,9 @@ public class RiverReader implements Closeable {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private List<Pickle> readPickles(int offset) throws IOException {
-        BufferedInputStream es = openStreamAt(offset);
-        try {
+        try (BufferedInputStream es = openStreamAt(offset)) {
             MarshallingConfiguration config = new MarshallingConfiguration();
             config.setClassResolver(new SimpleClassResolver(classLoader));
             config.setObjectResolver(combine(ownerResolver));
@@ -176,11 +180,12 @@ public class RiverReader implements Closeable {
                 return (List<Pickle>)eu.readObject();
             } catch (ClassNotFoundException e) {
                 throw new IOException("Failed to read the stream",e);
+            } catch (IOException x) {
+                LOGGER.log(Level.WARNING, "Failed to read " + file + "@" + offset + "\n" + HexDump.toHex(FileUtils.readFileToByteArray(file)), x);
+                throw x;
             } finally {
                 eu.finish();
             }
-        } finally {
-            closeQuietly(es);
         }
     }
 
@@ -203,7 +208,7 @@ public class RiverReader implements Closeable {
             try {
                 in.close();
             } catch (IOException x) {
-                Logger.getLogger(RiverReader.class.getName()).log(Level.WARNING, "could not close stream on " + file, x);
+                LOGGER.log(Level.WARNING, "could not close stream on " + file, x);
             }
         }
     }
