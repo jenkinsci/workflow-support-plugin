@@ -170,6 +170,9 @@ public class RiverReader implements Closeable {
 
     @SuppressWarnings("unchecked")
     private List<Pickle> readPickles(int offset) throws IOException {
+        if (offset == 0) {
+            throw new IOException("No offset for pickles");
+        }
         try (BufferedInputStream es = openStreamAt(offset)) {
             MarshallingConfiguration config = new MarshallingConfiguration();
             config.setClassResolver(new SimpleClassResolver(classLoader));
