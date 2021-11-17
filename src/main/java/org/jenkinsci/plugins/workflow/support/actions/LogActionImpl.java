@@ -24,7 +24,6 @@
 
 package org.jenkinsci.plugins.workflow.support.actions;
 
-import com.google.common.base.Charsets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.CloseProofOutputStream;
 import hudson.Util;
@@ -143,7 +142,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
             ps.println("Failed to find log file for id="+parent.getId());
             e.printStackTrace(ps);
             ps.close();
-            return new AnnotatedLargeText<FlowNode>(buf, Charsets.UTF_8, true, parent);
+            return new AnnotatedLargeText<FlowNode>(buf, StandardCharsets.UTF_8, true, parent);
         }
     }
 
