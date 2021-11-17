@@ -51,9 +51,11 @@ public final class WorkspaceRunAction implements Action {
 
     private static final Logger LOGGER = Logger.getLogger(WorkspaceRunAction.class.getName());
 
+    private final FlowExecutionOwner.Executable build;
     public final FlowExecutionOwner owner;
 
-    WorkspaceRunAction(FlowExecutionOwner owner) {
+    WorkspaceRunAction(FlowExecutionOwner.Executable build, FlowExecutionOwner owner) {
+        this.build = build;
         this.owner = owner;
     }
 
@@ -66,6 +68,9 @@ public final class WorkspaceRunAction implements Action {
     }
 
     @Override public String getUrlName() {
+        if (build instanceof AccessControlled && !((AccessControlled) build).hasPermission(Item.WORKSPACE)) {
+            return null;
+        }
         return "ws";
     }
 
@@ -95,14 +100,11 @@ public final class WorkspaceRunAction implements Action {
         }
 
         @Override public Collection<? extends Action> createFor(FlowExecutionOwner.Executable target) {
-            if (target instanceof AccessControlled && !((AccessControlled) target).hasPermission(Item.WORKSPACE)) {
-                return Collections.emptySet();
-            }
             FlowExecutionOwner owner = target.asFlowExecutionOwner();
             if (owner == null) {
                 return Collections.emptySet();
             }
-            return Collections.singleton(new WorkspaceRunAction(owner));
+            return Collections.singleton(new WorkspaceRunAction(target, owner));
         }
 
     }
