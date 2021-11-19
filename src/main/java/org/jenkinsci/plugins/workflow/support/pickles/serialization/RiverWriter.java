@@ -45,6 +45,7 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Logger;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.Whitelist;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.groovy.GroovySandbox;
 
@@ -57,6 +58,9 @@ import org.jenkinsci.plugins.scriptsecurity.sandbox.groovy.GroovySandbox;
  * @see RiverReader
  */
 public class RiverWriter implements Closeable {
+
+    private static final Logger LOGGER = Logger.getLogger(RiverWriter.class.getName());
+
     /**
      * File that we are writing to.
      */
@@ -107,6 +111,7 @@ public class RiverWriter implements Closeable {
         dout.writeLong(HEADER);
         dout.writeShort(VERSION);
         ephemeralsBackptr = dout.size();
+        LOGGER.fine(() -> "Starting to save " + file + "; pickle offset will be written @" + ephemeralsBackptr);
         dout.writeInt(0);     // we'll back-fill this address with the pointer to the ephemerals stream
 
         MarshallingConfiguration config = new MarshallingConfiguration();
@@ -151,6 +156,7 @@ public class RiverWriter implements Closeable {
         } catch (Exception x) {
             throw new AssertionError(x);
         }
+        LOGGER.fine(() -> "Wrote main body to " + file);
     }
 
     /**
@@ -180,6 +186,7 @@ public class RiverWriter implements Closeable {
         } finally {
             raf.close();
         }
+        LOGGER.fine(() -> "Closed " + file + "; pickle offset @" + ephemeralsOffset);
     }
 
     /*constant*/ static final long HEADER = 7330745437582215633L;

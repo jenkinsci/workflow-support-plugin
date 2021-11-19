@@ -31,6 +31,7 @@ import java.io.NotSerializableException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.logging.Level;
 import static org.hamcrest.Matchers.containsString;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.pickles.PickleFactory;
@@ -39,10 +40,12 @@ import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.LoggerRule;
 
 public class RiverWriterTest {
 
     @Rule public TemporaryFolder tmp = new TemporaryFolder();
+    @Rule public LoggerRule logging = new LoggerRule().recordPackage(RiverWriter.class, Level.FINE);
 
     @Test public void trivial() throws Exception {
         File f = tmp.newFile();
