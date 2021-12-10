@@ -28,24 +28,24 @@ import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.pickles.Pickle;
 import org.jenkinsci.plugins.workflow.pickles.PickleFactory;
 import org.jboss.marshalling.Marshaller;
-import org.jboss.marshalling.Marshalling;
 import org.jboss.marshalling.MarshallingConfiguration;
 import org.jboss.marshalling.ObjectResolver;
 import org.jboss.marshalling.river.RiverMarshallerFactory;
 
-import java.io.BufferedOutputStream;
 import java.io.Closeable;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
-import java.io.RandomAccessFile;
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Logger;
+import org.jboss.marshalling.ByteOutput;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.Whitelist;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.groovy.GroovySandbox;
 
@@ -75,14 +75,12 @@ public class RiverWriter implements Closeable {
     /**
      * Writes to {@link #file}.
      */
-    private final DataOutputStream dout;
+    private final FileChannel channel;
 
     /**
      * Handles object graph -> byte[] conversion
      */
     private final Marshaller marshaller;
-
-    private final int ephemeralsBackptr;
 
     private boolean pickling;
 
@@ -107,12 +105,9 @@ public class RiverWriter implements Closeable {
     public RiverWriter(File f, FlowExecutionOwner _owner, final Collection<? extends PickleFactory> pickleFactories) throws IOException {
         file = f;
         owner = _owner;
-        dout = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(file)));
-        dout.writeLong(HEADER);
-        dout.writeShort(VERSION);
-        ephemeralsBackptr = dout.size();
-        LOGGER.fine(() -> "Starting to save " + file + "; pickle offset will be written @" + ephemeralsBackptr);
-        dout.writeInt(0);     // we'll back-fill this address with the pointer to the ephemerals stream
+        channel = FileChannel.open(file.toPath(), StandardOpenOption.WRITE);
+        channel.write(HEADER_BUFFER.duplicate());
+        LOGGER.fine(() -> "Starting to save " + file + "; pickle offset will be written @" + EPHEMERALS_BACKPTR);
 
         MarshallingConfiguration config = new MarshallingConfiguration();
         //config.setSerializabilityChecker(new SerializabilityCheckerImpl());
@@ -139,7 +134,7 @@ public class RiverWriter implements Closeable {
         });
 
         marshaller = new RiverMarshallerFactory().createMarshaller(config);
-        marshaller.start(Marshalling.createByteOutput(dout));
+        marshaller.start(new FileChannelOutput(channel));
         pickling = true;
     }
 
@@ -169,26 +164,72 @@ public class RiverWriter implements Closeable {
 
     public void close() throws IOException {
         marshaller.finish();
-        int ephemeralsOffset = dout.size();
+        int ephemeralsOffset = (int)channel.position();
 
         // write the ephemerals stream
         pickling = false;
-        marshaller.start(Marshalling.createByteOutput(dout));
+        marshaller.start(new FileChannelOutput(channel));
         marshaller.writeObject(pickles);
         marshaller.finish();
-        dout.close();
 
         // back fill the offset to the ephemerals stream
-        RandomAccessFile raf = new RandomAccessFile(file, "rw");
         try {
-            raf.seek(ephemeralsBackptr);
-            raf.writeInt(ephemeralsOffset);
+            channel.position(EPHEMERALS_BACKPTR);
+            ByteBuffer ephemeralsPtrBuffer = ByteBuffer.allocate(4).putInt(ephemeralsOffset);
+            ephemeralsPtrBuffer.flip();
+            channel.write(ephemeralsPtrBuffer);
+            channel.force(true);
         } finally {
-            raf.close();
+            channel.close();
         }
         LOGGER.fine(() -> "Closed " + file + "; pickle offset @" + ephemeralsOffset);
     }
 
+    private static class FileChannelOutput implements ByteOutput {
+        private final FileChannel channel;
+        /** Used to reduce allocation for single-byte writes. */
+        private final byte[] singleton = new byte[1];
+
+        private FileChannelOutput(FileChannel channel) {
+            this.channel = channel;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            singleton[0] = (byte)b; // Downcasting as per interface Javadoc.
+            channel.write(ByteBuffer.wrap(singleton));
+        }
+
+        @Override
+        public void write(byte[] bytes) throws IOException {
+            channel.write(ByteBuffer.wrap(bytes));
+        }
+
+        @Override
+        public void write(byte[] bytes, int off, int len) throws IOException {
+            channel.write(ByteBuffer.wrap(bytes, off, len));
+        }
+
+        @Override
+        public void close() throws IOException {
+            // We only close the channel once all writes are complete.
+        }
+
+        @Override
+        public void flush() throws IOException {
+            // We invoke FileChannel.force manually before closing the channel.
+        }
+    }
+
     /*constant*/ static final long HEADER = 7330745437582215633L;
-    /*constant*/ static final int VERSION = 1;
+    /*constant*/ static final short VERSION = 1;
+    private static final int EPHEMERALS_BACKPTR = 10;
+    /** Used to reduce allocation. Always call {@link ByteBuffer#duplicate} rather than using this directly. */
+    // Downcasting to Buffer is needed to avoid NoSuchMethodError when running on Java 9+ due to ByteBuffer method return type changes.
+    private static final ByteBuffer HEADER_BUFFER = (ByteBuffer)((Buffer)ByteBuffer.allocate(14)
+            .putLong(HEADER)
+            .putShort(VERSION)
+            .putInt(0) // Space for EPHEMERALS_BACKPTR
+            .asReadOnlyBuffer())
+            .flip(); 
 }
