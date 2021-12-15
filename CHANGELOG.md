@@ -1,5 +1,7 @@
 ## Changelog
 
+- For newer versions, see [GitHub Releases](https://github.com/jenkinsci/workflow-support-plugin/releases)
+
 ### 3.8
 
 Release date: 2021-03-04
