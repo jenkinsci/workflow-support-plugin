@@ -22,16 +22,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 
 import javax.annotation.Nullable;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.util.concurrent.Uninterruptibles.getUninterruptibly;
@@ -45,6 +41,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.getUninterrupti
  *
  * @author Guava
  */
+@Deprecated
 public abstract class Futures {
     /**
      * Registers separate success and failure callbacks to be run when the {@code
@@ -67,19 +64,26 @@ public abstract class Futures {
      *       }
      *     });}</pre>
      *
-     * <p>Note: This overload of {@code addCallback} is designed for cases in
-     * which the callback is fast and lightweight, as the method does not accept
-     * an {@code Executor} in which to perform the the work. For heavier
-     * callbacks, this overload carries some caveats: First, the thread that the
-     * callback runs in depends on whether the input {@code Future} is done at the
-     * time {@code addCallback} is called and on whether the input {@code Future}
-     * is ever cancelled. In particular, {@code addCallback} may execute the
-     * callback in the thread that calls {@code addCallback} or {@code
-     * Future.cancel}. Second, callbacks may run in an internal thread of the
-     * system responsible for the input {@code Future}, such as an RPC network
-     * thread. Finally, during the execution of a {@code newExecutorService}
-     * callback, all other registered but unexecuted listeners are prevented from
-     * running, even if those listeners are to run in other executors.
+     * Note: If the callback is slow or heavyweight, consider {@linkplain
+     * #addCallback(ListenableFuture, FutureCallback, Executor) supplying an
+     * executor}. If you do not supply an executor, {@code addCallback} will use
+     * a {@linkplain MoreExecutors#directExecutor direct executor}, which carries
+     * some caveats for heavier operations. For example, the callback may run on
+     * an unpredictable or undesirable thread:
+     *
+     * <ul>
+     * <li>If the input {@code Future} is done at the time {@code addCallback} is
+     * called, {@code addCallback} will execute the callback inline.
+     * <li>If the input {@code Future} is not yet done, {@code addCallback} will
+     * schedule the callback to be run by the thread that completes the input
+     * {@code Future}, which may be an internal system thread such as an RPC
+     * network thread.
+     * </ul>
+     *
+     * Also note that, regardless of which thread executes the callback, all
+     * other registered but unexecuted listeners are prevented from running
+     * during its execution, even if those listeners are to run in other
+     * executors.
      *
      * <p>For a more general interface to attach a completion listener to a
      * {@code Future}, see {@link ListenableFuture#addListener addListener}.
@@ -90,7 +94,7 @@ public abstract class Futures {
      */
     public static <V> void addCallback(ListenableFuture<V> future,
         FutureCallback<? super V> callback) {
-      addCallback(future, callback, newExecutorService());
+      addCallback(future, callback, MoreExecutors.directExecutor());
     }
 
     /**
@@ -116,20 +120,10 @@ public abstract class Futures {
      *       }
      *     });}</pre>
      *
-     * When the callback is fast and lightweight consider {@linkplain
-     * Futures#addCallback(ListenableFuture, FutureCallback) the other overload}
-     * or explicit use of {@link #newExecutorService()}.
-     * For heavier callbacks, this choice carries some
-     * caveats: First, the thread that the callback runs in depends on whether
-     * the input {@code Future} is done at the time {@code addCallback} is called
-     * and on whether the input {@code Future} is ever cancelled. In particular,
-     * {@code addCallback} may execute the callback in the thread that calls
-     * {@code addCallback} or {@code Future.cancel}. Second, callbacks may run in
-     * an internal thread of the system responsible for the input {@code Future},
-     * such as an RPC network thread. Finally, during the execution of a {@code
-     * newExecutorService} callback, all other registered but unexecuted
-     * listeners are prevented from running, even if those listeners are to run
-     * in other executors.
+     * When the callback is fast and lightweight, consider {@linkplain
+     * #addCallback(ListenableFuture, FutureCallback) omitting the executor} or
+     * explicitly specifying {@code directExecutor}. However, be aware of the
+     * caveats documented in the link above.
      *
      * <p>For a more general interface to attach a completion listener to a
      * {@code Future}, see {@link ListenableFuture#addListener addListener}.
@@ -195,6 +189,116 @@ public abstract class Futures {
     }
 
     /**
+     * Returns a new {@code ListenableFuture} whose result is asynchronously
+     * derived from the result of the given {@code Future}. More precisely, the
+     * returned {@code Future} takes its result from a {@code Future} produced by
+     * applying the given {@code AsyncFunction} to the result of the original
+     * {@code Future}. Example:
+     *
+     * <pre>   {@code
+     *   ListenableFuture<RowKey> rowKeyFuture = indexService.lookUp(query);
+     *   AsyncFunction<RowKey, QueryResult> queryFunction =
+     *       new AsyncFunction<RowKey, QueryResult>() {
+     *         public ListenableFuture<QueryResult> apply(RowKey rowKey) {
+     *           return dataService.read(rowKey);
+     *         }
+     *       };
+     *   ListenableFuture<QueryResult> queryFuture =
+     *       transform(rowKeyFuture, queryFunction);
+     * }</pre>
+     *
+     * Note: If the derived {@code Future} is slow or heavyweight to create
+     * (whether the {@code Future} itself is slow or heavyweight to complete is
+     * irrelevant), consider {@linkplain #transform(ListenableFuture,
+     * AsyncFunction, Executor) supplying an executor}. If you do not supply an
+     * executor, {@code transform} will use a
+     * {@linkplain MoreExecutors#directExecutor direct executor}, which carries
+     * some caveats for heavier operations. For example, the call to {@code
+     * function.apply} may run on an unpredictable or undesirable thread:
+     *
+     * <ul>
+     * <li>If the input {@code Future} is done at the time {@code transform} is
+     * called, {@code transform} will call {@code function.apply} inline.
+     * <li>If the input {@code Future} is not yet done, {@code transform} will
+     * schedule {@code function.apply} to be run by the thread that completes the
+     * input {@code Future}, which may be an internal system thread such as an
+     * RPC network thread.
+     * </ul>
+     *
+     * Also note that, regardless of which thread executes {@code
+     * function.apply}, all other registered but unexecuted listeners are
+     * prevented from running during its execution, even if those listeners are
+     * to run in other executors.
+     *
+     * <p>The returned {@code Future} attempts to keep its cancellation state in
+     * sync with that of the input future and that of the future returned by the
+     * function. That is, if the returned {@code Future} is cancelled, it will
+     * attempt to cancel the other two, and if either of the other two is
+     * cancelled, the returned {@code Future} will receive a callback in which it
+     * will attempt to cancel itself.
+     *
+     * @param input The future to transform
+     * @param function A function to transform the result of the input future
+     *     to the result of the output future
+     * @return A future that holds result of the function (if the input succeeded)
+     *     or the original input's failure (if not)
+     * @since 11.0
+     */
+    public static <I, O> ListenableFuture<O> transform(ListenableFuture<I> input,
+            AsyncFunction<? super I, ? extends O> function) {
+        return transform(input, function, MoreExecutors.directExecutor());
+    }
+
+    /**
+     * Returns a new {@code ListenableFuture} whose result is asynchronously
+     * derived from the result of the given {@code Future}. More precisely, the
+     * returned {@code Future} takes its result from a {@code Future} produced by
+     * applying the given {@code AsyncFunction} to the result of the original
+     * {@code Future}. Example:
+     *
+     * <pre>   {@code
+     *   ListenableFuture<RowKey> rowKeyFuture = indexService.lookUp(query);
+     *   AsyncFunction<RowKey, QueryResult> queryFunction =
+     *       new AsyncFunction<RowKey, QueryResult>() {
+     *         public ListenableFuture<QueryResult> apply(RowKey rowKey) {
+     *           return dataService.read(rowKey);
+     *         }
+     *       };
+     *   ListenableFuture<QueryResult> queryFuture =
+     *       transform(rowKeyFuture, queryFunction, executor);
+     * }</pre>
+     *
+     * <p>The returned {@code Future} attempts to keep its cancellation state in
+     * sync with that of the input future and that of the future returned by the
+     * chain function. That is, if the returned {@code Future} is cancelled, it
+     * will attempt to cancel the other two, and if either of the other two is
+     * cancelled, the returned {@code Future} will receive a callback in which it
+     * will attempt to cancel itself.
+     *
+     * <p>When the execution of {@code function.apply} is fast and lightweight
+     * (though the {@code Future} it returns need not meet these criteria),
+     * consider {@linkplain #transform(ListenableFuture, AsyncFunction) omitting
+     * the executor} or explicitly specifying {@code directExecutor}.
+     * However, be aware of the caveats documented in the link above.
+     *
+     * @param input The future to transform
+     * @param function A function to transform the result of the input future
+     *     to the result of the output future
+     * @param executor Executor to run the function in.
+     * @return A future that holds result of the function (if the input succeeded)
+     *     or the original input's failure (if not)
+     * @since 11.0
+     */
+    public static <I, O> ListenableFuture<O> transform(ListenableFuture<I> input,
+            AsyncFunction<? super I, ? extends O> function,
+            Executor executor) {
+        ChainingListenableFuture<I, O> output =
+                new ChainingListenableFuture<I, O>(function, input);
+        input.addListener(output, executor);
+        return output;
+    }
+
+    /**
      * Returns a new {@code ListenableFuture} whose result is the product of
      * applying the given {@code Function} to the result of the given {@code
      * Future}. Example:
@@ -211,19 +315,26 @@ public abstract class Futures {
      *       transform(queryFuture, rowsFunction);
      * }</pre>
      *
-     * <p>Note: This overload of {@code transform} is designed for cases in which
-     * the transformation is fast and lightweight, as the method does not accept
-     * an {@code Executor} in which to perform the the work. For heavier
-     * transformations, this overload carries some caveats: First, the thread
-     * that the transformation runs in depends on whether the input {@code
-     * Future} is done at the time {@code transform} is called. In particular, if
-     * called late, {@code transform} will perform the transformation in the
-     * thread that called {@code transform}. Second, transformations may run in
-     * an internal thread of the system responsible for the input {@code Future},
-     * such as an RPC network thread. Finally, during the execution of a {@code
-     * newExecutorService} transformation, all other registered but unexecuted
-     * listeners are prevented from running, even if those listeners are to run
-     * in other executors.
+     * Note: If the transformation is slow or heavyweight, consider {@linkplain
+     * #transform(ListenableFuture, Function, Executor) supplying an executor}.
+     * If you do not supply an executor, {@code transform} will use an inline
+     * executor, which carries some caveats for heavier operations.  For example,
+     * the call to {@code function.apply} may run on an unpredictable or
+     * undesirable thread:
+     *
+     * <ul>
+     * <li>If the input {@code Future} is done at the time {@code transform} is
+     * called, {@code transform} will call {@code function.apply} inline.
+     * <li>If the input {@code Future} is not yet done, {@code transform} will
+     * schedule {@code function.apply} to be run by the thread that completes the
+     * input {@code Future}, which may be an internal system thread such as an
+     * RPC network thread.
+     * </ul>
+     *
+     * Also note that, regardless of which thread executes {@code
+     * function.apply}, all other registered but unexecuted listeners are
+     * prevented from running during its execution, even if those listeners are
+     * to run in other executors.
      *
      * <p>The returned {@code Future} attempts to keep its cancellation state in
      * sync with that of the input future. That is, if the returned {@code Future}
@@ -234,16 +345,16 @@ public abstract class Futures {
      * <p>An example use of this method is to convert a serializable object
      * returned from an RPC into a POJO.
      *
-     * @param future The future to transform
+     * @param input The future to transform
      * @param function A Function to transform the results of the provided future
      *     to the results of the returned future.  This will be run in the thread
      *     that notifies input it is complete.
      * @return A future that holds result of the transformation.
      * @since 9.0 (in 1.0 as {@code compose})
      */
-    public static <I, O> ListenableFuture<O> transform(ListenableFuture<I> future,
+    public static <I, O> ListenableFuture<O> transform(ListenableFuture<I> input,
         final Function<? super I, ? extends O> function) {
-      return Futures.<I, O>transform(future, function, newExecutorService());
+      return transform(input, function, MoreExecutors.directExecutor());
     }
 
     /**
@@ -272,62 +383,29 @@ public abstract class Futures {
      * <p>An example use of this method is to convert a serializable object
      * returned from an RPC into a POJO.
      *
-     * <p>Note: For cases in which the transformation is fast and lightweight,
-     * consider {@linkplain Futures#transform(ListenableFuture, Function) the
-     * other overload} or explicit use of {@link
-     * #newExecutorService}. For heavier transformations, this
-     * choice carries some caveats: First, the thread that the transformation
-     * runs in depends on whether the input {@code Future} is done at the time
-     * {@code transform} is called. In particular, if called late, {@code
-     * transform} will perform the transformation in the thread that called
-     * {@code transform}.  Second, transformations may run in an internal thread
-     * of the system responsible for the input {@code Future}, such as an RPC
-     * network thread.  Finally, during the execution of a {@code
-     * newExecutorService} transformation, all other registered but unexecuted
-     * listeners are prevented from running, even if those listeners are to run
-     * in other executors.
+     * <p>When the transformation is fast and lightweight, consider {@linkplain
+     * #transform(ListenableFuture, Function) omitting the executor} or
+     * explicitly specifying {@code directExecutor}. However, be aware of the
+     * caveats documented in the link above.
      *
-     * @param future The future to transform
+     * @param input The future to transform
      * @param function A Function to transform the results of the provided future
      *     to the results of the returned future.
      * @param executor Executor to run the function in.
      * @return A future that holds result of the transformation.
      * @since 9.0 (in 2.0 as {@code compose})
      */
-    public static <I, O> ListenableFuture<O> transform(ListenableFuture<I> future,
+    public static <I, O> ListenableFuture<O> transform(ListenableFuture<I> input,
         final Function<? super I, ? extends O> function, Executor executor) {
       checkNotNull(function);
-      Function<I, ListenableFuture<O>> wrapperFunction
-          = new Function<I, ListenableFuture<O>>() {
+      AsyncFunction<I, O> wrapperFunction
+          = new AsyncFunction<I, O>() {
               @Override public ListenableFuture<O> apply(I input) {
                 O output = function.apply(input);
                 return immediateFuture(output);
               }
           };
-      return chain(future, wrapperFunction, executor);
-    }
-
-    /**
-     * Returns an {@link ExecutorService} to be used as a parameter in other methods.
-     * It calls {@code MoreExecutors#newDirectExecutorService} or falls back to {@code MoreExecutors#sameThreadExecutor}
-     * for compatibility with older (&lt; 18.0) versions of guava.
-     *
-     * @since TODO
-     */
-    public static ExecutorService newExecutorService() {
-        try {
-            try {
-                // Guava older than 18
-                Method method = MoreExecutors.class.getMethod("sameThreadExecutor");
-                return (ExecutorService) method.invoke(null);
-            } catch (NoSuchMethodException e) {
-                // TODO invert this to prefer the newer guava method once guava is upgrade in Jenkins core
-                Method method = MoreExecutors.class.getMethod("newDirectExecutorService");
-                return (ExecutorService) method.invoke(null);
-            }
-        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e ) {
-            throw new RuntimeException(e);
-        }
+      return transform(input, wrapperFunction, executor);
     }
 
     /**
@@ -350,7 +428,7 @@ public abstract class Futures {
     public static <V> ListenableFuture<List<V>> allAsList(
         ListenableFuture<? extends V>... futures) {
       return new ListFuture<V>(ImmutableList.copyOf(futures), true,
-          newExecutorService());
+          MoreExecutors.directExecutor());
     }
 
     /**
@@ -373,77 +451,6 @@ public abstract class Futures {
     public static <V> ListenableFuture<List<V>> allAsList(
         Iterable<? extends ListenableFuture<? extends V>> futures) {
       return new ListFuture<V>(ImmutableList.copyOf(futures), true,
-          newExecutorService());
-    }
-
-    /**
-     * <p>Returns a new {@code ListenableFuture} whose result is asynchronously
-     * derived from the result of the given {@code Future}. More precisely, the
-     * returned {@code Future} takes its result from a {@code Future} produced by
-     * applying the given {@code Function} to the result of the original {@code
-     * Future}. Example:
-     *
-     * <pre>   {@code
-     *   ListenableFuture<RowKey> rowKeyFuture = indexService.lookUp(query);
-     *   Function<RowKey, ListenableFuture<QueryResult>> queryFunction =
-     *       new Function<RowKey, ListenableFuture<QueryResult>>() {
-     *         public ListenableFuture<QueryResult> apply(RowKey rowKey) {
-     *           return dataService.read(rowKey);
-     *         }
-     *       };
-     *   ListenableFuture<QueryResult> queryFuture =
-     *       chain(rowKeyFuture, queryFunction, executor);
-     * }</pre>
-     *
-     * <p>The returned {@code Future} attempts to keep its cancellation state in
-     * sync with that of the input future and that of the future returned by the
-     * chain function. That is, if the returned {@code Future} is cancelled, it
-     * will attempt to cancel the other two, and if either of the other two is
-     * cancelled, the returned {@code Future} will receive a callback in which it
-     * will attempt to cancel itself.
-     *
-     * <p>Note: For cases in which the work of creating the derived future is
-     * fast and lightweight, consider {@linkplain Futures#chain(ListenableFuture,
-     * Function) the other overload} or explicit use of {@code
-     * newExecutorService}. For heavier derivations, this choice carries some
-     * caveats: First, the thread that the derivation runs in depends on whether
-     * the input {@code Future} is done at the time {@code chain} is called. In
-     * particular, if called late, {@code chain} will run the derivation in the
-     * thread that called {@code chain}. Second, derivations may run in an
-     * internal thread of the system responsible for the input {@code Future},
-     * such as an RPC network thread. Finally, during the execution of a {@code
-     * newExecutorService} {@code chain} function, all other registered but
-     * unexecuted listeners are prevented from running, even if those listeners
-     * are to run in other executors.
-     *
-     * @param input The future to chain
-     * @param function A function to chain the results of the provided future
-     *     to the results of the returned future.
-     * @param executor Executor to run the function in.
-     * @return A future that holds result of the chain.
-     * @deprecated Convert your {@code Function} to a {@code AsyncFunction}, and
-     *     use {@link #transform(ListenableFuture, AsyncFunction, Executor)}. This
-     *     method is scheduled to be removed from Guava in Guava release 12.0.
-     */
-    @Deprecated
-    /*package*/ static <I, O> ListenableFuture<O> chain(ListenableFuture<I> input,
-        final Function<? super I, ? extends ListenableFuture<? extends O>>
-            function,
-        Executor executor) {
-      checkNotNull(function);
-      ChainingListenableFuture<I, O> chain =
-          new ChainingListenableFuture<I, O>(new AsyncFunction<I, O>() {
-            @Override
-            /*
-             * All methods of ListenableFuture are covariant, and we don't expose
-             * the object anywhere that would allow it to be downcast.
-             */
-            @SuppressWarnings("unchecked")
-            public ListenableFuture<O> apply(I input) {
-              return (ListenableFuture) function.apply(input);
-            }
-          }, input);
-      input.addListener(chain, executor);
-      return chain;
+          MoreExecutors.directExecutor());
     }
 }
