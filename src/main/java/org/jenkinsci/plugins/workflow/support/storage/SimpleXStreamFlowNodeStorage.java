@@ -24,15 +24,16 @@
 
 package org.jenkinsci.plugins.workflow.support.storage;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.core.JVM;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
+import java.nio.file.NoSuchFileException;
+import java.util.concurrent.CompletionException;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
@@ -48,7 +49,6 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -57,8 +57,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -71,11 +69,11 @@ import javax.annotation.Nonnull;
 public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     private final File dir;
     private final FlowExecution exec;
-    private final LoadingCache<String,FlowNode> nodeCache = CacheBuilder.newBuilder().softValues().build(new CacheLoader<String,FlowNode>() {
-        @Override public FlowNode load(String key) throws Exception {
-            return SimpleXStreamFlowNodeStorage.this.load(key).node;
-        }
-    });
+
+    private final LoadingCache<String,FlowNode> nodeCache = Caffeine.newBuilder()
+            .weakKeys()
+            .weakValues()
+            .build(key -> SimpleXStreamFlowNodeStorage.this.load(key).node);
 
     private static final Logger LOGGER = Logger.getLogger(SimpleXStreamFlowNodeStorage.class.getName());
 
@@ -99,7 +97,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
                 }
             }
             return nodeCache.get(id);
-        } catch (ExecutionException x) {
+        } catch (CompletionException x) {
             Throwable cause = x.getCause();
             if (cause instanceof NoSuchFileException) {
                 LOGGER.finer("Tried to load FlowNode where file does not exist, for id "+id);
@@ -254,7 +252,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         XSTREAM.registerConverter(new Converter() {
             private final RobustReflectionConverter ref = new RobustReflectionConverter(XSTREAM.getMapper(), JVM.newReflectionProvider());
             // IdentityHashMap could leak memory. WeakHashMap compares by equals, which will fail with NPE in FlowNode.hashCode.
-            private final Map<FlowNode,String> ids = CacheBuilder.newBuilder().weakKeys().<FlowNode,String>build().asMap();
+            private final Map<FlowNode,String> ids = Caffeine.newBuilder().weakKeys().<FlowNode,String>build().asMap();
             @Override public boolean canConvert(Class type) {
                 return FlowNode.class.isAssignableFrom(type);
             }
