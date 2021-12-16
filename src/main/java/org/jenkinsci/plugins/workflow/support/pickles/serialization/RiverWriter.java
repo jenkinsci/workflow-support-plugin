@@ -107,7 +107,7 @@ public class RiverWriter implements Closeable {
         owner = _owner;
         channel = FileChannel.open(file.toPath(), StandardOpenOption.WRITE);
         channel.write(HEADER_BUFFER.duplicate());
-        LOGGER.fine(() -> "Starting to save " + file + "; pickle offset will be written @" + EPHEMERALS_BACKPTR);
+        LOGGER.fine(() -> "Starting to save " + file);
 
         MarshallingConfiguration config = new MarshallingConfiguration();
         //config.setSerializabilityChecker(new SerializabilityCheckerImpl());
@@ -163,17 +163,18 @@ public class RiverWriter implements Closeable {
     }
 
     public void close() throws IOException {
-        marshaller.finish();
-        int ephemeralsOffset = (int)channel.position();
-
-        // write the ephemerals stream
-        pickling = false;
-        marshaller.start(new FileChannelOutput(channel));
-        marshaller.writeObject(pickles);
-        marshaller.finish();
-
-        // back fill the offset to the ephemerals stream
+        int ephemeralsOffset;
         try {
+            marshaller.finish();
+            ephemeralsOffset = (int)channel.position();
+
+            // write the ephemerals stream
+            pickling = false;
+            marshaller.start(new FileChannelOutput(channel));
+            marshaller.writeObject(pickles);
+            marshaller.finish();
+
+            // back fill the offset to the ephemerals stream
             channel.position(EPHEMERALS_BACKPTR);
             ByteBuffer ephemeralsPtrBuffer = ByteBuffer.allocate(4).putInt(ephemeralsOffset);
             ephemeralsPtrBuffer.flip();
@@ -223,7 +224,7 @@ public class RiverWriter implements Closeable {
 
     /*constant*/ static final long HEADER = 7330745437582215633L;
     /*constant*/ static final short VERSION = 1;
-    private static final int EPHEMERALS_BACKPTR = 10;
+    private static final int EPHEMERALS_BACKPTR = 10; // sizeof(long) + sizeof(short)
     /** Used to reduce allocation. Always call {@link ByteBuffer#duplicate} rather than using this directly. */
     // Downcasting to Buffer is needed to avoid NoSuchMethodError when running on Java 9+ due to ByteBuffer method return type changes.
     private static final ByteBuffer HEADER_BUFFER = (ByteBuffer)((Buffer)ByteBuffer.allocate(14)
