@@ -5,3 +5,7 @@ work
 
 # macOS
 .DS_Store
+
+.classpath
+.settings
+.project
