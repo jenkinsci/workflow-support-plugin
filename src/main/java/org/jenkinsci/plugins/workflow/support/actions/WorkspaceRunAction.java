@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.workflow.support.actions;
 
 import hudson.Extension;
 import hudson.model.Action;
+import hudson.model.Api;
 import hudson.model.Item;
 import hudson.security.AccessControlled;
 import java.io.IOException;
@@ -35,18 +36,20 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import jenkins.model.Jenkins;
 import jenkins.model.TransientActionFactory;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.export.Exported;
+import org.kohsuke.stapler.export.ExportedBean;
 
 /**
  * Display of all {@link WorkspaceActionImpl}s for a build.
  */
-@Restricted(NoExternalUse.class)
+@ExportedBean
 public final class WorkspaceRunAction implements Action {
 
     private static final Logger LOGGER = Logger.getLogger(WorkspaceRunAction.class.getName());
@@ -93,6 +96,43 @@ public final class WorkspaceRunAction implements Action {
         return r;
     }
 
+    @Exported
+    public List<WorkspaceData> getWorkspaceDatas() throws IOException {
+        List<WorkspaceData> list = new ArrayList<>();
+        for (WorkspaceActionImpl action : getActions()) {
+            list.add(new WorkspaceData(action));
+        }
+        return list;
+    }
+
+    @ExportedBean(defaultVisibility = 2)
+    public static final class WorkspaceData {
+        private final String node;
+        private final String path;
+        private final String url;
+
+        WorkspaceData(WorkspaceActionImpl action) throws IOException {
+            node = action.getNode();
+            path = action.getPath();
+            url = Jenkins.get().getRootUrl() + action.getParent().getUrl() + action.getUrlName();
+        }
+
+        @Exported
+        public String getNode() {
+            return node;
+        }
+
+        @Exported
+        public String getUrl() {
+            return url;
+        }
+
+        @Exported
+        public String getPath() {
+            return path;
+        }
+    }
+
     @Extension public static final class Factory extends TransientActionFactory<FlowExecutionOwner.Executable> {
 
         @Override public Class<FlowExecutionOwner.Executable> type() {
@@ -109,4 +149,7 @@ public final class WorkspaceRunAction implements Action {
 
     }
 
+    public Api getApi() {
+        return new Api(this);
+    }
 }
