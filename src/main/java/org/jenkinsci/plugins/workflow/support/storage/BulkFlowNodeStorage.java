@@ -34,8 +34,8 @@ import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.flow.FlowDurabilityHint;
 import org.jenkinsci.plugins.workflow.support.PipelineIOUtils;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -123,12 +123,12 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
 
     @Override
     @CheckForNull
-    public FlowNode getNode(@Nonnull String id) throws IOException {
+    public FlowNode getNode(@NonNull String id) throws IOException {
         Tag t = getOrLoadNodes().get(id);
         return (t != null) ? t.node : null;
     }
 
-    public void storeNode(@Nonnull FlowNode n, boolean delayWritingActions) throws IOException {
+    public void storeNode(@NonNull FlowNode n, boolean delayWritingActions) throws IOException {
         Tag t = getOrLoadNodes().get(n.getId());
         if (t != null) {
             t.node = n;
@@ -154,7 +154,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
      * @throws IOException
      */
     @Override
-    public void flushNode(@Nonnull FlowNode n) throws IOException {
+    public void flushNode(@NonNull FlowNode n) throws IOException {
         storeNode(n, false);
     }
 
@@ -171,7 +171,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
         }
     }
 
-    public List<Action> loadActions(@Nonnull FlowNode node) throws IOException {
+    public List<Action> loadActions(@NonNull FlowNode node) throws IOException {
         Tag t = getOrLoadNodes().get(node.getId());
         return (t != null) ? t.actions() : Collections.<Action>emptyList();
     }
@@ -179,7 +179,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
     /**
      * Just stores this one node
      */
-    public void saveActions(@Nonnull FlowNode node, @Nonnull List<Action> actions) throws IOException {
+    public void saveActions(@NonNull FlowNode node, @NonNull List<Action> actions) throws IOException {
         HashMap<String, Tag> map = getOrLoadNodes();
         Tag t = map.get(node.getId());
         if (t != null) {
@@ -202,10 +202,10 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
      * To group node and their actions together into one object.
      */
     private static class Tag {
-        /* @Nonnull except perhaps after deserialization */ FlowNode node;
+        /* @NonNull except perhaps after deserialization */ FlowNode node;
         private @CheckForNull Action[] actions;
 
-        private Tag(@Nonnull FlowNode node, @Nonnull List<Action> actions) {
+        private Tag(@NonNull FlowNode node, @NonNull List<Action> actions) {
             this.node = node;
             this.actions = actions.isEmpty() ? null : actions.toArray(new Action[actions.size()]);
         }
@@ -218,7 +218,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
             }
         }
 
-        public @Nonnull List<Action> actions() {
+        public @NonNull List<Action> actions() {
             return actions != null ? Arrays.asList(actions) : Collections.<Action>emptyList();
         }
     }

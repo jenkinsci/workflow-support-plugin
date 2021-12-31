@@ -11,7 +11,7 @@ import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
 import org.jenkinsci.plugins.workflow.visualization.table.FlowNodeViewColumn;
 import org.jenkinsci.plugins.workflow.visualization.table.FlowNodeViewColumnDescriptor;
 
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;

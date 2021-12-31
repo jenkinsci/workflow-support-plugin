@@ -27,8 +27,8 @@ package org.jenkinsci.plugins.workflow.support.actions;
 import hudson.console.AnnotatedLargeText;
 import hudson.model.TaskListener;
 import java.io.IOException;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.commons.jelly.XMLOutput;
 import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
 import org.jenkinsci.plugins.workflow.actions.LogAction;
@@ -86,7 +86,7 @@ public class LogStorageAction extends LogAction implements FlowNodeAction, Persi
      * @return a stream
      */
     @SuppressWarnings("deprecation") // LogActionImpl here for backward compatibility
-    public static @Nonnull TaskListener listenerFor(@Nonnull FlowNode node, @CheckForNull TaskListenerDecorator decorator) throws IOException, InterruptedException {
+    public static @NonNull TaskListener listenerFor(@NonNull FlowNode node, @CheckForNull TaskListenerDecorator decorator) throws IOException, InterruptedException {
         FlowExecutionOwner owner = node.getExecution().getOwner();
         if (LogActionImpl.isOld(owner) || node.getAction(LogActionImpl.class) != null) {
             return LogActionImpl.stream(node, decorator);

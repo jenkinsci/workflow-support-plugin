@@ -4,7 +4,7 @@ import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CancellationException;

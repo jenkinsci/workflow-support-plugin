@@ -3,7 +3,7 @@ package org.jenkinsci.plugins.workflow.support;
 import hudson.XmlFile;
 import hudson.util.XStream2;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +24,7 @@ public class PipelineIOUtils {
      * @param atomicWrite If true, do an atomic write, otherwise do a direct write to file.
      * @throws IOException
      */
-    public static void writeByXStream(@Nonnull Object toWrite, @Nonnull File location, @Nonnull XStream2 xstream, boolean atomicWrite) throws IOException {
+    public static void writeByXStream(@NonNull Object toWrite, @NonNull File location, @NonNull XStream2 xstream, boolean atomicWrite) throws IOException {
         if (atomicWrite) {
             XmlFile file = new XmlFile(xstream, location);
             file.write(toWrite);

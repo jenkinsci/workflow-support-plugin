@@ -53,7 +53,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import org.apache.commons.io.FileUtils;
 
 import org.jboss.marshalling.ByteInput;

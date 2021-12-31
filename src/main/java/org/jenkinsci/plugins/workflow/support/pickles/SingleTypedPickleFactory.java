@@ -28,7 +28,7 @@ import org.jenkinsci.plugins.workflow.pickles.Pickle;
 import org.jenkinsci.plugins.workflow.pickles.PickleFactory;
 import hudson.Functions;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * {@link PickleFactory} implementation for a common situation where only kind of ephemeral object is being pickled.
@@ -42,7 +42,7 @@ public abstract class SingleTypedPickleFactory<T> extends PickleFactory {
         type = Functions.getTypeParameter(getClass(), SingleTypedPickleFactory.class, 0);
     }
 
-    protected abstract @Nonnull Pickle pickle(@Nonnull T object);
+    protected abstract @NonNull Pickle pickle(@NonNull T object);
 
     @Override public final Pickle writeReplace(Object object) {
         if (type.isInstance(object)) {

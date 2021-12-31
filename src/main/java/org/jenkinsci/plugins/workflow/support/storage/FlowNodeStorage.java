@@ -29,8 +29,8 @@ import org.jenkinsci.plugins.workflow.graph.FlowActionStorage;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 
 import java.io.IOException;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Abstraction of various ways to persist {@link FlowNode}, for those {@link FlowExecution}s
@@ -67,7 +67,7 @@ public abstract class FlowNodeStorage implements FlowActionStorage {
     /** Registers node in this storage, potentially persisting to disk.
      *  {@link #flushNode(FlowNode)} will guarantee it is persisted.
      */
-    public abstract void storeNode(@Nonnull FlowNode n) throws IOException;
+    public abstract void storeNode(@NonNull FlowNode n) throws IOException;
 
     /**
      * Register the given node to the storage, potentially flushing to disk,
@@ -82,19 +82,19 @@ public abstract class FlowNodeStorage implements FlowActionStorage {
      *                            {@link #autopersist(FlowNode)}.
      * @throws IOException
      */
-    public void storeNode(@Nonnull FlowNode n, boolean delayWritingActions) throws IOException {
+    public void storeNode(@NonNull FlowNode n, boolean delayWritingActions) throws IOException {
         storeNode(n); // Default impl, override if you support delaying writes
     }
 
     /**
      * Flushes the node if needed, and if supported, marks it as needing to flush with EVERY write to the {@link FlowNode#actions}.
      */
-    public void autopersist(@Nonnull FlowNode n) throws IOException {
+    public void autopersist(@NonNull FlowNode n) throws IOException {
         flushNode(n);
     }
 
     /** Persists node fully to disk, ensuring it is written out to storage. */
-    public void flushNode(@Nonnull FlowNode n) throws IOException {
+    public void flushNode(@NonNull FlowNode n) throws IOException {
         // Only needs implementation if you're not guaranteeing persistence at all times
     }
 

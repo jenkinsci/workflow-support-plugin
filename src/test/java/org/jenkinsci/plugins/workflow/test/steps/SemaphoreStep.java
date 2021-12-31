@@ -34,8 +34,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepDescriptorImpl;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
@@ -136,7 +136,7 @@ public final class SemaphoreStep extends AbstractStepImpl implements Serializabl
         return (StepContext) Jenkins.XSTREAM.fromXML(s.contexts.get(k));
     }
 
-    public static void waitForStart(@Nonnull String k, @CheckForNull Run<?,?> b) throws IOException, InterruptedException {
+    public static void waitForStart(@NonNull String k, @CheckForNull Run<?,?> b) throws IOException, InterruptedException {
         State s = State.get();
         synchronized (s) {
             while (!s.started.contains(k)) {

@@ -33,8 +33,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Pause {@link FlowNode} Action.
@@ -97,7 +97,7 @@ public class PauseAction extends InvisibleAction implements PersistentAction {
         }
     }
 
-    public static @CheckForNull PauseAction getCurrentPause(@Nonnull FlowNode node) {
+    public static @CheckForNull PauseAction getCurrentPause(@NonNull FlowNode node) {
         List<PauseAction> pauseActions = getPauseActions(node);
 
         if (!pauseActions.isEmpty()) {
@@ -107,7 +107,7 @@ public class PauseAction extends InvisibleAction implements PersistentAction {
         return null;
     }
 
-    public static void endCurrentPause(@Nonnull FlowNode node) throws IOException {
+    public static void endCurrentPause(@NonNull FlowNode node) throws IOException {
         PauseAction currentPause = getCurrentPause(node);
 
         if (currentPause != null) {
@@ -123,7 +123,7 @@ public class PauseAction extends InvisibleAction implements PersistentAction {
      * @param node The node to test.
      * @return True if the node is pause node, otherwise false.
      */
-    public static boolean isPaused(@Nonnull FlowNode node) {
+    public static boolean isPaused(@NonNull FlowNode node) {
         PauseAction currentPause = getCurrentPause(node);
 
         if (currentPause != null) {
@@ -138,7 +138,7 @@ public class PauseAction extends InvisibleAction implements PersistentAction {
      * @param node The node to be searched.
      * @return The {@link PauseAction} instances for the supplied node. Returns an empty list if there are none.
      */
-    public static @Nonnull List<PauseAction> getPauseActions(@Nonnull FlowNode node) {
+    public static @NonNull List<PauseAction> getPauseActions(@NonNull FlowNode node) {
         List<PauseAction> pauseActions = new ArrayList<PauseAction>();
         List<Action> actions = node.getActions();
 
@@ -156,7 +156,7 @@ public class PauseAction extends InvisibleAction implements PersistentAction {
      * @param node The node to calculate on.
      * @return The pause duration in milliseconds.
      */
-    public static long getPauseDuration(@Nonnull FlowNode node) {
+    public static long getPauseDuration(@NonNull FlowNode node) {
         List<PauseAction> pauseActions = getPauseActions(node);
         long pauseDuration = 0L;
 
