@@ -11,8 +11,8 @@ import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.flow.GraphListener;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +26,7 @@ import java.util.List;
     List<FlowNode> heads = new ArrayList<FlowNode>();
     transient FlowNodeStorage storage;
 
-    MockFlowExecution(@Nonnull FlowNodeStorage storage) {
+    MockFlowExecution(@NonNull FlowNodeStorage storage) {
         this.storage = storage;
     }
 
@@ -78,7 +78,7 @@ import java.util.List;
         return storage;
     }
 
-    public MockFlowExecution setStorage(@Nonnull FlowNodeStorage store) {
+    public MockFlowExecution setStorage(@NonNull FlowNodeStorage store) {
         this.storage = store;
         return this;
     }
@@ -89,7 +89,7 @@ import java.util.List;
         return getStorage().getNode(id);
     }
 
-    @Nonnull
+    @NonNull
     @Override
     public Authentication getAuthentication() {
         return ACL.SYSTEM;

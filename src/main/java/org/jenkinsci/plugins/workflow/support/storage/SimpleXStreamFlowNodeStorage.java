@@ -60,8 +60,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * {@link FlowNodeStorage} that stores one node per one file.
@@ -111,7 +111,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         }
     }
 
-    public void storeNode(@Nonnull FlowNode n, boolean delayWritingActions) throws IOException {
+    public void storeNode(@NonNull FlowNode n, boolean delayWritingActions) throws IOException {
         if (delayWritingActions) {
             if (deferredWrite == null) {
                 deferredWrite = new HashMap<String, FlowNode>();
@@ -131,7 +131,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         storeNode(n, false);
     }
 
-    public void autopersist(@Nonnull FlowNode n) throws IOException {
+    public void autopersist(@NonNull FlowNode n) throws IOException {
         if (deferredWrite != null && deferredWrite.containsKey(n.getId())) {
             flushNode(n);
         }
@@ -147,7 +147,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
      * @throws IOException
      */
     @Override
-    public void flushNode(@Nonnull FlowNode n) throws IOException {
+    public void flushNode(@NonNull FlowNode n) throws IOException {
         writeNode(n, n.getActions());
         if (deferredWrite != null) {
             deferredWrite.remove(n.getId());
@@ -170,7 +170,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         return new File(dir,id+".xml");
     }
 
-    public List<Action> loadActions(@Nonnull FlowNode node) throws IOException {
+    public List<Action> loadActions(@NonNull FlowNode node) throws IOException {
 
         if (!getNodeFile(node.getId()).exists())
             return new ArrayList<Action>(); // not yet saved
@@ -186,7 +186,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
      * Just stores this one node, using the supplied actions.
      * GOTCHA: technically there's nothing ensuring that node.getActions() matches supplied actions.
      */
-    public void saveActions(@Nonnull FlowNode node, @Nonnull List<Action> actions) throws IOException {
+    public void saveActions(@NonNull FlowNode node, @NonNull List<Action> actions) throws IOException {
         if (delayAutopersistIds != null && delayAutopersistIds.contains(node.getId())) {
             deferredWrite.put(node.getId(), node);
         } else {
@@ -222,10 +222,10 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
      * To group node and their actions together into one object.
      */
     private static class Tag {
-        final /* @Nonnull except perhaps after deserialization */ FlowNode node;
+        final /* @NonNull except perhaps after deserialization */ FlowNode node;
         private final @CheckForNull Action[] actions;
 
-        private Tag(@Nonnull FlowNode node, @Nonnull List<Action> actions) {
+        private Tag(@NonNull FlowNode node, @NonNull List<Action> actions) {
             this.node = node;
             this.actions = actions.isEmpty() ? null : actions.toArray(new Action[actions.size()]);
         }
@@ -238,7 +238,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
             }
         }
 
-        public @Nonnull List<Action> actions() {
+        public @NonNull List<Action> actions() {
             return actions != null ? Arrays.asList(actions) : Collections.<Action>emptyList();
         }
     }

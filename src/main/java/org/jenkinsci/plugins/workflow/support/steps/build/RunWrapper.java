@@ -42,8 +42,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 import jenkins.scm.RunWithSCM;
 import net.sf.json.JSONArray;
@@ -84,7 +84,7 @@ public final class RunWrapper implements Serializable {
         return Run.fromExternalizableId(externalizableId);
     }
 
-    private @Nonnull Run<?,?> build() throws AbortException {
+    private @NonNull Run<?,?> build() throws AbortException {
         Run<?,?> r = getRawBuild();
         if (r == null) {
             throw new AbortException("No build record " + externalizableId + " could be located.");
@@ -186,7 +186,7 @@ public final class RunWrapper implements Serializable {
     }
 
     @Whitelisted
-    public @Nonnull String getCurrentResult() throws AbortException {
+    public @NonNull String getCurrentResult() throws AbortException {
         Result result = build().getResult();
         return result != null ? result.toString() : Result.SUCCESS.toString();
     }
@@ -322,7 +322,7 @@ public final class RunWrapper implements Serializable {
      * any variables set during script execution are captured and reported.
      */
     @Whitelisted
-    public @Nonnull Map<String,String> getBuildVariables() throws AbortException {
+    public @NonNull Map<String,String> getBuildVariables() throws AbortException {
         Run<?,?> build = build();
         if (build instanceof AbstractBuild) {
             Map<String,String> buildVars = new HashMap<>();
@@ -344,7 +344,7 @@ public final class RunWrapper implements Serializable {
     }
 
     @Whitelisted
-    @Nonnull
+    @NonNull
     public List<RunWrapper> getUpstreamBuilds() throws AbortException {
         List<RunWrapper> upstreams = new ArrayList<>();
         Run<?,?> build = build();
@@ -357,8 +357,8 @@ public final class RunWrapper implements Serializable {
         return upstreams;
     }
 
-    @Nonnull
-    private List<RunWrapper> upstreamCauseToRunWrappers(@Nonnull Cause.UpstreamCause cause) {
+    @NonNull
+    private List<RunWrapper> upstreamCauseToRunWrappers(@NonNull Cause.UpstreamCause cause) {
         List<RunWrapper> upstreams = new ArrayList<>();
         Run<?,?> r = cause.getUpstreamRun();
         if (r != null) {
@@ -374,7 +374,7 @@ public final class RunWrapper implements Serializable {
 
     @SuppressWarnings("deprecation")
     @Whitelisted
-    public @Nonnull String getAbsoluteUrl() throws AbortException {
+    public @NonNull String getAbsoluteUrl() throws AbortException {
         return build().getAbsoluteUrl();
     }
 

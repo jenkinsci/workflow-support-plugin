@@ -43,8 +43,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.commons.io.output.TeeOutputStream;
 import org.apache.commons.jelly.XMLOutput;
 import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
@@ -82,7 +82,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
     }
 
     @Deprecated
-    public static @Nonnull TaskListener stream(final @Nonnull FlowNode node, @CheckForNull ConsoleLogFilter filter) throws IOException, InterruptedException {
+    public static @NonNull TaskListener stream(final @NonNull FlowNode node, @CheckForNull ConsoleLogFilter filter) throws IOException, InterruptedException {
         return stream(node, TaskListenerDecorator.fromConsoleLogFilter(filter));
     }
 
@@ -93,7 +93,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
      * @return a listener
      */
     @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE") // stream closed later
-    public static @Nonnull TaskListener stream(final @Nonnull FlowNode node, @CheckForNull TaskListenerDecorator decorator) throws IOException, InterruptedException {
+    public static @NonNull TaskListener stream(final @NonNull FlowNode node, @CheckForNull TaskListenerDecorator decorator) throws IOException, InterruptedException {
         LogActionImpl la = node.getAction(LogActionImpl.class);
         if (la == null) {
             la = new LogActionImpl(node);

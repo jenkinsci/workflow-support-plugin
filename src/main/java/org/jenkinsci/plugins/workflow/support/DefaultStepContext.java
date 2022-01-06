@@ -43,8 +43,8 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.util.Secret;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.flow.GraphListener;
@@ -175,13 +175,13 @@ public abstract class DefaultStepContext extends StepContext {
      * Finds the associated execution.
      * Automatically available from {@link #get}.
      */
-    protected abstract @Nonnull FlowExecution getExecution() throws IOException;
+    protected abstract @NonNull FlowExecution getExecution() throws IOException;
 
     /**
      * Finds the associated node.
      * Automatically available from {@link #get}.
      */
-    protected abstract @Nonnull FlowNode getNode() throws IOException;
+    protected abstract @NonNull FlowNode getNode() throws IOException;
 
     /**
      * Default implementation of {@link EnvironmentExpander} that recognizes password parameters as sensitive variables.

@@ -36,8 +36,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.pickles.Pickle;
 
@@ -70,7 +70,7 @@ public abstract class TryRepeatedly<V> extends AbstractFuture<V> {
     /**
      * Override to supply the owner passed to {@link Pickle#rehydrate(FlowExecutionOwner)}.
      */
-    protected @Nonnull FlowExecutionOwner getOwner() {
+    protected @NonNull FlowExecutionOwner getOwner() {
         return FlowExecutionOwner.dummyOwner();
     }
 
@@ -78,7 +78,7 @@ public abstract class TryRepeatedly<V> extends AbstractFuture<V> {
      * Assuming {@link #getOwner} has been overridden, override to print a message to the build log explaining why the pickle is still unloadable.
      * Could use {@link ModelHyperlinkNote} etc.
      */
-    protected void printWaitingMessage(@Nonnull TaskListener listener) {
+    protected void printWaitingMessage(@NonNull TaskListener listener) {
         listener.getLogger().println("Still trying to load " + this);
     }
 
