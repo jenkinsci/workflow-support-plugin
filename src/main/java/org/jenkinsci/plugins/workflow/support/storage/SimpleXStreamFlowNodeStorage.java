@@ -71,8 +71,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     private final FlowExecution exec;
 
     private final LoadingCache<String,FlowNode> nodeCache = Caffeine.newBuilder()
-            .weakKeys()
-            .weakValues()
+            .softValues()
             .build(key -> SimpleXStreamFlowNodeStorage.this.load(key).node);
 
     private static final Logger LOGGER = Logger.getLogger(SimpleXStreamFlowNodeStorage.class.getName());
