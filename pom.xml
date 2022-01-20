@@ -99,6 +99,10 @@
             <artifactId>script-security</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.jenkins.plugins</groupId>
+            <artifactId>caffeine-api</artifactId>
+        </dependency>
+        <dependency>
             <!-- Required for running with Java 9+ -->
             <groupId>org.jboss.marshalling</groupId>
             <artifactId>jboss-marshalling-river</artifactId>
