@@ -29,7 +29,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
   <l:ajax>
     <div id="nodeGraph">
-      <table class="pane jenkins-table">
+      <table class="jenkins-table">
         <j:set var="columns" value="${it.columns}"/>
         <thead>
           <tr>
