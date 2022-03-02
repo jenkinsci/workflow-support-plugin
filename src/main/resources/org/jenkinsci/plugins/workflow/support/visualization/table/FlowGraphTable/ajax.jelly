@@ -26,18 +26,19 @@
 <!--
   Renders the flow node in a tree list view
 -->
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:i="jelly:fmt">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
   <l:ajax>
     <div id="nodeGraph">
-      <table class="pane bigtable">
+      <table class="jenkins-table">
         <j:set var="columns" value="${it.columns}"/>
-        <!-- header row -->
-        <tr>
-          <th>${%Step}</th>
-          <j:forEach var="column" items="${columns}">
-            <st:include from="${column}" page="columnHeader"/>
-          </j:forEach>
-        </tr>
+        <thead>
+          <tr>
+            <th>${%Step}</th>
+            <j:forEach var="column" items="${columns}">
+              <st:include from="${column}" page="columnHeader"/>
+            </j:forEach>
+          </tr>
+        </thead>
 
         <j:forEach var="row" items="${it.rows}">
           <j:set var="node" value="${row.node}"/>
@@ -45,7 +46,7 @@
             <!-- tooltip is for now debugging only -->
             <j:set var="exec_state" value=""/>
             <j:if test="${!row.executed}"><j:set var="exec_state" value=" (${%not executed})"/></j:if>
-            <j:set var="timeType" value="${row.isStart() ? 'in block' : 'in self'}"></j:set>
+            <j:set var="timeType" value="${row.isStart() ? 'in block' : 'in self'}"/>
             <td style="padding-left: ${row.treeDepth*20+5}px" tooltip="ID: ${node.id}${exec_state}">
               <a href="${rootURL}/${node.url}">
                 ${row.displayName} - (${row.durationString} ${timeType})
