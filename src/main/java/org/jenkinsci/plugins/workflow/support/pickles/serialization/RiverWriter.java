@@ -188,8 +188,7 @@ public class RiverWriter implements Closeable {
 
     private static class FileChannelOutput implements ByteOutput {
         private final FileChannel channel;
-        /** Used to reduce allocation for single-byte writes. */
-        private final byte[] singleton = new byte[1];
+        private final ByteBuffer buffer = ByteBuffer.allocate(8192); // c.f. BufferedOutputStream
 
         private FileChannelOutput(FileChannel channel) {
             this.channel = channel;
@@ -197,27 +196,45 @@ public class RiverWriter implements Closeable {
 
         @Override
         public void write(int b) throws IOException {
-            singleton[0] = (byte)b; // Downcasting as per interface Javadoc.
-            channel.write(ByteBuffer.wrap(singleton));
+            if (buffer.remaining() == 0) {
+                writeBuffer();
+            }
+            buffer.put((byte)b); // Downcasting as per interface Javadoc.
         }
 
         @Override
         public void write(byte[] bytes) throws IOException {
-            channel.write(ByteBuffer.wrap(bytes));
+            write(bytes, 0, bytes.length);
         }
 
         @Override
         public void write(byte[] bytes, int off, int len) throws IOException {
-            channel.write(ByteBuffer.wrap(bytes, off, len));
+            if (len >= buffer.capacity()) {
+                writeBuffer();
+                channel.write(ByteBuffer.wrap(bytes, off, len));
+                return;
+            }
+            if (len > buffer.remaining()) {
+                writeBuffer();
+            }
+            buffer.put(bytes, off, len);
+        }
+
+        private void writeBuffer() throws IOException {
+            buffer.flip();
+            channel.write(buffer);
+            buffer.clear();
         }
 
         @Override
         public void close() throws IOException {
+            writeBuffer();
             // We only close the channel once all writes are complete.
         }
 
         @Override
         public void flush() throws IOException {
+            writeBuffer();
             // We invoke FileChannel.force manually before closing the channel.
         }
     }
