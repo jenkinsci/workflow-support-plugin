@@ -222,7 +222,9 @@ public class RiverWriter implements Closeable {
 
         private void writeBuffer() throws IOException {
             buffer.flip();
-            channel.write(buffer);
+            if (buffer.limit() > 0) {
+                channel.write(buffer);
+            }
             buffer.clear();
         }
 
