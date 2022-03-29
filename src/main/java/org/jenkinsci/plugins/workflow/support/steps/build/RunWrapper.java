@@ -384,11 +384,7 @@ public final class RunWrapper implements Serializable {
         if (build instanceof RunWithSCM) { // typical cases
             return ((RunWithSCM<?, ?>) build).getChangeSets();
         } else {
-            try { // to support WorkflowRun prior to workflow-job 2.12
-                return (List) build.getClass().getMethod("getChangeSets").invoke(build);
-            } catch (NoSuchMethodException x) { // something weird like ExternalRun
-                return Collections.emptyList();
-            }
+            return Collections.emptyList();
         }
     }
 
