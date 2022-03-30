@@ -25,13 +25,15 @@ THE SOFTWARE.
 
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
-  <td>
-    <j:forEach var="a" items="${node.allActions}">
-      <j:if test="${a.urlName == 'log'}"> <!-- easier in Jelly than calling getAction(LogAction.class) -->
-        <a href="${rootURL}/${node.url}log/">
-          <l:icon class="icon-terminal icon-lg" alt="Console Output" />
-        </a>
-      </j:if>
-    </j:forEach>
+  <td class="jenkins-table__cell--tight">
+    <div class="jenkins-table__cell__button-wrapper">
+      <j:forEach var="a" items="${node.allActions}">
+        <j:if test="${a.urlName == 'log'}"> <!-- easier in Jelly than calling getAction(LogAction.class) -->
+          <a tooltip="${%Console Output}" href="${rootURL}/${node.url}log/" class="jenkins-table__button">
+            <l:icon class="icon-terminal icon-lg" />
+          </a>
+        </j:if>
+      </j:forEach>
+    </div>
   </td>
 </j:jelly>
