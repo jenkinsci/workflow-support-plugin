@@ -47,8 +47,8 @@
             <j:set var="exec_state" value=""/>
             <j:if test="${!row.executed}"><j:set var="exec_state" value=" (${%not executed})"/></j:if>
             <j:set var="timeType" value="${row.isStart() ? 'in block' : 'in self'}"/>
-            <td style="padding-left: ${row.treeDepth*20+5}px" tooltip="ID: ${node.id}${exec_state}">
-              <a href="${rootURL}/${node.url}">
+            <td style="padding-left: calc(var(--table-padding) * ${row.treeDepth+2})">
+              <a class="jenkins-table__link" href="${rootURL}/${node.url}" tooltip="ID: ${node.id}${exec_state}">
                 ${row.displayName} - (${row.durationString} ${timeType})
               </a>
             </td>
