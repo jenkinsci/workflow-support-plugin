@@ -59,19 +59,20 @@ public final class WorkspaceRunAction implements Action {
         this.owner = owner;
     }
 
+    private boolean hasNoWorkspacePermission() {
+        return (build instanceof AccessControlled && !((AccessControlled) build).hasPermission(Item.WORKSPACE));
+    }
+
     @Override public String getIconFileName() {
-        return "folder.png";
+        return hasNoWorkspacePermission() ? null : "folder.png";
     }
 
     @Override public String getDisplayName() {
-        return Messages.workspaces();
+        return hasNoWorkspacePermission() ? null : Messages.workspaces();
     }
 
     @Override public String getUrlName() {
-        if (build instanceof AccessControlled && !((AccessControlled) build).hasPermission(Item.WORKSPACE)) {
-            return null;
-        }
-        return "ws";
+        return hasNoWorkspacePermission() ? null : "ws";
     }
 
     public List<WorkspaceActionImpl> getActions() {
