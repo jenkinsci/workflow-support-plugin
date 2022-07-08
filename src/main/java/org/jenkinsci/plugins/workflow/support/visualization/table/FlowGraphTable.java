@@ -1,17 +1,7 @@
 package org.jenkinsci.plugins.workflow.support.visualization.table;
 
-import hudson.Util;
-import org.jenkinsci.plugins.workflow.actions.TimingAction;
-import org.jenkinsci.plugins.workflow.flow.FlowExecution;
-import org.jenkinsci.plugins.workflow.graph.BlockEndNode;
-import org.jenkinsci.plugins.workflow.graph.BlockStartNode;
-import org.jenkinsci.plugins.workflow.graph.FlowNode;
-import org.jenkinsci.plugins.workflow.actions.NotExecutedNodeAction;
-import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
-import org.jenkinsci.plugins.workflow.visualization.table.FlowNodeViewColumn;
-import org.jenkinsci.plugins.workflow.visualization.table.FlowNodeViewColumnDescriptor;
-
 import edu.umd.cs.findbugs.annotations.Nullable;
+import hudson.Util;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -20,6 +10,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 import java.util.function.Function;
+import org.jenkinsci.plugins.workflow.actions.BodyInvocationAction;
+import org.jenkinsci.plugins.workflow.actions.LabelAction;
+import org.jenkinsci.plugins.workflow.actions.NotExecutedNodeAction;
+import org.jenkinsci.plugins.workflow.actions.TimingAction;
+import org.jenkinsci.plugins.workflow.flow.FlowExecution;
+import org.jenkinsci.plugins.workflow.graph.AtomNode;
+import org.jenkinsci.plugins.workflow.graph.BlockEndNode;
+import org.jenkinsci.plugins.workflow.graph.BlockStartNode;
+import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.graph.StepNode;
+import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
+import org.jenkinsci.plugins.workflow.visualization.table.FlowNodeViewColumn;
+import org.jenkinsci.plugins.workflow.visualization.table.FlowNodeViewColumnDescriptor;
 
 /**
  * Data model behind the tree list view of a flow graph
@@ -281,7 +284,27 @@ public class FlowGraphTable {
         }
 
         public String getDisplayName() {
-            return node.getDisplayName();
+            if (node instanceof StepNode && node instanceof AtomNode) {
+                // TODO make StepAtomNode.effectiveFunctionName into an API
+                return node.getDisplayFunctionName();
+            } else if (node instanceof StepNode && node instanceof BlockStartNode) {
+                if (node.getAction(BodyInvocationAction.class) != null) {
+                    // TODO cannot access StepAtomNode.effectiveFunctionName from here
+                    List<FlowNode> parents = node.getParents();
+                    if (parents.size() == 1) {
+                        FlowNode start = parents.get(0);
+                        if (start instanceof StepNode && start instanceof BlockStartNode && start.getPersistentAction(BodyInvocationAction.class) == null) {
+                            String base = start.getDisplayFunctionName() + " block";
+                            LabelAction a = node.getPersistentAction(LabelAction.class);
+                            return a != null ? base + " (" + a.getDisplayName() + ")" : base;
+                        }
+                    }
+                } else {
+                    return node.getDisplayFunctionName();
+                }
+            }
+            // Fallback, e.g. FlowStartNode:
+            return node.getDisplayFunctionName();
         }
 
         public boolean isHasStartTime() {

@@ -33,7 +33,7 @@
         <j:set var="columns" value="${it.columns}"/>
         <thead>
           <tr>
-            <th>${%Step}</th>
+            <th width="50%">${%Step}</th>
             <j:forEach var="column" items="${columns}">
               <st:include from="${column}" page="columnHeader"/>
             </j:forEach>
