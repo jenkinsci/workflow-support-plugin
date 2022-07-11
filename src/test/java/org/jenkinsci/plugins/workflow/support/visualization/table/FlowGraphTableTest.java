@@ -122,6 +122,7 @@ public class FlowGraphTableTest {
         FlowGraphTable t = new FlowGraphTable(b.getExecution());
         t.build();
         SemaphoreStep.success("wait/1", null);
+        r.waitForCompletion(b);
         assertThat(t.getRows().stream().map(r -> StringUtils.repeat("  ", r.getTreeDepth()) + r.getDisplayName()).toArray(String[]::new), arrayContaining(
             "Start of Pipeline",
             "  stage",
