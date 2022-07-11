@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.plugins.workflow.support.visualization.table;
 
+import org.apache.commons.lang.StringUtils;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.equalTo;
@@ -121,27 +122,27 @@ public class FlowGraphTableTest {
         FlowGraphTable t = new FlowGraphTable(b.getExecution());
         t.build();
         SemaphoreStep.success("wait/1", null);
-        assertThat(t.getRows().stream().map(FlowGraphTable.Row::getDisplayName).toArray(String[]::new), arrayContaining(
+        assertThat(t.getRows().stream().map(r -> StringUtils.repeat("  ", r.getTreeDepth()) + r.getDisplayName()).toArray(String[]::new), arrayContaining(
             "Start of Pipeline",
-            "stage",
-            "stage block (start)",
-            "echo",
-            "retry",
-            "retry block",
-            "error",
-            "retry block",
-            "error",
-            "retry block",
-            "node",
-            "node block",
-            "isUnix",
-            "stage",
-            "stage block (main)",
-            "parallel",
-            "parallel block (Branch: quick)",
-            "echo",
-            "parallel block (Branch: slow)",
-            "semaphore"));
+            "  stage",
+            "    stage block (start)",
+            "      echo",
+            "      retry",
+            "        retry block",
+            "          error",
+            "        retry block",
+            "          error",
+            "        retry block",
+            "          node",
+            "            node block",
+            "              isUnix",
+            "  stage",
+            "    stage block (main)",
+            "      parallel",
+            "        parallel block (Branch: quick)",
+            "          echo",
+            "        parallel block (Branch: slow)",
+            "          semaphore"));
     }
 
 }
