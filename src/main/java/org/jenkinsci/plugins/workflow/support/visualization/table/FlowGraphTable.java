@@ -21,6 +21,7 @@ import org.jenkinsci.plugins.workflow.graph.BlockStartNode;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.graph.StepNode;
 import org.jenkinsci.plugins.workflow.graphanalysis.DepthFirstScanner;
+import org.jenkinsci.plugins.workflow.graphanalysis.LinearBlockHoppingScanner;
 import org.jenkinsci.plugins.workflow.visualization.table.FlowNodeViewColumn;
 import org.jenkinsci.plugins.workflow.visualization.table.FlowNodeViewColumnDescriptor;
 
@@ -290,9 +291,9 @@ public class FlowGraphTable {
             } else if (node instanceof StepNode && node instanceof BlockStartNode) {
                 if (node.getAction(BodyInvocationAction.class) != null) {
                     // TODO cannot access StepAtomNode.effectiveFunctionName from here
-                    List<FlowNode> parents = node.getParents();
-                    if (parents.size() == 1) {
-                        FlowNode start = parents.get(0);
+                    LinearBlockHoppingScanner scanner = new LinearBlockHoppingScanner();
+                    scanner.setup(node);
+                    for (FlowNode start : scanner) {
                         if (start instanceof StepNode && start instanceof BlockStartNode && start.getPersistentAction(BodyInvocationAction.class) == null) {
                             String base = start.getDisplayFunctionName() + " block";
                             LabelAction a = node.getPersistentAction(LabelAction.class);

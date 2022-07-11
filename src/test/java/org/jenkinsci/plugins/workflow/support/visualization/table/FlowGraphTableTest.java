@@ -23,19 +23,21 @@
  */
 package org.jenkinsci.plugins.workflow.support.visualization.table;
 
+import org.apache.commons.lang.StringUtils;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
+import static org.junit.Assert.fail;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.recipes.LocalData;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.fail;
 
 public class FlowGraphTableTest {
 
@@ -93,6 +95,55 @@ public class FlowGraphTableTest {
         } catch (IllegalStateException e) {
             assertThat(e.getMessage(), equalTo("Saw StepStartNode[id=199, exec=CpsFlowExecution[Owner[test0/1:test0 #1]]] twice when finding siblings of StepStartNode[id=199, exec=CpsFlowExecution[Owner[test0/1:test0 #1]]]"));
         }
+    }
+
+    @Test
+    public void rowDisplayName() throws Exception {
+        WorkflowJob p = r.createProject(WorkflowJob.class);
+        p.setDefinition(new CpsFlowDefinition(
+            "stage('start') {\n" +
+            "  echo 'some message'\n" +
+            "  def i = 0; retry(3) {\n" +
+            "    if (++i < 3) error 'oops'\n" +
+            "    node {\n" +
+            "      isUnix()\n" +
+            "    }\n" +
+            "  }\n" +
+            "}\n" +
+            "stage('main') {\n" +
+            "  parallel quick: {\n" +
+            "    echo 'done'\n" +
+            "  }, slow: {\n" +
+            "    semaphore 'wait'\n" +
+            "  }\n" +
+            "}", true));
+        WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+        SemaphoreStep.waitForStart("wait/1", b);
+        FlowGraphTable t = new FlowGraphTable(b.getExecution());
+        t.build();
+        SemaphoreStep.success("wait/1", null);
+        r.waitForCompletion(b);
+        assertThat(t.getRows().stream().map(r -> StringUtils.repeat("  ", r.getTreeDepth()) + r.getDisplayName()).toArray(String[]::new), arrayContaining(
+            "Start of Pipeline",
+            "  stage",
+            "    stage block (start)",
+            "      echo",
+            "      retry",
+            "        retry block",
+            "          error",
+            "        retry block",
+            "          error",
+            "        retry block",
+            "          node",
+            "            node block",
+            "              isUnix",
+            "  stage",
+            "    stage block (main)",
+            "      parallel",
+            "        parallel block (Branch: quick)",
+            "          echo",
+            "        parallel block (Branch: slow)",
+            "          semaphore"));
     }
 
 }
