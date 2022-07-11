@@ -102,8 +102,11 @@ public class FlowGraphTableTest {
         p.setDefinition(new CpsFlowDefinition(
             "stage('start') {\n" +
             "  echo 'some message'\n" +
-            "  node {\n" +
-            "    isUnix()\n" +
+            "  def i = 0; retry(3) {\n" +
+            "    if (++i < 3) error 'oops'\n" +
+            "    node {\n" +
+            "      isUnix()\n" +
+            "    }\n" +
             "  }\n" +
             "}\n" +
             "stage('main') {\n" +
@@ -123,6 +126,12 @@ public class FlowGraphTableTest {
             "stage",
             "stage block (start)",
             "echo",
+            "retry",
+            "retry block",
+            "error",
+            "{",
+            "error",
+            "{",
             "node",
             "node block",
             "isUnix",
