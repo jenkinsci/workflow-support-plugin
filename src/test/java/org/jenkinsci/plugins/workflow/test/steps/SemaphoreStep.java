@@ -103,12 +103,14 @@ public final class SemaphoreStep extends AbstractStepImpl implements Serializabl
 
     public static void success(String k, Object returnValue) {
         State s = State.get();
-        if (s.contexts.containsKey(k)) {
-            System.err.println("Unblocking " + k + " as success");
-            getContext(s, k).onSuccess(returnValue);
-        } else {
-            System.err.println("Planning to unblock " + k + " as success");
-            s.returnValues.put(k, returnValue);
+        synchronized (s) {
+            if (s.contexts.containsKey(k)) {
+                System.err.println("Unblocking " + k + " as success");
+                getContext(s, k).onSuccess(returnValue);
+            } else {
+                System.err.println("Planning to unblock " + k + " as success");
+                s.returnValues.put(k, returnValue);
+            }
         }
     }
 
@@ -119,12 +121,14 @@ public final class SemaphoreStep extends AbstractStepImpl implements Serializabl
 
     public static void failure(String k, Throwable error) {
         State s = State.get();
-        if (s.contexts.containsKey(k)) {
-            System.err.println("Unblocking " + k + " as failure");
-            getContext(s, k).onFailure(error);
-        } else {
-            System.err.println("Planning to unblock " + k + " as failure");
-            s.errors.put(k, error);
+        synchronized (s) {
+            if (s.contexts.containsKey(k)) {
+                System.err.println("Unblocking " + k + " as failure");
+                getContext(s, k).onFailure(error);
+            } else {
+                System.err.println("Planning to unblock " + k + " as failure");
+                s.errors.put(k, error);
+            }
         }
     }
     
