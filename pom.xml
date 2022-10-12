@@ -33,7 +33,7 @@
     </parent>
     <groupId>org.jenkins-ci.plugins.workflow</groupId>
     <artifactId>workflow-support</artifactId>
-    <version>${changelist}</version>
+    <version>827.${changelist}</version>
     <packaging>hpi</packaging>
     <name>Pipeline: Supporting APIs</name>
     <url>https://github.com/jenkinsci/workflow-support-plugin</url>
