@@ -2,6 +2,8 @@ target
 work
 *.iml
 .idea
-
+/.classpath
+/.project
+/.settings/
 # macOS
 .DS_Store

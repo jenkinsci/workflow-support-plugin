@@ -28,6 +28,10 @@ import hudson.Extension;
 import hudson.console.ConsoleAnnotationDescriptor;
 import hudson.console.HyperlinkNote;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
@@ -80,7 +84,21 @@ public final class POSTHyperlinkNote extends HyperlinkNote {
 
     @Override protected String extraAttributes() {
         // TODO perhaps add hoverNotification
-        return " onclick=\"new Ajax.Request('" + url + "'); return false\"";
+        return " onclick=\"new Ajax.Request(decodeURIComponent(atob('" + encodeForJavascript(url) + "'))); return false\"";
+    }
+
+    /**
+     * Encode the String (using URLEncoding and then base64 encoding) so we can safely pass it to javascript where it can be decoded safely.
+     * Javascript strings are UTF-16 and the endianness depends on the platform so we use URL encoding to ensure the String is all 7bit clean ascii and base64 encoding to fix passing any "unsafe" characters.
+     */
+    private static String encodeForJavascript(String str) {
+        // https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem
+        try {
+            String encode = URLEncoder.encode(str, StandardCharsets.UTF_8.name());
+            return Base64.getUrlEncoder().encodeToString(encode.getBytes(StandardCharsets.UTF_8));
+        } catch (UnsupportedEncodingException e) {
+            throw new InternalError("UTF-8 is missing but mandated by the JVM specification", e);
+        }
     }
 
     // TODO why does there need to be a descriptor at all?
