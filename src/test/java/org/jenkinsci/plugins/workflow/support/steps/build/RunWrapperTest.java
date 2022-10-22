@@ -199,6 +199,23 @@ public class RunWrapperTest {
         });
     }
 
+    @Test public void getCurrentResultOrdinal() {
+        r.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                MockFolder folder = r.j.createFolder("this-folder");
+                WorkflowJob p = folder.createProject(WorkflowJob.class, "current-result-job");
+                p.setDefinition(new CpsFlowDefinition(
+                        "echo \"initial currentBuild.currentResult='${currentBuild.currentResultOrdinal}'\"\n" +
+                        "currentBuild.result = 'UNSTABLE'\n" +
+                        "echo \"final currentBuild.currentResult='${currentBuild.currentResultOrdinal}'\"\n" +
+                        true));
+                WorkflowRun b = r.j.assertBuildStatus(Result.UNSTABLE, p.scheduleBuild2(0).get());
+                r.j.assertLogContains("initial currentBuild.currentResult='" + Result.SUCCESS.ordinal + "'", b);
+                r.j.assertLogContains("final currentBuild.currentResult='" + Result.UNSTABLE.ordinal + "'", b);
+            }
+        });
+    }
+
     @Issue("JENKINS-36528")
     @Test public void freestyleEnvVars() throws Throwable {
         sessions.then(j -> {

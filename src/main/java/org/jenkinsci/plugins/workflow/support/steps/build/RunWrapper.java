@@ -192,6 +192,12 @@ public final class RunWrapper implements Serializable {
     }
 
     @Whitelisted
+    public @Nonnull int getCurrentResultOrdinal() throws AbortException {
+        Result result = build().getResult();
+        return result != null ? result.ordinal : Result.SUCCESS.ordinal;
+    }
+
+    @Whitelisted
     public boolean resultIsBetterOrEqualTo(String other) throws AbortException {
         Result result = build().getResult();
         if (result == null) {
