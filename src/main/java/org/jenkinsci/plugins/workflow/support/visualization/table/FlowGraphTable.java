@@ -262,7 +262,7 @@ public class FlowGraphTable {
 
         private Row(FlowNode node) {
             this.node = node;
-            TimingAction act = node.getAction(TimingAction.class);
+            TimingAction act = node.getPersistentAction(TimingAction.class);
             if (act != null) {
                 this.startTimeMillis = act.getStartTime();
                 this.hasStartTime = true;
@@ -289,7 +289,7 @@ public class FlowGraphTable {
                 // TODO make StepAtomNode.effectiveFunctionName into an API
                 return node.getDisplayFunctionName();
             } else if (node instanceof StepNode && node instanceof BlockStartNode) {
-                if (node.getAction(BodyInvocationAction.class) != null) {
+                if (node.getPersistentAction(BodyInvocationAction.class) != null) {
                     // TODO cannot access StepAtomNode.effectiveFunctionName from here
                     LinearBlockHoppingScanner scanner = new LinearBlockHoppingScanner();
                     scanner.setup(node);
