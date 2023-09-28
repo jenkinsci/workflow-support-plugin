@@ -57,6 +57,8 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import org.apache.commons.io.FileUtils;
 
 import org.jboss.marshalling.ByteInput;
+import org.jboss.marshalling.reflect.SerializableClassRegistry;
+import org.jboss.marshalling.river.RiverUnmarshaller;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.Whitelist;
 import org.jenkinsci.plugins.scriptsecurity.sandbox.groovy.GroovySandbox;
 import org.kohsuke.accmod.Restricted;
@@ -151,7 +153,7 @@ public class RiverReader implements Closeable {
         config.setClassResolver(new SimpleClassResolver(classLoader));
         //config.setSerializabilityChecker(new SerializabilityCheckerImpl());
         config.setObjectResolver(combine(evr, ownerResolver));
-        Unmarshaller eu = new RiverMarshallerFactory().createUnmarshaller(config);
+        Unmarshaller eu = new TracingRiverMarshallerFactory().createUnmarshaller(config);
         eu.start(Marshalling.createByteInput(din));
 
         final Unmarshaller sandboxed = new SandboxedUnmarshaller(eu);
@@ -371,6 +373,61 @@ public class RiverReader implements Closeable {
             return delegate.readUTF();
         }
 
+    }
+
+    /**
+     * Intercepts {@link StackOverflowError} and tries to record the chain of object classes which led to it.
+     */
+    private static final class TracingRiverMarshallerFactory extends RiverMarshallerFactory {
+        @Override public Unmarshaller createUnmarshaller(MarshallingConfiguration configuration) throws IOException {
+            return new RiverUnmarshaller(this, SerializableClassRegistry.getInstance(), configuration) {
+                int depth = 0;
+                StackOverflowError err;
+                List<String> trace = new ArrayList<>();
+                @Override protected Object doReadNewObject(int streamClassType, boolean unshared, boolean discardMissing) throws ClassNotFoundException, IOException {
+                    depth++;
+                    Object o;
+                    try {
+                        o = super.doReadNewObject(streamClassType, unshared, discardMissing);
+                    } catch (StackOverflowError x) {
+                        // Will cause a StreamCorruptionError eventually, but not before we capture the parent objects:
+                        o = null;
+                        err = x;
+                    } finally {
+                        depth--;
+                    }
+                    if (o != null) {
+                        trace.add(" ".repeat(depth) + o.getClass().getName());
+                    }
+                    return o;
+                }
+
+                @Override protected Object doReadObject(boolean unshared) throws ClassNotFoundException, IOException {
+                    Object o;
+                    try {
+                        o = super.doReadObject(unshared);
+                    } catch (ClassNotFoundException | IOException | RuntimeException | Error x) {
+                        if (err != null) {
+                            dumpTrace();
+                            x.addSuppressed(err);
+                        }
+                        throw x;
+                    }
+                    if (err != null) {
+                        dumpTrace();
+                        throw err;
+                    }
+                    trace.clear();
+                    return o;
+                }
+
+                void dumpTrace() {
+                    for (String line : trace) {
+                        LOGGER.log(Level.WARNING, "StackOverflowError trace: {0}", line);
+                    }
+                }
+            };
+        }
     }
 
 }
