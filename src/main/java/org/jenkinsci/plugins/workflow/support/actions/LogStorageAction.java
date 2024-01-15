@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.support.actions;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.console.AnnotatedLargeText;
 import hudson.model.TaskListener;
 import java.io.IOException;
@@ -47,6 +48,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 @Restricted(NoExternalUse.class) // for use from DefaultStepContext only
 public class LogStorageAction extends LogAction implements FlowNodeAction, PersistentAction {
 
+    @SuppressFBWarnings(value="PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification="Retain API compatibility.")
     public transient FlowNode node;
 
     private LogStorageAction(FlowNode node) {
