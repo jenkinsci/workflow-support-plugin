@@ -48,7 +48,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 @Restricted(NoExternalUse.class) // for use from DefaultStepContext only
 public class LogStorageAction extends LogAction implements FlowNodeAction, PersistentAction {
 
-    @SuppressFBWarnings(value="PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification="Retain API compatibility.")
+    @SuppressFBWarnings(value="PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification="TODO clean up")
     public transient FlowNode node;
 
     private LogStorageAction(FlowNode node) {
