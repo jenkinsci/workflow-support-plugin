@@ -45,18 +45,18 @@ public class PauseActionTest {
             }
         };
 
-        Assert.assertEquals(false, PauseAction.isPaused(flowNode));
+        Assert.assertFalse(PauseAction.isPaused(flowNode));
         Assert.assertEquals(0L, PauseAction.getPauseDuration(flowNode));
 
         flowNode.addAction(new PauseAction("P1"));
         PauseAction firstPause = PauseAction.getCurrentPause(flowNode);
         Assert.assertEquals("P1", firstPause.getCause());
-        Assert.assertEquals(true, PauseAction.isPaused(flowNode));
+        Assert.assertTrue(PauseAction.isPaused(flowNode));
         Thread.sleep(200);
         Assert.assertTrue(PauseAction.getPauseDuration(flowNode) > 100L);
 
         PauseAction.endCurrentPause(flowNode);
-        Assert.assertEquals(false, PauseAction.isPaused(flowNode));
+        Assert.assertFalse(PauseAction.isPaused(flowNode));
         long firstPauseDuration = firstPause.getPauseDuration();
 
         Thread.sleep(200);
@@ -65,12 +65,12 @@ public class PauseActionTest {
         flowNode.addAction(new PauseAction("P2"));
         PauseAction secondPause = PauseAction.getCurrentPause(flowNode);
         Assert.assertEquals("P2", secondPause.getCause());
-        Assert.assertEquals(true, PauseAction.isPaused(flowNode));
+        Assert.assertTrue(PauseAction.isPaused(flowNode));
         Thread.sleep(200);
         Assert.assertTrue(PauseAction.getPauseDuration(flowNode) > firstPauseDuration);
 
         PauseAction.endCurrentPause(flowNode);
-        Assert.assertEquals(false, PauseAction.isPaused(flowNode));
+        Assert.assertFalse(PauseAction.isPaused(flowNode));
         long secondPauseDuration = secondPause.getPauseDuration();
 
         Thread.sleep(200);
