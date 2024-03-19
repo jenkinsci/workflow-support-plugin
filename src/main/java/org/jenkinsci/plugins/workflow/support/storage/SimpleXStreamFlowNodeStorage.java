@@ -156,7 +156,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     /** Force persisting any nodes that had writing deferred */
     @Override
     public void flush() throws IOException {
-        if (deferredWrite != null && deferredWrite.isEmpty() == false) {
+        if (deferredWrite != null && !deferredWrite.isEmpty()) {
             Collection<FlowNode> toWrite = deferredWrite.values();
             for (FlowNode f : toWrite) {
                 writeNode(f, f.getActions());
