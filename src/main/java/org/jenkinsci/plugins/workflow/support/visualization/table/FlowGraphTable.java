@@ -218,8 +218,7 @@ public class FlowGraphTable {
             }
         }
 
-        for (int i=0; i<rows.size(); i++) {
-            Row newRow = rows.get(i);
+        for (Row newRow : rows) {
             if (newRow.durationMillis == 0 && newRow.hasStartTime) {
                 if (newRow.node instanceof BlockStartNode && newRow.endNode == null) { // Block is running & incomplete
                     newRow.durationMillis = System.currentTimeMillis()-newRow.startTimeMillis;
