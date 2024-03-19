@@ -129,7 +129,7 @@ public class RiverReader implements Closeable {
 
     @Deprecated
     public ListenableFuture<Unmarshaller> restorePickles() throws IOException {
-        return restorePickles(new ArrayList<ListenableFuture<?>>());
+        return restorePickles(new ArrayList<>());
     }
 
     /**
@@ -160,7 +160,7 @@ public class RiverReader implements Closeable {
         final Unmarshaller sandboxed = new SandboxedUnmarshaller(eu);
 
         // start rehydrating, and when done make the unmarshaller available
-        return Futures.transform(evr.rehydrate(pickleFutures), new Function<PickleResolver, Unmarshaller>() {
+        return Futures.transform(evr.rehydrate(pickleFutures), new Function<>() {
             @Override
             public Unmarshaller apply(PickleResolver input) {
                 return sandboxed;

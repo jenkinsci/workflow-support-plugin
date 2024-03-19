@@ -139,7 +139,7 @@ public class PauseAction extends InvisibleAction implements PersistentAction {
      * @return The {@link PauseAction} instances for the supplied node. Returns an empty list if there are none.
      */
     public static @NonNull List<PauseAction> getPauseActions(@NonNull FlowNode node) {
-        List<PauseAction> pauseActions = new ArrayList<PauseAction>();
+        List<PauseAction> pauseActions = new ArrayList<>();
         List<Action> actions = node.getActions();
 
         for (Action action : actions) {

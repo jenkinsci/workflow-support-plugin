@@ -138,7 +138,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
             ps.println("Failed to find log file for id="+parent.getId());
             e.printStackTrace(ps);
             ps.close();
-            return new AnnotatedLargeText<FlowNode>(buf, StandardCharsets.UTF_8, true, parent);
+            return new AnnotatedLargeText<>(buf, StandardCharsets.UTF_8, true, parent);
         }
     }
 

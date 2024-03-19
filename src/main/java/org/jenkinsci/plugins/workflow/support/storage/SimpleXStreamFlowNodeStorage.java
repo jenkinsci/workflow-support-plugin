@@ -112,11 +112,11 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     public void storeNode(@NonNull FlowNode n, boolean delayWritingActions) throws IOException {
         if (delayWritingActions) {
             if (deferredWrite == null) {
-                deferredWrite = new HashMap<String, FlowNode>();
+                deferredWrite = new HashMap<>();
             }
             deferredWrite.put(n.getId(), n);
             if (delayAutopersistIds == null) {
-                delayAutopersistIds = new HashSet<String>(2);
+                delayAutopersistIds = new HashSet<>(2);
             }
             delayAutopersistIds.add(n.getId());
         } else {  // Flush, not that we still have to explicitly toggle autopersist for the node
@@ -173,7 +173,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     public List<Action> loadActions(@NonNull FlowNode node) throws IOException {
 
         if (!getNodeFile(node.getId()).exists()) {
-            return new ArrayList<Action>(); // not yet saved
+            return new ArrayList<>(); // not yet saved
         }
         return load(node.getId()).actions();
     }
@@ -273,7 +273,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
                         if (parents != null) {
                             @SuppressWarnings("unchecked") List<String> parentIds = (List<String>) FlowNode$parentIds.get(n);
                             assert parentIds == null;
-                            parentIds = new ArrayList<String>(parents.size());
+                            parentIds = new ArrayList<>(parents.size());
                             for (FlowNode parent : parents) {
                                 String id = ids.get(parent);
                                 assert id != null;

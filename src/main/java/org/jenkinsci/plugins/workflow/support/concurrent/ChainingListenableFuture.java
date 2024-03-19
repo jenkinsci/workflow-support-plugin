@@ -37,7 +37,7 @@ class ChainingListenableFuture<I, O>
   private ListenableFuture<? extends I> inputFuture;
   private volatile ListenableFuture<? extends O> outputFuture;
   private final BlockingQueue<Boolean> mayInterruptIfRunningChannel =
-      new LinkedBlockingQueue<Boolean>(1);
+      new LinkedBlockingQueue<>(1);
   private final CountDownLatch outputCreated = new CountDownLatch(1);
 
   ChainingListenableFuture(

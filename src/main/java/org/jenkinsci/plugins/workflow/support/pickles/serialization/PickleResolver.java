@@ -69,7 +69,7 @@ public class PickleResolver implements ObjectResolver {
 
     @Deprecated
     public ListenableFuture<PickleResolver> rehydrate() {
-        return rehydrate(new ArrayList<ListenableFuture<?>>());
+        return rehydrate(new ArrayList<>());
     }
 
     public ListenableFuture<PickleResolver> rehydrate(Collection<ListenableFuture<?>> pickleFutures) {
@@ -78,7 +78,7 @@ public class PickleResolver implements ObjectResolver {
             return Futures.immediateFuture(this);
         }
 
-        List<ListenableFuture<?>> members = new ArrayList<ListenableFuture<?>>();
+        List<ListenableFuture<?>> members = new ArrayList<>();
         for (Pickle r : pickles) {
             // TODO log("rehydrating " + r);
             ListenableFuture<?> future;
@@ -98,7 +98,7 @@ public class PickleResolver implements ObjectResolver {
 
         ListenableFuture<List<Object>> all = Futures.allAsList(members);
 
-        return Futures.transform(all,new Function<List<Object>, PickleResolver>() {
+        return Futures.transform(all,new Function<>() {
             @Override
             public PickleResolver apply(List<Object> input) {
                 values = input;

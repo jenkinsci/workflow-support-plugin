@@ -57,7 +57,7 @@ public class RiverWriterTest {
         }
         Object o;
         try (RiverReader r = new RiverReader(f, RiverWriterTest.class.getClassLoader(), owner)) {
-            o = r.restorePickles(new ArrayList<ListenableFuture<?>>()).get().readObject();
+            o = r.restorePickles(new ArrayList<>()).get().readObject();
         }
         assertEquals(Collections.singletonList("hello world"), o);
     }

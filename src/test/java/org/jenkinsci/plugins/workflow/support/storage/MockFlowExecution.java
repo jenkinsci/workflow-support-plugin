@@ -23,7 +23,7 @@ import java.util.List;
  */
  class MockFlowExecution extends FlowExecution {
 
-    List<FlowNode> heads = new ArrayList<FlowNode>();
+    List<FlowNode> heads = new ArrayList<>();
     transient FlowNodeStorage storage;
 
     MockFlowExecution(@NonNull FlowNodeStorage storage) {

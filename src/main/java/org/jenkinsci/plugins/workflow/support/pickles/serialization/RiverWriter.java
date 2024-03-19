@@ -87,7 +87,7 @@ public class RiverWriter implements Closeable {
     /**
      * Persisted form of stateful objects that need special handling during rehydration.
      */
-    List<Pickle> pickles = new ArrayList<Pickle>();
+    List<Pickle> pickles = new ArrayList<>();
 
     @Deprecated
     public RiverWriter(File f, FlowExecutionOwner _owner) throws IOException {

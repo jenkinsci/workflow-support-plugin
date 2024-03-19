@@ -79,7 +79,7 @@ public class FlowGraphTable {
         scanner.setup(heads);
 
         // nodes that we've visited
-        final Map<FlowNode,Row> rows = new LinkedHashMap<FlowNode, Row>();
+        final Map<FlowNode,Row> rows = new LinkedHashMap<>();
 
         for (FlowNode n : scanner) {
             Row row = new Row(n);
@@ -176,7 +176,7 @@ public class FlowGraphTable {
     private void buildTreeDepth(Row r) {
         r.treeDepth = 0;
 
-        Stack<Row> q = new Stack<Row>();
+        Stack<Row> q = new Stack<>();
         q.add(r);
 
         while (!q.isEmpty()) {
@@ -196,9 +196,9 @@ public class FlowGraphTable {
      * Order tree into a sequence.
      */
     private List<Row> order(Row r) {
-        List<Row> rows = new ArrayList<Row>();
+        List<Row> rows = new ArrayList<>();
 
-        Stack<Row> ancestors = new Stack<Row>();
+        Stack<Row> ancestors = new Stack<>();
 
         while (true) {
             rows.add(r);

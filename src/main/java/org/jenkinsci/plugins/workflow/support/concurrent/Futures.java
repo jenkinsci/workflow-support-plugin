@@ -293,7 +293,7 @@ public abstract class Futures {
             AsyncFunction<? super I, ? extends O> function,
             Executor executor) {
         ChainingListenableFuture<I, O> output =
-                new ChainingListenableFuture<I, O>(function, input);
+                new ChainingListenableFuture<>(function, input);
         input.addListener(output, executor);
         return output;
     }
@@ -399,7 +399,7 @@ public abstract class Futures {
         final Function<? super I, ? extends O> function, Executor executor) {
       checkNotNull(function);
       AsyncFunction<I, O> wrapperFunction
-          = new AsyncFunction<I, O>() {
+          = new AsyncFunction<>() {
               @Override public ListenableFuture<O> apply(I input) {
                 O output = function.apply(input);
                 return immediateFuture(output);
@@ -427,7 +427,7 @@ public abstract class Futures {
     @Beta
     public static <V> ListenableFuture<List<V>> allAsList(
         ListenableFuture<? extends V>... futures) {
-      return new ListFuture<V>(ImmutableList.copyOf(futures), true,
+      return new ListFuture<>(ImmutableList.copyOf(futures), true,
           MoreExecutors.directExecutor());
     }
 
@@ -450,7 +450,7 @@ public abstract class Futures {
     @Beta
     public static <V> ListenableFuture<List<V>> allAsList(
         Iterable<? extends ListenableFuture<? extends V>> futures) {
-      return new ListFuture<V>(ImmutableList.copyOf(futures), true,
+      return new ListFuture<>(ImmutableList.copyOf(futures), true,
           MoreExecutors.directExecutor());
     }
 }
