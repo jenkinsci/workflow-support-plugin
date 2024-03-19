@@ -28,7 +28,6 @@ import hudson.Extension;
 import hudson.console.ConsoleAnnotationDescriptor;
 import hudson.console.HyperlinkNote;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;

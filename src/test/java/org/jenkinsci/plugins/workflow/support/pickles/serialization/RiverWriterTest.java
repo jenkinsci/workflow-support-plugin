@@ -24,7 +24,6 @@
 
 package org.jenkinsci.plugins.workflow.support.pickles.serialization;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import hudson.Functions;
 import java.io.File;
 import java.io.NotSerializableException;
@@ -34,7 +33,6 @@ import java.util.Collections;
 import java.util.logging.Level;
 import static org.hamcrest.Matchers.containsString;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
-import org.jenkinsci.plugins.workflow.pickles.PickleFactory;
 import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;

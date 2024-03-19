@@ -2,7 +2,6 @@ package org.jenkinsci.plugins.workflow.support.storage;
 
 import hudson.model.Action;
 import hudson.model.Result;
-import hudson.model.Saveable;
 import hudson.security.ACL;
 import jenkins.model.CauseOfInterruption;
 import org.acegisecurity.Authentication;
