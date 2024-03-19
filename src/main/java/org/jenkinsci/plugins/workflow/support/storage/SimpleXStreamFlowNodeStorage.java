@@ -242,7 +242,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         }
 
         public @NonNull List<Action> actions() {
-            return actions != null ? Arrays.asList(actions) : Collections.<Action>emptyList();
+            return actions != null ? Arrays.asList(actions) : Collections.emptyList();
         }
     }
 

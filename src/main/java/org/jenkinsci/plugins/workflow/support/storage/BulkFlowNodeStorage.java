@@ -190,7 +190,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
     @Override
     public List<Action> loadActions(@NonNull FlowNode node) throws IOException {
         Tag t = getOrLoadNodes().get(node.getId());
-        return (t != null) ? t.actions() : Collections.<Action>emptyList();
+        return (t != null) ? t.actions() : Collections.emptyList();
     }
 
     /**
@@ -238,7 +238,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
         }
 
         public @NonNull List<Action> actions() {
-            return actions != null ? Arrays.asList(actions) : Collections.<Action>emptyList();
+            return actions != null ? Arrays.asList(actions) : Collections.emptyList();
         }
     }
 

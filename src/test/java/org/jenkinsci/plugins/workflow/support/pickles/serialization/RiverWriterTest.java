@@ -52,7 +52,7 @@ public class RiverWriterTest {
     @Test public void trivial() throws Exception {
         File f = tmp.newFile();
         FlowExecutionOwner owner = FlowExecutionOwner.dummyOwner();
-        try (RiverWriter w = new RiverWriter(f, owner, Collections.<PickleFactory>emptySet())) {
+        try (RiverWriter w = new RiverWriter(f, owner, Collections.emptySet())) {
             w.writeObject(Collections.singletonList("hello world"));
         }
         Object o;
@@ -66,7 +66,7 @@ public class RiverWriterTest {
     @Test public void errors() throws Exception {
         File f = tmp.newFile();
         FlowExecutionOwner owner = FlowExecutionOwner.dummyOwner();
-        try (RiverWriter w = new RiverWriter(f, owner, Collections.<PickleFactory>emptySet())) {
+        try (RiverWriter w = new RiverWriter(f, owner, Collections.emptySet())) {
             w.writeObject(Collections.singletonList(new NotActuallySerializable()));
             fail();
         } catch (NotSerializableException x) {
