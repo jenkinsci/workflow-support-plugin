@@ -134,11 +134,7 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
         } catch (IOException e) {
             ByteBuffer buf = new ByteBuffer();
             PrintStream ps;
-            try {
-                ps = new PrintStream(buf, false, "UTF-8");
-            } catch (UnsupportedEncodingException x) {
-                throw new AssertionError(x);
-            }
+            ps = new PrintStream(buf, false, StandardCharsets.UTF_8);
             ps.println("Failed to find log file for id="+parent.getId());
             e.printStackTrace(ps);
             ps.close();
