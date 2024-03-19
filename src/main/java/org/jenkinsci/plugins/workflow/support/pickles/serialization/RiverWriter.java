@@ -112,10 +112,12 @@ public class RiverWriter implements Closeable {
         MarshallingConfiguration config = new MarshallingConfiguration();
         //config.setSerializabilityChecker(new SerializabilityCheckerImpl());
         config.setObjectResolver(new ObjectResolver() {
+            @Override
             public Object readResolve(Object o) {
                 throw new IllegalStateException();
             }
 
+            @Override
             public Object writeReplace(Object o) {
                 if (o == owner) {
                     return new DryOwner();
@@ -163,6 +165,7 @@ public class RiverWriter implements Closeable {
         return marshaller;
     }
 
+    @Override
     public void close() throws IOException {
         int ephemeralsOffset;
         try {

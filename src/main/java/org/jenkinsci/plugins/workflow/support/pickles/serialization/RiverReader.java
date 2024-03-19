@@ -161,6 +161,7 @@ public class RiverReader implements Closeable {
 
         // start rehydrating, and when done make the unmarshaller available
         return Futures.transform(evr.rehydrate(pickleFutures), new Function<PickleResolver, Unmarshaller>() {
+            @Override
             public Unmarshaller apply(PickleResolver input) {
                 return sandboxed;
             }

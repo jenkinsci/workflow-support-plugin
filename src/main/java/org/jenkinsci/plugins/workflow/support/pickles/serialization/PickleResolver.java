@@ -99,6 +99,7 @@ public class PickleResolver implements ObjectResolver {
         ListenableFuture<List<Object>> all = Futures.allAsList(members);
 
         return Futures.transform(all,new Function<List<Object>, PickleResolver>() {
+            @Override
             public PickleResolver apply(List<Object> input) {
                 values = input;
                 return PickleResolver.this;
@@ -106,6 +107,7 @@ public class PickleResolver implements ObjectResolver {
         });
     }
 
+    @Override
     public Object readResolve(Object o) {
         if (o instanceof DryCapsule) {
             DryCapsule cap = (DryCapsule) o;
@@ -114,6 +116,7 @@ public class PickleResolver implements ObjectResolver {
         return o;
     }
 
+    @Override
     public Object writeReplace(Object original) {
         // only meant to be used for deserialization
         throw new IllegalStateException();
