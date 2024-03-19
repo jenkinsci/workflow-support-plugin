@@ -260,11 +260,11 @@ public class RiverReader implements Closeable {
         }
 
         @Override public Object readObject() throws ClassNotFoundException, IOException {
-            return sandbox(() -> delegate.readObject());
+            return sandbox(delegate::readObject);
         }
 
         @Override public Object readObjectUnshared() throws ClassNotFoundException, IOException {
-            return sandbox(() -> delegate.readObjectUnshared());
+            return sandbox(delegate::readObjectUnshared);
         }
 
         @Override public <T> T readObject(Class<T> type) throws ClassNotFoundException, IOException {

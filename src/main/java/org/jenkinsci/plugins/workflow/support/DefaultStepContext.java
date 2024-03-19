@@ -201,7 +201,7 @@ public abstract class DefaultStepContext extends StepContext {
                         .filter(e -> e instanceof PasswordParameterValue
                                         && !((Secret) e.getValue()).getPlainText().isEmpty())
                         .map(ParameterValue::getName)
-                        .collect(Collectors.toCollection(() -> new HashSet<>())); // Make sure the set is serializable.
+                        .collect(Collectors.toCollection(HashSet::new)); // Make sure the set is serializable.
             } else {
                 passwordParameterVariables = Collections.emptySet();
             }
