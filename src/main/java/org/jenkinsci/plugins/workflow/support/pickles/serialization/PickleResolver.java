@@ -74,8 +74,9 @@ public class PickleResolver implements ObjectResolver {
 
     public ListenableFuture<PickleResolver> rehydrate(Collection<ListenableFuture<?>> pickleFutures) {
         // if there's nothing to rehydrate, we are done
-        if (pickles.isEmpty())
+        if (pickles.isEmpty()) {
             return Futures.immediateFuture(this);
+        }
 
         List<ListenableFuture<?>> members = new ArrayList<ListenableFuture<?>>();
         for (Pickle r : pickles) {

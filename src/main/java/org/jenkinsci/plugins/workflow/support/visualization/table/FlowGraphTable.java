@@ -100,9 +100,9 @@ public class FlowGraphTable {
                 rows.get(p).addGraphChild(r);
             }
             if (n.getParents().isEmpty()) {
-                if (firstRow==null)
+                if (firstRow == null) {
                     firstRow = r;
-                else {
+                } else {
                     // in an unlikely case when we find multiple head nodes,
                     // treat them all as siblings
                     firstRow.addGraphSibling(r);
@@ -203,16 +203,17 @@ public class FlowGraphTable {
         while (true) {
             rows.add(r);
 
-            if (r.firstTreeChild!=null) {
-                if (r.nextTreeSibling!=null)
+            if (r.firstTreeChild != null) {
+                if (r.nextTreeSibling != null) {
                     ancestors.push(r.nextTreeSibling);
+                }
                 r = r.firstTreeChild;
-            } else
-            if (r.nextTreeSibling!=null) {
+            } else if (r.nextTreeSibling != null) {
                 r = r.nextTreeSibling;
             } else {
-                if (ancestors.isEmpty())
+                if (ancestors.isEmpty()) {
                     break;
+                }
                 r = ancestors.pop();
             }
         }
@@ -353,7 +354,7 @@ public class FlowGraphTable {
         }
 
         void addGraphChild(Row r) {
-            if (firstGraphChild ==null) {
+            if (firstGraphChild == null) {
                 firstGraphChild = r;
             } else {
                 firstGraphChild.addGraphSibling(r);
@@ -371,17 +372,21 @@ public class FlowGraphTable {
         }
 
         void addTreeChild(Row r) {
-            if (r.isEnd())  return;
+            if (r.isEnd()) {
+                return;
+            }
 
-            if (firstTreeChild ==null)
+            if (firstTreeChild == null) {
                 firstTreeChild = r;
-            else {
+            } else {
                 firstTreeChild.addTreeSibling(r);
             }
         }
 
         void addTreeSibling(Row r) {
-            if (r.isEnd())  return;
+            if (r.isEnd()) {
+                return;
+            }
 
             Row s = findLastSibling(this, Row::getNextTreeSibling);
             s.nextTreeSibling = r;

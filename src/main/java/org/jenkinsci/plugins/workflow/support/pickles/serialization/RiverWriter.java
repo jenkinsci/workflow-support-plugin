@@ -117,8 +117,9 @@ public class RiverWriter implements Closeable {
             }
 
             public Object writeReplace(Object o) {
-                if (o==owner)
+                if (o == owner) {
                     return new DryOwner();
+                }
 
                 if (pickling) {
                     for (PickleFactory f : pickleFactories) {

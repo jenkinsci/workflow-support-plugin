@@ -150,8 +150,9 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
      * The actual log file.
      */
     private File getLogFile() throws IOException {
-        if (log==null)
+        if (log == null) {
             log = new File(parent.getExecution().getOwner().getRootDir(), parent.getId() + ".log");
+        }
         return log;
     }
 
@@ -162,8 +163,9 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
     @Restricted(DoNotUse.class) // Jelly
     public void writeLogTo(long offset, XMLOutput out) throws IOException {
         AnnotatedLargeText l = getLogText();
-        if (l!=null)
+        if (l != null) {
             l.writeHtmlTo(offset, out.asWriter());
+        }
     }
 
     @Override

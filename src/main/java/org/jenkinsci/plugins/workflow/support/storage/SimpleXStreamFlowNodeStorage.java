@@ -169,8 +169,9 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
 
     public List<Action> loadActions(@NonNull FlowNode node) throws IOException {
 
-        if (!getNodeFile(node.getId()).exists())
+        if (!getNodeFile(node.getId()).exists()) {
             return new ArrayList<Action>(); // not yet saved
+        }
         return load(node.getId()).actions();
     }
 

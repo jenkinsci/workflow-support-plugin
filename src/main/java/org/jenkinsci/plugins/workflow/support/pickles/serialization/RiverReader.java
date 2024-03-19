@@ -90,8 +90,9 @@ public class RiverReader implements Closeable {
     private ObjectResolver ownerResolver = new ObjectResolver() {
         @Override
         public Object readResolve(Object replacement) {
-            if (replacement instanceof DryOwner)
+            if (replacement instanceof DryOwner) {
                 return owner;
+            }
             return replacement;
         }
 
@@ -114,12 +115,14 @@ public class RiverReader implements Closeable {
     }
 
     private int parseHeader(DataInputStream din) throws IOException {
-        if (din.readLong()!= RiverWriter.HEADER)
+        if (din.readLong() != RiverWriter.HEADER) {
             throw new IOException("Invalid stream header");
+        }
 
         short v = din.readShort();
-        if (v!= RiverWriter.VERSION)
+        if (v != RiverWriter.VERSION) {
             throw new IOException("Unexpected stream version: "+v);
+        }
 
         return din.readInt();
     }

@@ -146,8 +146,11 @@ public abstract class DefaultStepContext extends StepContext {
     }
 
     private <T> T castOrNull(Class<T> key, Object o) {
-        if (key.isInstance(o))  return key.cast(o);
-        else                    return null;
+        if (key.isInstance(o)) {
+            return key.cast(o);
+        } else {
+            return null;
+        }
     }
 
     private @CheckForNull Launcher makeLauncher(@CheckForNull Launcher contextual) throws IOException, InterruptedException {
