@@ -83,7 +83,9 @@ public abstract class TryRepeatedly<V> extends AbstractFuture<V> {
     }
 
     private void tryLater(int currentDelay) {
-        if (isCancelled())      return;
+        if (isCancelled()) {
+            return;
+        }
 
         next = Timer.get().schedule(new Runnable() {
             @Override

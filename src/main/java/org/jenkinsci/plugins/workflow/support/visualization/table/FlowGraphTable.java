@@ -79,7 +79,7 @@ public class FlowGraphTable {
         scanner.setup(heads);
 
         // nodes that we've visited
-        final Map<FlowNode,Row> rows = new LinkedHashMap<FlowNode, Row>();
+        final Map<FlowNode,Row> rows = new LinkedHashMap<>();
 
         for (FlowNode n : scanner) {
             Row row = new Row(n);
@@ -100,9 +100,9 @@ public class FlowGraphTable {
                 rows.get(p).addGraphChild(r);
             }
             if (n.getParents().isEmpty()) {
-                if (firstRow==null)
+                if (firstRow == null) {
                     firstRow = r;
-                else {
+                } else {
                     // in an unlikely case when we find multiple head nodes,
                     // treat them all as siblings
                     firstRow.addGraphSibling(r);
@@ -176,7 +176,7 @@ public class FlowGraphTable {
     private void buildTreeDepth(Row r) {
         r.treeDepth = 0;
 
-        Stack<Row> q = new Stack<Row>();
+        Stack<Row> q = new Stack<>();
         q.add(r);
 
         while (!q.isEmpty()) {
@@ -196,29 +196,29 @@ public class FlowGraphTable {
      * Order tree into a sequence.
      */
     private List<Row> order(Row r) {
-        List<Row> rows = new ArrayList<Row>();
+        List<Row> rows = new ArrayList<>();
 
-        Stack<Row> ancestors = new Stack<Row>();
+        Stack<Row> ancestors = new Stack<>();
 
         while (true) {
             rows.add(r);
 
-            if (r.firstTreeChild!=null) {
-                if (r.nextTreeSibling!=null)
+            if (r.firstTreeChild != null) {
+                if (r.nextTreeSibling != null) {
                     ancestors.push(r.nextTreeSibling);
+                }
                 r = r.firstTreeChild;
-            } else
-            if (r.nextTreeSibling!=null) {
+            } else if (r.nextTreeSibling != null) {
                 r = r.nextTreeSibling;
             } else {
-                if (ancestors.isEmpty())
+                if (ancestors.isEmpty()) {
                     break;
+                }
                 r = ancestors.pop();
             }
         }
 
-        for (int i=0; i<rows.size(); i++) {
-            Row newRow = rows.get(i);
+        for (Row newRow : rows) {
             if (newRow.durationMillis == 0 && newRow.hasStartTime) {
                 if (newRow.node instanceof BlockStartNode && newRow.endNode == null) { // Block is running & incomplete
                     newRow.durationMillis = System.currentTimeMillis()-newRow.startTimeMillis;
@@ -353,7 +353,7 @@ public class FlowGraphTable {
         }
 
         void addGraphChild(Row r) {
-            if (firstGraphChild ==null) {
+            if (firstGraphChild == null) {
                 firstGraphChild = r;
             } else {
                 firstGraphChild.addGraphSibling(r);
@@ -371,17 +371,21 @@ public class FlowGraphTable {
         }
 
         void addTreeChild(Row r) {
-            if (r.isEnd())  return;
+            if (r.isEnd()) {
+                return;
+            }
 
-            if (firstTreeChild ==null)
+            if (firstTreeChild == null) {
                 firstTreeChild = r;
-            else {
+            } else {
                 firstTreeChild.addTreeSibling(r);
             }
         }
 
         void addTreeSibling(Row r) {
-            if (r.isEnd())  return;
+            if (r.isEnd()) {
+                return;
+            }
 
             Row s = findLastSibling(this, Row::getNextTreeSibling);
             s.nextTreeSibling = r;

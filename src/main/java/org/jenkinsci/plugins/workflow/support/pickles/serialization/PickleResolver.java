@@ -69,15 +69,16 @@ public class PickleResolver implements ObjectResolver {
 
     @Deprecated
     public ListenableFuture<PickleResolver> rehydrate() {
-        return rehydrate(new ArrayList<ListenableFuture<?>>());
+        return rehydrate(new ArrayList<>());
     }
 
     public ListenableFuture<PickleResolver> rehydrate(Collection<ListenableFuture<?>> pickleFutures) {
         // if there's nothing to rehydrate, we are done
-        if (pickles.isEmpty())
+        if (pickles.isEmpty()) {
             return Futures.immediateFuture(this);
+        }
 
-        List<ListenableFuture<?>> members = new ArrayList<ListenableFuture<?>>();
+        List<ListenableFuture<?>> members = new ArrayList<>();
         for (Pickle r : pickles) {
             // TODO log("rehydrating " + r);
             ListenableFuture<?> future;
@@ -97,7 +98,8 @@ public class PickleResolver implements ObjectResolver {
 
         ListenableFuture<List<Object>> all = Futures.allAsList(members);
 
-        return Futures.transform(all,new Function<List<Object>, PickleResolver>() {
+        return Futures.transform(all,new Function<>() {
+            @Override
             public PickleResolver apply(List<Object> input) {
                 values = input;
                 return PickleResolver.this;
@@ -105,6 +107,7 @@ public class PickleResolver implements ObjectResolver {
         });
     }
 
+    @Override
     public Object readResolve(Object o) {
         if (o instanceof DryCapsule) {
             DryCapsule cap = (DryCapsule) o;
@@ -113,6 +116,7 @@ public class PickleResolver implements ObjectResolver {
         return o;
     }
 
+    @Override
     public Object writeReplace(Object original) {
         // only meant to be used for deserialization
         throw new IllegalStateException();

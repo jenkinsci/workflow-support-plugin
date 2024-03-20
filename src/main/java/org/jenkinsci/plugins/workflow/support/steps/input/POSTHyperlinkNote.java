@@ -28,7 +28,6 @@ import hudson.Extension;
 import hudson.console.ConsoleAnnotationDescriptor;
 import hudson.console.HyperlinkNote;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -93,12 +92,8 @@ public final class POSTHyperlinkNote extends HyperlinkNote {
      */
     private static String encodeForJavascript(String str) {
         // https://developer.mozilla.org/en-US/docs/Glossary/Base64#the_unicode_problem
-        try {
-            String encode = URLEncoder.encode(str, StandardCharsets.UTF_8.name());
-            return Base64.getUrlEncoder().encodeToString(encode.getBytes(StandardCharsets.UTF_8));
-        } catch (UnsupportedEncodingException e) {
-            throw new InternalError("UTF-8 is missing but mandated by the JVM specification", e);
-        }
+        String encode = URLEncoder.encode(str, StandardCharsets.UTF_8);
+        return Base64.getUrlEncoder().encodeToString(encode.getBytes(StandardCharsets.UTF_8));
     }
 
     // TODO why does there need to be a descriptor at all?

@@ -24,7 +24,6 @@
 
 package org.jenkinsci.plugins.workflow.support.pickles.serialization;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import hudson.Functions;
 import java.io.File;
 import java.io.NotSerializableException;
@@ -34,9 +33,10 @@ import java.util.Collections;
 import java.util.logging.Level;
 import static org.hamcrest.Matchers.containsString;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
-import org.jenkinsci.plugins.workflow.pickles.PickleFactory;
 import org.junit.Test;
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.Issue;
@@ -50,12 +50,12 @@ public class RiverWriterTest {
     @Test public void trivial() throws Exception {
         File f = tmp.newFile();
         FlowExecutionOwner owner = FlowExecutionOwner.dummyOwner();
-        try (RiverWriter w = new RiverWriter(f, owner, Collections.<PickleFactory>emptySet())) {
+        try (RiverWriter w = new RiverWriter(f, owner, Collections.emptySet())) {
             w.writeObject(Collections.singletonList("hello world"));
         }
         Object o;
         try (RiverReader r = new RiverReader(f, RiverWriterTest.class.getClassLoader(), owner)) {
-            o = r.restorePickles(new ArrayList<ListenableFuture<?>>()).get().readObject();
+            o = r.restorePickles(new ArrayList<>()).get().readObject();
         }
         assertEquals(Collections.singletonList("hello world"), o);
     }
@@ -64,7 +64,7 @@ public class RiverWriterTest {
     @Test public void errors() throws Exception {
         File f = tmp.newFile();
         FlowExecutionOwner owner = FlowExecutionOwner.dummyOwner();
-        try (RiverWriter w = new RiverWriter(f, owner, Collections.<PickleFactory>emptySet())) {
+        try (RiverWriter w = new RiverWriter(f, owner, Collections.emptySet())) {
             w.writeObject(Collections.singletonList(new NotActuallySerializable()));
             fail();
         } catch (NotSerializableException x) {

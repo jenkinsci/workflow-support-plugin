@@ -86,9 +86,7 @@ public final class WorkspaceRunAction implements Action {
         }
         List<WorkspaceActionImpl> r = new ArrayList<>();
         for (FlowNode node : new DepthFirstScanner().allNodes(exec)) {
-            for (WorkspaceActionImpl action : node.getActions(WorkspaceActionImpl.class)) {
-                r.add(action);
-            }
+            r.addAll(node.getActions(WorkspaceActionImpl.class));
         }
         Collections.reverse(r);
         return r;

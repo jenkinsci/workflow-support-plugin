@@ -47,6 +47,7 @@ class StorageTestUtils {
             return "atom";
         }
 
+        @Override
         public synchronized void setActions(List<Action> actions) {
             super.setActions(actions);
         }

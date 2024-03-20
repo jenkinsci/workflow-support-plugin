@@ -38,7 +38,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.logging.Level;
@@ -134,15 +133,11 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
         } catch (IOException e) {
             ByteBuffer buf = new ByteBuffer();
             PrintStream ps;
-            try {
-                ps = new PrintStream(buf, false, "UTF-8");
-            } catch (UnsupportedEncodingException x) {
-                throw new AssertionError(x);
-            }
+            ps = new PrintStream(buf, false, StandardCharsets.UTF_8);
             ps.println("Failed to find log file for id="+parent.getId());
             e.printStackTrace(ps);
             ps.close();
-            return new AnnotatedLargeText<FlowNode>(buf, StandardCharsets.UTF_8, true, parent);
+            return new AnnotatedLargeText<>(buf, StandardCharsets.UTF_8, true, parent);
         }
     }
 
@@ -150,8 +145,9 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
      * The actual log file.
      */
     private File getLogFile() throws IOException {
-        if (log==null)
+        if (log == null) {
             log = new File(parent.getExecution().getOwner().getRootDir(), parent.getId() + ".log");
+        }
         return log;
     }
 
@@ -162,8 +158,9 @@ public class LogActionImpl extends LogAction implements FlowNodeAction, Persiste
     @Restricted(DoNotUse.class) // Jelly
     public void writeLogTo(long offset, XMLOutput out) throws IOException {
         AnnotatedLargeText l = getLogText();
-        if (l!=null)
+        if (l != null) {
             l.writeHtmlTo(offset, out.asWriter());
+        }
     }
 
     @Override

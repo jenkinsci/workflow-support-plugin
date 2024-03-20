@@ -43,7 +43,7 @@ import static java.util.Arrays.*;
 public class EphemeralPickleResolverTest extends Assert {
     @Test
     public void resolveNothing() throws Exception {
-        ListenableFuture<?> f = new PickleResolver(new ArrayList<Pickle>()).rehydrate();
+        ListenableFuture<?> f = new PickleResolver(new ArrayList<>()).rehydrate();
         assertSuccessfulCompletion(f);
     }
 
