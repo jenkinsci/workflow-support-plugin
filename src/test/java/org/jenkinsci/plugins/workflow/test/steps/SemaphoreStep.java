@@ -30,7 +30,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -78,11 +77,7 @@ public final class SemaphoreStep extends Step implements Serializable {
             iota.put(id, number);
             return number;
         }
-        /** map from {@link #k} to serial form of {@link StepContext} */
-        final Map<String,String> contexts = new HashMap<>();
-        final Map<String,Object> returnValues = new HashMap<>();
-        final Map<String,Throwable> errors = new HashMap<>();
-        final Set<String> started = new HashSet<>();
+        final Map<String,KeyState> keyStates = new HashMap<>();
     }
 
     private final String id;
@@ -112,12 +107,16 @@ public final class SemaphoreStep extends Step implements Serializable {
         State s = State.get();
         StepContext c;
         synchronized (s) {
-            if (!s.contexts.containsKey(k)) {
+            KeyState keyState = s.keyStates.get(k);
+            if (keyState == null) {
                 LOGGER.info(() -> "Planning to unblock " + k + " as success");
-                s.returnValues.put(k, returnValue);
+                s.keyStates.put(k, new ImmediateSuccessState(returnValue));
                 return;
+            } else if (keyState instanceof StartedState) {
+                c = getContext(s, k);
+            } else {
+                throw new IllegalStateException("Cannot mark " + k + " as success from state " + keyState);
             }
-            c = getContext(s, k);
         }
         LOGGER.info(() -> "Unblocking " + k + " as success");
         c.onSuccess(returnValue);
@@ -134,12 +133,16 @@ public final class SemaphoreStep extends Step implements Serializable {
         State s = State.get();
         StepContext c;
         synchronized (s) {
-            if (!s.contexts.containsKey(k)) {
+            Object keyState = s.keyStates.get(k);
+            if (keyState == null) {
                 LOGGER.info(() -> "Planning to unblock " + k + " as failure");
-                s.errors.put(k, error);
+                s.keyStates.put(k, new ImmediateFailureState(error));
                 return;
+            } else if (keyState instanceof StartedState) {
+                c = getContext(s, k);
+            } else {
+                throw new IllegalStateException("Cannot mark " + k + " as failure from state " + keyState);
             }
-            c = getContext(s, k);
         }
         LOGGER.info(() -> "Unblocking " + k + " as failure");
         c.onFailure(error);
@@ -156,13 +159,13 @@ public final class SemaphoreStep extends Step implements Serializable {
 
     private static StepContext getContext(State s, String k) {
         assert Thread.holdsLock(s);
-        return (StepContext) Jenkins.XSTREAM.fromXML(s.contexts.get(k));
+        return (StepContext) Jenkins.XSTREAM.fromXML(((StartedState) s.keyStates.get(k)).context);
     }
 
     public static void waitForStart(@NonNull String k, @CheckForNull Run<?,?> b) throws IOException, InterruptedException {
         State s = State.get();
         synchronized (s) {
-            while (!s.started.contains(k)) {
+            while (!(s.keyStates.get(k) instanceof StartedState)) {
                 if (b != null && !b.isBuilding()) {
                     throw new AssertionError(JenkinsRule.getLog(b));
                 }
@@ -191,14 +194,17 @@ public final class SemaphoreStep extends Step implements Serializable {
             boolean success = false, failure = false, sync = true;
             String c = Jenkins.XSTREAM.toXML(getContext());
             synchronized (s) {
-                if (s.returnValues.containsKey(k)) {
+                Object keyState = s.keyStates.get(k);
+                if (keyState instanceof ImmediateSuccessState) {
                     success = true;
-                    returnValue = s.returnValues.get(k);
-                } else if (s.errors.containsKey(k)) {
+                    returnValue = ((ImmediateSuccessState) keyState).returnValue;
+                } else if (keyState instanceof ImmediateFailureState) {
                     failure = true;
-                    error = s.errors.get(k);
+                    error = ((ImmediateFailureState) keyState).error;
+                } else if (keyState == null) {
+                    s.keyStates.put(k, new StartedState(c));
                 } else {
-                    s.contexts.put(k, c);
+                    throw new IllegalStateException("Unable to start semaphore step " + k + " in state " + keyState);
                 }
             }
             if (success) {
@@ -212,7 +218,8 @@ public final class SemaphoreStep extends Step implements Serializable {
                 sync = false;
             }
             synchronized (s) {
-                s.started.add(k);
+                // Even if we completed immediately, set the state to StartedState so waitForSuccess knows to stop waiting.
+                s.keyStates.put(k, new StartedState(c));
                 s.notifyAll();
             }
             return sync;
@@ -221,7 +228,7 @@ public final class SemaphoreStep extends Step implements Serializable {
         @Override public void stop(Throwable cause) throws Exception {
             State s = State.get();
             synchronized (s) {
-                s.contexts.remove(k);
+                s.keyStates.remove(k);
             }
             LOGGER.log(Level.INFO, cause, () -> "Stopping " + k);
             super.stop(cause);
@@ -230,7 +237,7 @@ public final class SemaphoreStep extends Step implements Serializable {
         @Override public String getStatus() {
             State s = State.get();
             synchronized (s) {
-                return s.contexts.containsKey(k) ? "waiting on " + k : "finished " + k;
+                return s.keyStates.get(k) == null ? "waiting on " + k : "finished " + k ;
             }
         }
 
@@ -252,6 +259,39 @@ public final class SemaphoreStep extends Step implements Serializable {
             return Set.of();
         }
 
+    }
+
+    // Marker interface just for clarity.
+    private interface KeyState { }
+
+    /**
+     * The step has not yet started, but will succeed immediately when it does start.
+     */
+    private static class ImmediateSuccessState implements KeyState {
+        private final Object returnValue;
+        private ImmediateSuccessState(Object returnValue) {
+            this.returnValue = returnValue;
+        }
+    }
+
+    /**
+     * The step has not yet started, and will fail immediately when it does start.
+     */
+    private static class ImmediateFailureState implements KeyState {
+        private final Throwable error;
+        private ImmediateFailureState(Throwable error) {
+            this.error = error;
+        }
+    }
+
+    /**
+     * The step has at least started, and may have finished.
+     */
+    private static class StartedState implements KeyState {
+        private final String context;
+        private StartedState(String context) {
+            this.context = context;
+        }
     }
 
     private static final long serialVersionUID = 1L;
