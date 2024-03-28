@@ -108,14 +108,12 @@ public final class SemaphoreStep extends Step implements Serializable {
         StepContext c;
         synchronized (s) {
             KeyState keyState = s.keyStates.get(k);
-            if (keyState == null) {
+            if (!(keyState instanceof StartedState)) {
                 LOGGER.info(() -> "Planning to unblock " + k + " as success");
                 s.keyStates.put(k, new ImmediateSuccessState(returnValue));
                 return;
-            } else if (keyState instanceof StartedState) {
-                c = getContext(s, k);
             } else {
-                throw new IllegalStateException("Cannot mark " + k + " as success from state " + keyState);
+                c = getContext(s, k);
             }
         }
         LOGGER.info(() -> "Unblocking " + k + " as success");
@@ -134,14 +132,12 @@ public final class SemaphoreStep extends Step implements Serializable {
         StepContext c;
         synchronized (s) {
             Object keyState = s.keyStates.get(k);
-            if (keyState == null) {
+            if (!(keyState instanceof StartedState)) {
                 LOGGER.info(() -> "Planning to unblock " + k + " as failure");
                 s.keyStates.put(k, new ImmediateFailureState(error));
                 return;
-            } else if (keyState instanceof StartedState) {
-                c = getContext(s, k);
             } else {
-                throw new IllegalStateException("Cannot mark " + k + " as failure from state " + keyState);
+                c = getContext(s, k);
             }
         }
         LOGGER.info(() -> "Unblocking " + k + " as failure");
