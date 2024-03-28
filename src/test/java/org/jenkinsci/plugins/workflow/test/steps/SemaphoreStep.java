@@ -112,9 +112,8 @@ public final class SemaphoreStep extends Step implements Serializable {
                 LOGGER.info(() -> "Planning to unblock " + k + " as success");
                 s.keyStates.put(k, new ImmediateSuccessState(returnValue));
                 return;
-            } else {
-                c = getContext(s, k);
             }
+            c = getContext(s, k);
         }
         LOGGER.info(() -> "Unblocking " + k + " as success");
         c.onSuccess(returnValue);
@@ -136,9 +135,8 @@ public final class SemaphoreStep extends Step implements Serializable {
                 LOGGER.info(() -> "Planning to unblock " + k + " as failure");
                 s.keyStates.put(k, new ImmediateFailureState(error));
                 return;
-            } else {
-                c = getContext(s, k);
             }
+            c = getContext(s, k);
         }
         LOGGER.info(() -> "Unblocking " + k + " as failure");
         c.onFailure(error);
