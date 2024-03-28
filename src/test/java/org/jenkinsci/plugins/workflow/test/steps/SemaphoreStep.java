@@ -35,9 +35,11 @@ import java.util.Map;
 import java.util.Set;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
+import jenkins.util.Timer;
 import org.jenkinsci.plugins.workflow.steps.AbstractStepExecutionImpl;
 import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
@@ -78,8 +80,6 @@ public final class SemaphoreStep extends Step implements Serializable {
             iota.put(id, number);
             return number;
         }
-        /** map from {@link #k} to serial form of {@link StepContext} */
-        final Map<String,String> contexts = new HashMap<>();
         final Map<String,Object> returnValues = new HashMap<>();
         final Map<String,Throwable> errors = new HashMap<>();
         final Set<String> started = new HashSet<>();
@@ -110,17 +110,10 @@ public final class SemaphoreStep extends Step implements Serializable {
     /** Marks the step as having successfully completed; or, if not yet started, makes it do so synchronously when started. */
     public static void success(String k, Object returnValue) {
         State s = State.get();
-        StepContext c;
         synchronized (s) {
-            if (!s.contexts.containsKey(k)) {
-                LOGGER.info(() -> "Planning to unblock " + k + " as success");
-                s.returnValues.put(k, returnValue);
-                return;
-            }
-            c = getContext(s, k);
+            LOGGER.info(() -> "Planning to unblock " + k + " as success");
+            s.returnValues.put(k, returnValue);
         }
-        LOGGER.info(() -> "Unblocking " + k + " as success");
-        c.onSuccess(returnValue);
     }
 
     /** @deprecated use {@link #failure(String, Throwable)} */
@@ -134,29 +127,9 @@ public final class SemaphoreStep extends Step implements Serializable {
         State s = State.get();
         StepContext c;
         synchronized (s) {
-            if (!s.contexts.containsKey(k)) {
-                LOGGER.info(() -> "Planning to unblock " + k + " as failure");
-                s.errors.put(k, error);
-                return;
-            }
-            c = getContext(s, k);
+            LOGGER.info(() -> "Planning to unblock " + k + " as failure");
+            s.errors.put(k, error);
         }
-        LOGGER.info(() -> "Unblocking " + k + " as failure");
-        c.onFailure(error);
-    }
-
-    /** @deprecated should not be needed */
-    @Deprecated
-    public StepContext getContext() {
-        State s = State.get();
-        synchronized (s) {
-            return getContext(s, k());
-        }
-    }
-
-    private static StepContext getContext(State s, String k) {
-        assert Thread.holdsLock(s);
-        return (StepContext) Jenkins.XSTREAM.fromXML(s.contexts.get(k));
     }
 
     public static void waitForStart(@NonNull String k, @CheckForNull Run<?,?> b) throws IOException, InterruptedException {
@@ -186,10 +159,37 @@ public final class SemaphoreStep extends Step implements Serializable {
 
         @Override public boolean start() throws Exception {
             State s = State.get();
+            synchronized (s) {
+                s.started.add(k);
+                s.notifyAll();
+            }
+            Timer.get().schedule(this::checkStatus, 100, TimeUnit.MILLISECONDS);
+            return false;
+        }
+
+        @Override public void stop(Throwable cause) throws Exception {
+            State s = State.get();
+            LOGGER.log(Level.INFO, cause, () -> "Stopping " + k);
+            super.stop(cause);
+        }
+
+        @Override
+        public void onResume() {
+            Timer.get().submit(this::checkStatus);
+        }
+
+        @Override public String getStatus() {
+            State s = State.get();
+            synchronized (s) {
+                return "waiting on " + k;
+            }
+        }
+
+        private void checkStatus() {
+            State s = State.get();
             Object returnValue = null;
             Throwable error = null;
-            boolean success = false, failure = false, sync = true;
-            String c = Jenkins.XSTREAM.toXML(getContext());
+            boolean success = false, failure = false;
             synchronized (s) {
                 if (s.returnValues.containsKey(k)) {
                     success = true;
@@ -197,40 +197,16 @@ public final class SemaphoreStep extends Step implements Serializable {
                 } else if (s.errors.containsKey(k)) {
                     failure = true;
                     error = s.errors.get(k);
-                } else {
-                    s.contexts.put(k, c);
                 }
             }
             if (success) {
-                LOGGER.info(() -> "Immediately running " + k);
+                LOGGER.info(() -> "Unblocking " + k + " as failure");
                 getContext().onSuccess(returnValue);
             } else if (failure) {
-                LOGGER.info(() -> "Immediately failing " + k);
+                LOGGER.info(() -> "Unblocking " + k + " as failure");
                 getContext().onFailure(error);
             } else {
-                LOGGER.info(() -> "Blocking " + k);
-                sync = false;
-            }
-            synchronized (s) {
-                s.started.add(k);
-                s.notifyAll();
-            }
-            return sync;
-        }
-
-        @Override public void stop(Throwable cause) throws Exception {
-            State s = State.get();
-            synchronized (s) {
-                s.contexts.remove(k);
-            }
-            LOGGER.log(Level.INFO, cause, () -> "Stopping " + k);
-            super.stop(cause);
-        }
-
-        @Override public String getStatus() {
-            State s = State.get();
-            synchronized (s) {
-                return s.contexts.containsKey(k) ? "waiting on " + k : "finished " + k;
+                Timer.get().schedule(this::checkStatus, 100, TimeUnit.MILLISECONDS);
             }
         }
 
