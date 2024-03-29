@@ -108,9 +108,9 @@ public final class SemaphoreStep extends Step implements Serializable {
         StepContext c;
         synchronized (s) {
             KeyState keyState = s.keyStates.get(k);
-            if (keyState == null || keyState instanceof ImmediateSuccessState || keyState instanceof ImmediateFailureState) {
+            if (keyState == null || keyState instanceof WillSucceedState || keyState instanceof WillFailState) {
                 LOGGER.info(() -> "Planning to unblock " + k + " as success");
-                s.keyStates.put(k, new ImmediateSuccessState(returnValue));
+                s.keyStates.put(k, new WillSucceedState(returnValue));
                 return;
             } else if (keyState instanceof FinishedState) {
                 throw new IllegalStateException(k + " already finished");
@@ -134,9 +134,9 @@ public final class SemaphoreStep extends Step implements Serializable {
         StepContext c;
         synchronized (s) {
             Object keyState = s.keyStates.get(k);
-            if (keyState == null || keyState instanceof ImmediateSuccessState || keyState instanceof ImmediateFailureState) {
+            if (keyState == null || keyState instanceof WillSucceedState || keyState instanceof WillFailState) {
                 LOGGER.info(() -> "Planning to unblock " + k + " as failure");
-                s.keyStates.put(k, new ImmediateFailureState(error));
+                s.keyStates.put(k, new WillFailState(error));
                 return;
             } else if (keyState instanceof FinishedState) {
                 throw new IllegalStateException(k + " already finished");
@@ -159,14 +159,14 @@ public final class SemaphoreStep extends Step implements Serializable {
 
     private static StepContext getContext(State s, String k) {
         assert Thread.holdsLock(s);
-        return (StepContext) Jenkins.XSTREAM.fromXML(((StartedState) s.keyStates.get(k)).context);
+        return (StepContext) Jenkins.XSTREAM.fromXML(((WaitingState) s.keyStates.get(k)).context);
     }
 
     public static void waitForStart(@NonNull String k, @CheckForNull Run<?,?> b) throws IOException, InterruptedException {
         State s = State.get();
         synchronized (s) {
             KeyState keyState;
-            while (!(((keyState = s.keyStates.get(k)) instanceof StartedState) || keyState instanceof FinishedState)) {
+            while (!(((keyState = s.keyStates.get(k)) instanceof WaitingState) || keyState instanceof FinishedState)) {
                 if (b != null && !b.isBuilding()) {
                     throw new AssertionError(JenkinsRule.getLog(b));
                 }
@@ -196,16 +196,16 @@ public final class SemaphoreStep extends Step implements Serializable {
             String c = Jenkins.XSTREAM.toXML(getContext());
             synchronized (s) {
                 Object keyState = s.keyStates.get(k);
-                if (keyState instanceof ImmediateSuccessState) {
+                if (keyState instanceof WillSucceedState) {
                     success = true;
-                    returnValue = ((ImmediateSuccessState) keyState).returnValue;
+                    returnValue = ((WillSucceedState) keyState).returnValue;
                     s.keyStates.put(k, new FinishedState());
-                } else if (keyState instanceof ImmediateFailureState) {
+                } else if (keyState instanceof WillFailState) {
                     failure = true;
-                    error = ((ImmediateFailureState) keyState).error;
+                    error = ((WillFailState) keyState).error;
                     s.keyStates.put(k, new FinishedState());
                 } else if (keyState == null) {
-                    s.keyStates.put(k, new StartedState(c));
+                    s.keyStates.put(k, new WaitingState(c));
                 } else {
                     throw new IllegalStateException("Unable to start " + k + " in state " + keyState);
                 }
@@ -239,9 +239,9 @@ public final class SemaphoreStep extends Step implements Serializable {
             State s = State.get();
             synchronized (s) {
                 KeyState keyState = s.keyStates.get(k);
-                if (keyState instanceof ImmediateSuccessState) {
+                if (keyState instanceof WillSucceedState) {
                     return k + " will immediately succeed";
-                } else if (keyState instanceof ImmediateFailureState) {
+                } else if (keyState instanceof WillFailState) {
                     return k + " will immediately fail";
                 } else if (keyState instanceof FinishedState) {
                     return "finished " + k;
@@ -275,11 +275,11 @@ public final class SemaphoreStep extends Step implements Serializable {
     private interface KeyState { }
 
     /**
-     * The step has not yet started, but will succeed immediately when it does start.
+     * The step has not yet started, and will succeed immediately when it does start.
      */
-    private static class ImmediateSuccessState implements KeyState {
+    private static class WillSucceedState implements KeyState {
         private final Object returnValue;
-        private ImmediateSuccessState(Object returnValue) {
+        private WillSucceedState(Object returnValue) {
             this.returnValue = returnValue;
         }
     }
@@ -287,16 +287,16 @@ public final class SemaphoreStep extends Step implements Serializable {
     /**
      * The step has not yet started, and will fail immediately when it does start.
      */
-    private static class ImmediateFailureState implements KeyState {
+    private static class WillFailState implements KeyState {
         private final Throwable error;
-        private ImmediateFailureState(Throwable error) {
+        private WillFailState(Throwable error) {
             this.error = error;
         }
     }
 
-    private static class StartedState implements KeyState {
+    private static class WaitingState implements KeyState {
         private final String context;
-        private StartedState(String context) {
+        private WaitingState(String context) {
             this.context = context;
         }
     }
