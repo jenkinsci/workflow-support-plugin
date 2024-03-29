@@ -189,6 +189,7 @@ public final class SemaphoreStep extends Step implements Serializable {
             Object returnValue = null;
             Throwable error = null;
             boolean success = false, failure = false, sync = true;
+            String c = Jenkins.XSTREAM.toXML(getContext());
             synchronized (s) {
                 if (s.returnValues.containsKey(k)) {
                     success = true;
@@ -196,6 +197,8 @@ public final class SemaphoreStep extends Step implements Serializable {
                 } else if (s.errors.containsKey(k)) {
                     failure = true;
                     error = s.errors.get(k);
+                } else {
+                    s.contexts.put(k, c);
                 }
             }
             if (success) {
@@ -206,10 +209,6 @@ public final class SemaphoreStep extends Step implements Serializable {
                 getContext().onFailure(error);
             } else {
                 LOGGER.info(() -> "Blocking " + k);
-                String c = Jenkins.XSTREAM.toXML(getContext());
-                synchronized (s) {
-                    s.contexts.put(k, c);
-                }
                 sync = false;
             }
             synchronized (s) {
