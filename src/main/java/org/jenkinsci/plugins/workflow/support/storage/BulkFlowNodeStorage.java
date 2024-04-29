@@ -204,7 +204,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
         if (t != null) {
             t.node = node;
             List<Action> act = node.getActions();
-            t.actions = new ArrayList<>(actions);
+            t.actions = new ArrayList<>(act);
         } else {
             map.put(node.getId(), new Tag(node, actions));
         }
