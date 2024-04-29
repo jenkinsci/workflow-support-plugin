@@ -1,19 +1,31 @@
 package org.jenkinsci.plugins.workflow.support.storage;
 
 
+import hudson.util.RobustReflectionConverter;
+import java.io.File;
+import java.util.logging.Level;
 import org.jenkinsci.plugins.workflow.actions.BodyInvocationAction;
 import org.jenkinsci.plugins.workflow.actions.LabelAction;
 import org.jenkinsci.plugins.workflow.actions.TimingAction;
+import org.jenkinsci.plugins.workflow.cps.nodes.StepStartNode;
 import org.jenkinsci.plugins.workflow.graph.AtomNode;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
-
-import java.io.File;
+import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.recipes.LocalData;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 
 /**
  * Tries to test the storage engine
  */
 public class SimpleXStreamStorageTest extends AbstractStorageTest {
+
+    @Rule public LoggerRule logger = new LoggerRule().record(RobustReflectionConverter.class, Level.FINE).capture(50);
 
     @Override
     public FlowNodeStorage instantiateStorage(MockFlowExecution exec, File storageDirectory) {
@@ -72,4 +84,38 @@ public class SimpleXStreamStorageTest extends AbstractStorageTest {
         mock2.setStorage(storageAfterRead);
         StorageTestUtils.assertNodesMatch(deferredWriteNode, storageAfterRead.getNode(deferredWriteNode.getId()));
     }
+
+    @LocalData
+    @Test public void actionDeserializationShouldBeRobust() throws Exception {
+        /*
+        var p = j.createProject(WorkflowJob.class);
+        p.addProperty(new DurabilityHintJobProperty(FlowDurabilityHint.MAX_SURVIVABILITY));
+        p.setDefinition(new CpsFlowDefinition(
+                "stage('test') {\n" +
+                "  semaphore('wait')\n" +
+                "}\n", true));
+        var b = p.scheduleBuild2(0).waitForStart();
+        SemaphoreStep.waitForStart("wait/1", b);
+        ((CpsFlowExecution) b.getExecution()).getStorage().flush();
+        */
+        var p = j.jenkins.getItemByFullName("test0", WorkflowJob.class);
+        var b = p.getLastBuild();
+        var stageBodyStartNode = (StepStartNode) b.getExecution().getNode("4");
+        assertThat(stageBodyStartNode, not(nullValue()));
+        var label = stageBodyStartNode.getPersistentAction(LabelAction.class);
+        assertThat(label.getDisplayName(), equalTo("test"));
+    }
+    // Used to create @LocalData for above test:
+    /*
+    public static class MyAction extends InvisibleAction implements PersistentAction {
+        private final String value = "42";
+    }
+    @TestExtension("actionDeserializationShouldBeRobust")
+    public static class MyActionAdder implements GraphListener.Synchronous {
+        @Override
+        public void onNewHead(FlowNode node) {
+            node.addAction(new MyAction());
+        }
+    }
+    */
 }
