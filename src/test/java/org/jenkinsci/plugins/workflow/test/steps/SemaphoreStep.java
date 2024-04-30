@@ -246,6 +246,7 @@ public final class SemaphoreStep extends Step implements Serializable {
                 } else {
                     s.contexts.put(k, c);
                 }
+                s.started.add(k);
                 s.notifyAll();
             }
         }
