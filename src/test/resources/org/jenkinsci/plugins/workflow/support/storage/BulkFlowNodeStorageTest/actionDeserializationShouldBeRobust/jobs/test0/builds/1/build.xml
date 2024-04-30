@@ -2,15 +2,15 @@
 <flow-build plugin="workflow-job@1326.ve643e00e9220">
   <actions/>
   <queueId>1</queueId>
-  <timestamp>1714412222911</timestamp>
-  <startTime>1714412222924</startTime>
+  <timestamp>1714512454761</timestamp>
+  <startTime>1714512454774</startTime>
   <duration>0</duration>
   <charset>UTF-8</charset>
   <keepLog>false</keepLog>
   <execution class="org.jenkinsci.plugins.workflow.cps.CpsFlowExecution">
     <result>SUCCESS</result>
     <script>stage(&apos;test&apos;) {
-  semaphore(&apos;wait&apos;)
+  sleep 120
 }
 </script>
     <loadedScripts class="map"/>
@@ -18,19 +18,19 @@
     <timings class="map">
       <entry>
         <string>flowNode</string>
-        <long>3326252</long>
+        <long>3116376</long>
       </entry>
       <entry>
         <string>classLoad</string>
-        <long>94409046</long>
+        <long>125882830</long>
       </entry>
       <entry>
         <string>run</string>
-        <long>72661207</long>
+        <long>80228333</long>
       </entry>
       <entry>
         <string>parse</string>
-        <long>206498209</long>
+        <long>213222375</long>
       </entry>
     </timings>
     <internalCalls class="sorted-set"/>

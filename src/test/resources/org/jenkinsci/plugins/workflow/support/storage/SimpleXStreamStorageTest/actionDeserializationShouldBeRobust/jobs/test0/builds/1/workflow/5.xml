@@ -5,21 +5,21 @@
       <string>4</string>
     </parentIds>
     <id>5</id>
-    <descriptorId>org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep</descriptorId>
+    <descriptorId>org.jenkinsci.plugins.workflow.steps.SleepStep</descriptorId>
   </node>
   <actions>
     <cps.a.ArgumentsActionImpl plugin="workflow-cps@3806.va_3a_6988277b_2">
       <arguments>
         <entry>
-          <string>id</string>
-          <string>wait</string>
+          <string>time</string>
+          <long>120</long>
         </entry>
       </arguments>
       <sensitiveVariables/>
       <isUnmodifiedBySanitization>true</isUnmodifiedBySanitization>
     </cps.a.ArgumentsActionImpl>
     <wf.a.TimingAction plugin="workflow-api@1283.v99c10937efcb_">
-      <startTime>1714413871510</startTime>
+      <startTime>1714512387626</startTime>
     </wf.a.TimingAction>
     <org.jenkinsci.plugins.workflow.support.storage.SimpleXStreamStorageTest_-MyAction>
       <value>42</value>

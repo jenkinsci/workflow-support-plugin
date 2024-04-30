@@ -8,7 +8,7 @@
   </properties>
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@3806.va_3a_6988277b_2">
     <script>stage(&apos;test&apos;) {
-  semaphore(&apos;wait&apos;)
+  sleep 120
 }
 </script>
     <sandbox>true</sandbox>

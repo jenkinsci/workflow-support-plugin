@@ -11,7 +11,6 @@ import org.jenkinsci.plugins.workflow.actions.TimingAction;
 import org.jenkinsci.plugins.workflow.cps.nodes.StepStartNode;
 import org.jenkinsci.plugins.workflow.graph.AtomNode;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -94,15 +93,14 @@ public class SimpleXStreamStorageTest extends AbstractStorageTest {
         p.addProperty(new DurabilityHintJobProperty(FlowDurabilityHint.MAX_SURVIVABILITY));
         p.setDefinition(new CpsFlowDefinition(
                 "stage('test') {\n" +
-                "  semaphore('wait')\n" +
+                "  sleep 120\n" +
                 "}\n", true));
         var b = p.scheduleBuild2(0).waitForStart();
-        SemaphoreStep.waitForStart("wait/1", b);
+        Thread.sleep(5*1000);
         ((CpsFlowExecution) b.getExecution()).getStorage().flush();
         */
         var p = j.jenkins.getItemByFullName("test0", WorkflowJob.class);
         var b = p.getLastBuild();
-        SemaphoreStep.success("wait/1", null);
         j.assertBuildStatus(Result.SUCCESS, j.waitForCompletion(b));
         var stageBodyStartNode = (StepStartNode) b.getExecution().getNode("4");
         assertThat(stageBodyStartNode, not(nullValue()));

@@ -76,12 +76,11 @@ public final class BulkFlowNodeStorageTest {
         p.addProperty(new DurabilityHintJobProperty(FlowDurabilityHint.PERFORMANCE_OPTIMIZED));
         p.setDefinition(new CpsFlowDefinition(
                 "stage('test') {\n" +
-                "  semaphore('wait')\n" +
+                "  sleep 120\n" +
                 "}\n", true));
         var b = p.scheduleBuild2(0).waitForStart();
-        SemaphoreStep.waitForStart("wait/1", b);
+        Thread.sleep(5*1000);
         ((CpsFlowExecution) b.getExecution()).getStorage().flush();
-        Thread.sleep(30*1000);
         */
         var p = r.jenkins.getItemByFullName("test0", WorkflowJob.class);
         var b = p.getLastBuild();
@@ -104,5 +103,6 @@ public final class BulkFlowNodeStorageTest {
         public void onNewHead(FlowNode node) {
             node.addAction(new MyAction());
         }
-    }*/
+    }
+    */
 }
