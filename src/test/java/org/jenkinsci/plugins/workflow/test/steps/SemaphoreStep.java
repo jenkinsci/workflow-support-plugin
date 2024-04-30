@@ -234,6 +234,22 @@ public final class SemaphoreStep extends Step implements Serializable {
             }
         }
 
+        @Override public void onResume() {
+            // Only matters for restarts across different JVMs, for example if using @LocalData.
+            State s = State.get();
+            String c = Jenkins.XSTREAM.toXML(getContext());
+            synchronized (s) {
+                if (s.returnValues.containsKey(k)) {
+                    getContext().onSuccess(s.returnValues.get(k));
+                } else if (s.errors.containsKey(k)) {
+                    getContext().onFailure(s.errors.get(k));
+                } else {
+                    s.contexts.put(k, c);
+                }
+                s.notifyAll();
+            }
+        }
+
         private static final long serialVersionUID = 1L;
 
     }

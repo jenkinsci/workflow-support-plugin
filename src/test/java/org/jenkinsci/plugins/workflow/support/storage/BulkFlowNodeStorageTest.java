@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.support.storage;
 
+import hudson.model.Result;
 import hudson.util.RobustReflectionConverter;
 import java.io.File;
 import java.util.ArrayList;
@@ -84,6 +85,9 @@ public final class BulkFlowNodeStorageTest {
         */
         var p = r.jenkins.getItemByFullName("test0", WorkflowJob.class);
         var b = p.getLastBuild();
+        // Build is unresumable because the local data was created with PERFORMANCE_OPTIMIZED without a clean shutdown.
+        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+        // Existing flow nodes should still be preserved though.
         var stageBodyStartNode = (StepStartNode) b.getExecution().getNode("4");
         assertThat(stageBodyStartNode, not(nullValue()));
         var label = stageBodyStartNode.getPersistentAction(LabelAction.class);

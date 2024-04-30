@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.workflow.support.storage;
 
 
+import hudson.model.Result;
 import hudson.util.RobustReflectionConverter;
 import java.io.File;
 import java.util.logging.Level;
@@ -10,6 +11,7 @@ import org.jenkinsci.plugins.workflow.actions.TimingAction;
 import org.jenkinsci.plugins.workflow.cps.nodes.StepStartNode;
 import org.jenkinsci.plugins.workflow.graph.AtomNode;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -100,6 +102,8 @@ public class SimpleXStreamStorageTest extends AbstractStorageTest {
         */
         var p = j.jenkins.getItemByFullName("test0", WorkflowJob.class);
         var b = p.getLastBuild();
+        SemaphoreStep.success("wait/1", null);
+        j.assertBuildStatus(Result.SUCCESS, j.waitForCompletion(b));
         var stageBodyStartNode = (StepStartNode) b.getExecution().getNode("4");
         assertThat(stageBodyStartNode, not(nullValue()));
         var label = stageBodyStartNode.getPersistentAction(LabelAction.class);
