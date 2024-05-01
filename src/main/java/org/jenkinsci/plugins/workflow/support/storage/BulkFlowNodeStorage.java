@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -138,7 +139,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
         if (t != null) {
             t.node = n;
             List<Action> act = n.getActions();
-            t.actions = act.toArray(new Action[act.size()]);
+            t.actions = new ArrayList<>(act);
         } else {
             getOrLoadNodes().put(n.getId(), new Tag(n, n.getActions()));
         }
@@ -203,7 +204,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
         if (t != null) {
             t.node = node;
             List<Action> act = node.getActions();
-            t.actions = act.toArray(new Action[act.size()]);
+            t.actions = new ArrayList<>(act);
         } else {
             map.put(node.getId(), new Tag(node, actions));
         }
@@ -222,11 +223,11 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
      */
     private static class Tag {
         /* @NonNull except perhaps after deserialization */ FlowNode node;
-        private @CheckForNull Action[] actions;
+        private @CheckForNull List<Action> actions;
 
         private Tag(@NonNull FlowNode node, @NonNull List<Action> actions) {
             this.node = node;
-            this.actions = actions.isEmpty() ? null : actions.toArray(new Action[actions.size()]);
+            this.actions = actions.isEmpty() ? null : new ArrayList<>(actions);
         }
 
         private void storeActions() {  // We've already loaded the actions, may as well store them to the FlowNode
@@ -238,7 +239,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
         }
 
         public @NonNull List<Action> actions() {
-            return actions != null ? Arrays.asList(actions) : Collections.emptyList();
+            return actions != null ? Collections.unmodifiableList(actions) : Collections.emptyList();
         }
     }
 

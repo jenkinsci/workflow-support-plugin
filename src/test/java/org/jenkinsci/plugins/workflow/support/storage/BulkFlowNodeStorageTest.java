@@ -24,24 +24,35 @@
 
 package org.jenkinsci.plugins.workflow.support.storage;
 
+import hudson.model.Result;
+import hudson.util.RobustReflectionConverter;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.xml.parsers.DocumentBuilderFactory;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import org.jenkinsci.plugins.workflow.actions.LabelAction;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.cps.nodes.StepStartNode;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.recipes.LocalData;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 
 public final class BulkFlowNodeStorageTest {
 
     @Rule public JenkinsRule r = new JenkinsRule();
+    @Rule public LoggerRule logger = new LoggerRule().record(RobustReflectionConverter.class, Level.FINE).capture(50);
 
     @Test public void orderOfEntries() throws Exception {
         var p = r.createProject(WorkflowJob.class, "p");
@@ -58,4 +69,40 @@ public final class BulkFlowNodeStorageTest {
         assertThat(ids, is(IntStream.rangeClosed(2, 43).mapToObj(Integer::toString).collect(Collectors.toList())));
     }
 
+    @LocalData
+    @Test public void actionDeserializationShouldBeRobust() throws Exception {
+        /*
+        var p = r.createProject(WorkflowJob.class);
+        p.addProperty(new DurabilityHintJobProperty(FlowDurabilityHint.PERFORMANCE_OPTIMIZED));
+        p.setDefinition(new CpsFlowDefinition(
+                "stage('test') {\n" +
+                "  sleep 120\n" +
+                "}\n", true));
+        var b = p.scheduleBuild2(0).waitForStart();
+        Thread.sleep(5*1000);
+        ((CpsFlowExecution) b.getExecution()).getStorage().flush();
+        */
+        var p = r.jenkins.getItemByFullName("test0", WorkflowJob.class);
+        var b = p.getLastBuild();
+        // Build is unresumable because the local data was created with PERFORMANCE_OPTIMIZED without a clean shutdown.
+        r.assertBuildStatus(Result.FAILURE, r.waitForCompletion(b));
+        // Existing flow nodes should still be preserved though.
+        var stageBodyStartNode = (StepStartNode) b.getExecution().getNode("4");
+        assertThat(stageBodyStartNode, not(nullValue()));
+        var label = stageBodyStartNode.getPersistentAction(LabelAction.class);
+        assertThat(label.getDisplayName(), equalTo("test"));
+    }
+    // Used to create @LocalData for above test:
+    /*
+    public static class MyAction extends InvisibleAction implements PersistentAction {
+        private final String value = "42";
+    }
+    @TestExtension("actionDeserializationShouldBeRobust")
+    public static class MyActionAdder implements GraphListener.Synchronous {
+        @Override
+        public void onNewHead(FlowNode node) {
+            node.addAction(new MyAction());
+        }
+    }
+    */
 }

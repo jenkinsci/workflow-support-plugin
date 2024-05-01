@@ -226,11 +226,11 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
      */
     private static class Tag {
         final /* @NonNull except perhaps after deserialization */ FlowNode node;
-        private final @CheckForNull Action[] actions;
+        private final @CheckForNull List<Action> actions;
 
         private Tag(@NonNull FlowNode node, @NonNull List<Action> actions) {
             this.node = node;
-            this.actions = actions.isEmpty() ? null : actions.toArray(new Action[actions.size()]);
+            this.actions = actions.isEmpty() ? null : new ArrayList<>(actions);
         }
 
         private void storeActions() {  // We've already loaded the actions, may as well store them to the FlowNode
@@ -242,7 +242,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         }
 
         public @NonNull List<Action> actions() {
-            return actions != null ? Arrays.asList(actions) : Collections.emptyList();
+            return actions != null ? Collections.unmodifiableList(actions) : Collections.emptyList();
         }
     }
 
