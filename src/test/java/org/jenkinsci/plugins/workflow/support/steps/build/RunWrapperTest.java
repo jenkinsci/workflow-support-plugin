@@ -287,6 +287,17 @@ public class RunWrapperTest {
         });
     }
 
+    @Test
+    @Issue("JENKINS-73421")
+    public void externalizableId() throws Throwable {
+        sessions.then(j -> {
+            WorkflowJob first = j.createProject(WorkflowJob.class, "first-job");
+            first.setDefinition(new CpsFlowDefinition("echo currentBuild.getExternalizableId()'\n", true));
+            WorkflowRun firstRun = j.buildAndAssertSuccess(first);
+            j.assertLogContains(firstRun.getExternalizableId(), firstRun);
+        });
+    }
+
     // Like org.hamcrest.text.MatchesPattern.matchesPattern(String) but doing a substring, not whole-string, match:
     private static Matcher<String> containsRegexp(final String rx) {
         return new SubstringMatcher("containing the regexp", false, rx) {
