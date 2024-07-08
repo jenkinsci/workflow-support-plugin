@@ -314,6 +314,11 @@ public final class RunWrapper implements Serializable {
         return build().getId();
     }
 
+    @Whitelisted
+    public String getExteralizableId() throws AbortException {
+        return build().getExternalizableId();
+    }
+
     /**
      * Get environment variables defined in the build.
      *
