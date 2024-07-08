@@ -315,8 +315,8 @@ public final class RunWrapper implements Serializable {
     }
 
     @Whitelisted
-    public String getExteralizableId() throws AbortException {
-        return build().getExternalizableId();
+    public String getExteralizableId() {
+        return externalizableId;
     }
 
     /**
