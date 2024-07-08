@@ -292,7 +292,7 @@ public class RunWrapperTest {
     public void externalizableId() throws Throwable {
         sessions.then(j -> {
             WorkflowJob first = j.createProject(WorkflowJob.class, "first-job");
-            first.setDefinition(new CpsFlowDefinition("echo currentBuild.getExternalizableId()'\n", true));
+            first.setDefinition(new CpsFlowDefinition("echo currentBuild.getExternalizableId()\n", true));
             WorkflowRun firstRun = j.buildAndAssertSuccess(first);
             j.assertLogContains(firstRun.getExternalizableId(), firstRun);
         });
