@@ -315,7 +315,7 @@ public final class RunWrapper implements Serializable {
     }
 
     @Whitelisted
-    public String getExteralizableId() {
+    public String getExternalizableId() {
         return externalizableId;
     }
 
