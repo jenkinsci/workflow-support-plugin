@@ -294,7 +294,7 @@ public class RunWrapperTest {
             WorkflowJob first = j.createProject(WorkflowJob.class, "first-job");
             first.setDefinition(new CpsFlowDefinition("echo(/externalizableId=$currentBuild.externalizableId/)", true));
             WorkflowRun firstRun = j.buildAndAssertSuccess(first);
-            j.assertLogContains("externalizableId=first-job#1", firstRun);
+            j.assertLogContains("externalizableId=" + firstRun.getExternalizableId(), firstRun);
         });
     }
 
