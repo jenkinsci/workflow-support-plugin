@@ -24,16 +24,22 @@
 
 package org.jenkinsci.plugins.workflow.support.pickles.serialization;
 
-import org.jenkinsci.plugins.workflow.pickles.Pickle;
-import org.jenkinsci.plugins.workflow.support.concurrent.Futures;
 import com.google.common.base.Function;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import org.jboss.marshalling.ObjectResolver;
-
+import com.google.common.util.concurrent.MoreExecutors;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import jenkins.util.SystemProperties;
+import jenkins.util.Timer;
+import org.jboss.marshalling.ObjectResolver;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
+import org.jenkinsci.plugins.workflow.pickles.Pickle;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * {@link ObjectResolver} that resolves {@link DryCapsule} to unpickled objects.
@@ -41,6 +47,15 @@ import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
  * @author Kohsuke Kawaguchi
  */
 public class PickleResolver implements ObjectResolver {
+
+    /**
+     * Pickle resolution will fail automatically after this many seconds.
+     * <p>This is intended to prevent Pipeline builds from hanging forever in unusual cases.
+     */
+    @Restricted(NoExternalUse.class)
+    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "Non-final for modification from script console")
+    public static long RESOLUTION_TIMEOUT_SECONDS = SystemProperties.getLong(PickleResolver.class + ".RESOLUTION_TIMEOUT_SECONDS", TimeUnit.HOURS.toSeconds(1));
+
     /**
      * Persisted forms of the stateful objects.
      */
@@ -83,7 +98,7 @@ public class PickleResolver implements ObjectResolver {
             // TODO log("rehydrating " + r);
             ListenableFuture<?> future;
             try {
-                future = r.rehydrate(owner);
+                future = Futures.withTimeout(r.rehydrate(owner), RESOLUTION_TIMEOUT_SECONDS, TimeUnit.SECONDS, Timer.get());
             } catch (RuntimeException x) {
                 future = Futures.immediateFailedFuture(x);
             }
@@ -93,7 +108,7 @@ public class PickleResolver implements ObjectResolver {
                     // TODO log("rehydrated to " + input);
                     return input;
                 }
-            }));
+            }, MoreExecutors.directExecutor()));
         }
 
         ListenableFuture<List<Object>> all = Futures.allAsList(members);
@@ -104,7 +119,7 @@ public class PickleResolver implements ObjectResolver {
                 values = input;
                 return PickleResolver.this;
             }
-        });
+        }, MoreExecutors.directExecutor());
     }
 
     @Override
