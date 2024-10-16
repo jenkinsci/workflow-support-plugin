@@ -83,7 +83,7 @@ public final class POSTHyperlinkNote extends HyperlinkNote {
 
     @Override protected String extraAttributes() {
         // TODO perhaps add hoverNotification
-        return " onclick=\"fetch(decodeURIComponent(atob('" + encodeForJavascript(url) + "')), { method: 'post', headers: crumb.wrap({})}); return false\"";
+        return " data-encoded-url='" + encodeForJavascript(url) + "' class='post-hyperlink-note-button'";
     }
 
     /**
