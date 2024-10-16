@@ -26,6 +26,6 @@ public class SemaphoreStepTest {
 
         b.doKill();
         j.waitForMessage("Hard kill!", b);
-        j.assertBuildStatus(Result.ABORTED, future);
+        j.assertBuildStatus(Result.ABORTED, j.waitForCompletion(b));
     }
 }
