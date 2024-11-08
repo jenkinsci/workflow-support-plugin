@@ -90,8 +90,9 @@ public class RiverReader implements Closeable {
     private ObjectResolver ownerResolver = new ObjectResolver() {
         @Override
         public Object readResolve(Object replacement) {
-            if (replacement instanceof DryOwner)
+            if (replacement instanceof DryOwner) {
                 return owner;
+            }
             return replacement;
         }
 
@@ -114,19 +115,21 @@ public class RiverReader implements Closeable {
     }
 
     private int parseHeader(DataInputStream din) throws IOException {
-        if (din.readLong()!= RiverWriter.HEADER)
+        if (din.readLong() != RiverWriter.HEADER) {
             throw new IOException("Invalid stream header");
+        }
 
         short v = din.readShort();
-        if (v!= RiverWriter.VERSION)
+        if (v != RiverWriter.VERSION) {
             throw new IOException("Unexpected stream version: "+v);
+        }
 
         return din.readInt();
     }
 
     @Deprecated
     public ListenableFuture<Unmarshaller> restorePickles() throws IOException {
-        return restorePickles(new ArrayList<ListenableFuture<?>>());
+        return restorePickles(new ArrayList<>());
     }
 
     /**
@@ -157,7 +160,8 @@ public class RiverReader implements Closeable {
         final Unmarshaller sandboxed = new SandboxedUnmarshaller(eu);
 
         // start rehydrating, and when done make the unmarshaller available
-        return Futures.transform(evr.rehydrate(pickleFutures), new Function<PickleResolver, Unmarshaller>() {
+        return Futures.transform(evr.rehydrate(pickleFutures), new Function<>() {
+            @Override
             public Unmarshaller apply(PickleResolver input) {
                 return sandboxed;
             }
@@ -256,11 +260,11 @@ public class RiverReader implements Closeable {
         }
 
         @Override public Object readObject() throws ClassNotFoundException, IOException {
-            return sandbox(() -> delegate.readObject());
+            return sandbox(delegate::readObject);
         }
 
         @Override public Object readObjectUnshared() throws ClassNotFoundException, IOException {
-            return sandbox(() -> delegate.readObjectUnshared());
+            return sandbox(delegate::readObjectUnshared);
         }
 
         @Override public <T> T readObject(Class<T> type) throws ClassNotFoundException, IOException {

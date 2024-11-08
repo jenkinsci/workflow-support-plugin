@@ -40,11 +40,11 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.Rule;
-import org.junit.runners.model.Statement;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -284,6 +284,17 @@ public class RunWrapperTest {
 
                 j.assertLogContains("b: " + firstRun.getFullDisplayName(), thirdRun);
                 j.assertLogContains("b: " + secondRun.getFullDisplayName(), thirdRun);
+        });
+    }
+
+    @Test
+    @Issue("JENKINS-73421")
+    public void externalizableId() throws Throwable {
+        sessions.then(j -> {
+            WorkflowJob first = j.createProject(WorkflowJob.class, "first-job");
+            first.setDefinition(new CpsFlowDefinition("echo(/externalizableId=$currentBuild.externalizableId/)", true));
+            WorkflowRun firstRun = j.buildAndAssertSuccess(first);
+            j.assertLogContains("externalizableId=" + firstRun.getExternalizableId(), firstRun);
         });
     }
 

@@ -68,7 +68,7 @@ public abstract class AbstractStorageTest {
 
         // Node saved with explicit actions set
         StorageTestUtils.SimpleAtomNode directlySaveActions = new StorageTestUtils.SimpleAtomNode(mock, "explictSaveActions", notQuiteAsSimple);
-        List<Action> acts = new ArrayList<Action>();
+        List<Action> acts = new ArrayList<>();
         acts.add(new LabelAction("yetAnotherLabel"));
         acts.add(new BodyInvocationAction());
         storage.saveActions(directlySaveActions, acts);

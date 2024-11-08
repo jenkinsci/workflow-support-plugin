@@ -108,14 +108,15 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         }
     }
 
+    @Override
     public void storeNode(@NonNull FlowNode n, boolean delayWritingActions) throws IOException {
         if (delayWritingActions) {
             if (deferredWrite == null) {
-                deferredWrite = new HashMap<String, FlowNode>();
+                deferredWrite = new HashMap<>();
             }
             deferredWrite.put(n.getId(), n);
             if (delayAutopersistIds == null) {
-                delayAutopersistIds = new HashSet<String>(2);
+                delayAutopersistIds = new HashSet<>(2);
             }
             delayAutopersistIds.add(n.getId());
         } else {  // Flush, not that we still have to explicitly toggle autopersist for the node
@@ -128,6 +129,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         storeNode(n, false);
     }
 
+    @Override
     public void autopersist(@NonNull FlowNode n) throws IOException {
         if (deferredWrite != null && deferredWrite.containsKey(n.getId())) {
             flushNode(n);
@@ -154,7 +156,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     /** Force persisting any nodes that had writing deferred */
     @Override
     public void flush() throws IOException {
-        if (deferredWrite != null && deferredWrite.isEmpty() == false) {
+        if (deferredWrite != null && !deferredWrite.isEmpty()) {
             Collection<FlowNode> toWrite = deferredWrite.values();
             for (FlowNode f : toWrite) {
                 writeNode(f, f.getActions());
@@ -167,10 +169,12 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         return new File(dir,id+".xml");
     }
 
+    @Override
     public List<Action> loadActions(@NonNull FlowNode node) throws IOException {
 
-        if (!getNodeFile(node.getId()).exists())
-            return new ArrayList<Action>(); // not yet saved
+        if (!getNodeFile(node.getId()).exists()) {
+            return new ArrayList<>(); // not yet saved
+        }
         return load(node.getId()).actions();
     }
 
@@ -183,6 +187,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
      * Just stores this one node, using the supplied actions.
      * GOTCHA: technically there's nothing ensuring that node.getActions() matches supplied actions.
      */
+    @Override
     public void saveActions(@NonNull FlowNode node, @NonNull List<Action> actions) throws IOException {
         if (delayAutopersistIds != null && delayAutopersistIds.contains(node.getId())) {
             deferredWrite.put(node.getId(), node);
@@ -192,6 +197,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     }
 
     /** Have we written everything to disk that we need to, or is there something waiting to be written */
+    @Override
     public boolean isPersistedFully() {
         return this.deferredWrite == null || this.deferredWrite.isEmpty();
     }
@@ -220,11 +226,11 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
      */
     private static class Tag {
         final /* @NonNull except perhaps after deserialization */ FlowNode node;
-        private final @CheckForNull Action[] actions;
+        private final @CheckForNull List<Action> actions;
 
         private Tag(@NonNull FlowNode node, @NonNull List<Action> actions) {
             this.node = node;
-            this.actions = actions.isEmpty() ? null : actions.toArray(new Action[actions.size()]);
+            this.actions = actions.isEmpty() ? null : new ArrayList<>(actions);
         }
 
         private void storeActions() {  // We've already loaded the actions, may as well store them to the FlowNode
@@ -236,7 +242,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         }
 
         public @NonNull List<Action> actions() {
-            return actions != null ? Arrays.asList(actions) : Collections.<Action>emptyList();
+            return actions != null ? Collections.unmodifiableList(actions) : Collections.emptyList();
         }
     }
 
@@ -267,7 +273,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
                         if (parents != null) {
                             @SuppressWarnings("unchecked") List<String> parentIds = (List<String>) FlowNode$parentIds.get(n);
                             assert parentIds == null;
-                            parentIds = new ArrayList<String>(parents.size());
+                            parentIds = new ArrayList<>(parents.size());
                             for (FlowNode parent : parents) {
                                 String id = ids.get(parent);
                                 assert id != null;

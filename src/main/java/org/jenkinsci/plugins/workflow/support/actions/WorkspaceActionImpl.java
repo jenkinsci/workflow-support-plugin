@@ -54,7 +54,7 @@ public final class WorkspaceActionImpl extends WorkspaceAction implements FlowNo
         node = FilePathUtils.getNodeName(workspace);
         Jenkins j = Jenkins.getInstanceOrNull();
         Node n = j == null ? null : node.isEmpty() ? j : j.getNode(node);
-        labels = new TreeSet<LabelAtom>();
+        labels = new TreeSet<>();
         if (n != null) {
             labels.addAll(n.getAssignedLabels());
             labels.remove(n.getSelfLabel());

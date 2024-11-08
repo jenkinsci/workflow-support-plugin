@@ -87,7 +87,7 @@ public class RiverWriter implements Closeable {
     /**
      * Persisted form of stateful objects that need special handling during rehydration.
      */
-    List<Pickle> pickles = new ArrayList<Pickle>();
+    List<Pickle> pickles = new ArrayList<>();
 
     @Deprecated
     public RiverWriter(File f, FlowExecutionOwner _owner) throws IOException {
@@ -112,13 +112,16 @@ public class RiverWriter implements Closeable {
         MarshallingConfiguration config = new MarshallingConfiguration();
         //config.setSerializabilityChecker(new SerializabilityCheckerImpl());
         config.setObjectResolver(new ObjectResolver() {
+            @Override
             public Object readResolve(Object o) {
                 throw new IllegalStateException();
             }
 
+            @Override
             public Object writeReplace(Object o) {
-                if (o==owner)
+                if (o == owner) {
                     return new DryOwner();
+                }
 
                 if (pickling) {
                     for (PickleFactory f : pickleFactories) {
@@ -162,6 +165,7 @@ public class RiverWriter implements Closeable {
         return marshaller;
     }
 
+    @Override
     public void close() throws IOException {
         int ephemeralsOffset;
         try {

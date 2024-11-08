@@ -151,8 +151,11 @@ public abstract class DefaultStepContext extends StepContext {
     }
 
     private <T> T castOrNull(Class<T> key, Object o) {
-        if (key.isInstance(o))  return key.cast(o);
-        else                    return null;
+        if (key.isInstance(o)) {
+            return key.cast(o);
+        } else {
+            return null;
+        }
     }
 
     private @CheckForNull Launcher makeLauncher(@CheckForNull Launcher contextual) throws IOException, InterruptedException {
@@ -203,7 +206,7 @@ public abstract class DefaultStepContext extends StepContext {
                         .filter(e -> e instanceof PasswordParameterValue
                                         && !((Secret) e.getValue()).getPlainText().isEmpty())
                         .map(ParameterValue::getName)
-                        .collect(Collectors.toCollection(() -> new HashSet<>())); // Make sure the set is serializable.
+                        .collect(Collectors.toCollection(HashSet::new)); // Make sure the set is serializable.
             } else {
                 passwordParameterVariables = Collections.emptySet();
             }

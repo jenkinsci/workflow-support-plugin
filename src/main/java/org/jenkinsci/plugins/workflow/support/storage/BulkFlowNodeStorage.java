@@ -41,10 +41,14 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * {@link FlowNodeStorage} implementation that stores all the {@link FlowNode}s together in one file for efficient bulk I/O
@@ -64,7 +68,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
     private final FlowExecution exec;
 
     /** Lazy-loaded mapping. */
-    private transient HashMap<String, Tag> nodes = null;
+    private transient Map<String, Tag> nodes = null;
 
     /** If true, we've been modified since last flush. */
     private boolean isModified = false;
@@ -81,20 +85,21 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
     }
 
     /** Loads the nodes listing, lazily - so loading the {@link FlowExecution} doesn't trigger a more complex load. */
-    HashMap<String, Tag> getOrLoadNodes() throws IOException {
+    @SuppressWarnings("unchecked")
+    private Map<String, Tag> getOrLoadNodes() throws IOException {
         if (nodes == null) {
             if (dir.exists()) {
                 File storeFile = getStoreFile();
                 if (storeFile.exists()) {
-                    HashMap<String, Tag> roughNodes = null;
+                    Map<String, Tag> roughNodes = null;
                     try {
-                        roughNodes = (HashMap<String, Tag>) (XSTREAM.fromXML(getStoreFile()));
+                        roughNodes = (Map<String, Tag>) (XSTREAM.fromXML(getStoreFile()));
                     } catch (Exception ex) {
-                       nodes = new HashMap<String, Tag>();
+                       nodes = new HashMap<>();
                        throw new IOException("Failed to read nodes", ex);
                     }
                     if (roughNodes == null) {
-                        nodes = new HashMap<String, Tag>();
+                        nodes = new HashMap<>();
                         throw new IOException("Unable to load nodes, invalid data");
                     }
                     for (Tag t : roughNodes.values()) {
@@ -111,11 +116,11 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
                     }
                     nodes = roughNodes;
                 } else {
-                    nodes = new HashMap<String, Tag>();
+                    nodes = new HashMap<>();
                 }
             } else {
                 IOUtils.mkdirs(dir);
-                nodes = new HashMap<String, Tag>();
+                nodes = new HashMap<>();
             }
         }
         return nodes;
@@ -128,12 +133,13 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
         return (t != null) ? t.node : null;
     }
 
+    @Override
     public void storeNode(@NonNull FlowNode n, boolean delayWritingActions) throws IOException {
         Tag t = getOrLoadNodes().get(n.getId());
         if (t != null) {
             t.node = n;
             List<Action> act = n.getActions();
-            t.actions = act.toArray(new Action[act.size()]);
+            t.actions = new ArrayList<>(act);
         } else {
             getOrLoadNodes().put(n.getId(), new Tag(n, n.getActions()));
         }
@@ -165,27 +171,40 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
             if (!dir.exists()) {
                 IOUtils.mkdirs(dir);
             }
-            PipelineIOUtils.writeByXStream(nodes, getStoreFile(), XSTREAM, !this.isAvoidAtomicWrite());
+            Map<String, Tag> sorted = new TreeMap<>(BulkFlowNodeStorage::sort);
+            sorted.putAll(nodes);
+            // Serialize as LinkedHashMap so that XStream does not try to save the comparator:
+            PipelineIOUtils.writeByXStream(new LinkedHashMap<>(sorted), getStoreFile(), XSTREAM, !this.isAvoidAtomicWrite());
 
             isModified = false;
         }
     }
 
+    private static int sort(String k1, String k2) {
+        try {
+            return Integer.parseInt(k1) - Integer.parseInt(k2);
+        } catch (NumberFormatException x) {
+            return k1.compareTo(k2);
+        }
+    }
+
+    @Override
     public List<Action> loadActions(@NonNull FlowNode node) throws IOException {
         Tag t = getOrLoadNodes().get(node.getId());
-        return (t != null) ? t.actions() : Collections.<Action>emptyList();
+        return (t != null) ? t.actions() : Collections.emptyList();
     }
 
     /**
      * Just stores this one node
      */
+    @Override
     public void saveActions(@NonNull FlowNode node, @NonNull List<Action> actions) throws IOException {
-        HashMap<String, Tag> map = getOrLoadNodes();
+        Map<String, Tag> map = getOrLoadNodes();
         Tag t = map.get(node.getId());
         if (t != null) {
             t.node = node;
             List<Action> act = node.getActions();
-            t.actions = act.toArray(new Action[act.size()]);
+            t.actions = new ArrayList<>(act);
         } else {
             map.put(node.getId(), new Tag(node, actions));
         }
@@ -193,6 +212,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
     }
 
     /** Have we written everything to disk that we need to, or is there something waiting to be written */
+    @Override
     public boolean isPersistedFully() {
         return !isModified;
     }
@@ -203,11 +223,11 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
      */
     private static class Tag {
         /* @NonNull except perhaps after deserialization */ FlowNode node;
-        private @CheckForNull Action[] actions;
+        private @CheckForNull List<Action> actions;
 
         private Tag(@NonNull FlowNode node, @NonNull List<Action> actions) {
             this.node = node;
-            this.actions = actions.isEmpty() ? null : actions.toArray(new Action[actions.size()]);
+            this.actions = actions.isEmpty() ? null : new ArrayList<>(actions);
         }
 
         private void storeActions() {  // We've already loaded the actions, may as well store them to the FlowNode
@@ -219,7 +239,7 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
         }
 
         public @NonNull List<Action> actions() {
-            return actions != null ? Arrays.asList(actions) : Collections.<Action>emptyList();
+            return actions != null ? Collections.unmodifiableList(actions) : Collections.emptyList();
         }
     }
 
