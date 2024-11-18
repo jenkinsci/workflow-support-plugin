@@ -69,10 +69,25 @@ public abstract class DefaultStepContext extends StepContext {
 
     /**
      * Uses {@link #doGet} but automatically translates certain kinds of objects into others.
+     * <p>Note that some basic types are handled directly by {@link #get} and cannot be overridden,
+     * such as {@link Run}, {@link Job}, {@link FlowExecution}, and {@link FlowNode}.
      * <p>{@inheritDoc}
      */
     @Override public final <T> T get(Class<T> key) throws IOException, InterruptedException {
-        T value = doGet(key);
+        T value = null;
+        if (Run.class.isAssignableFrom(key)) {
+            value = castOrNull(key, getExecution().getOwner().getExecutable());
+        } else if (Job.class.isAssignableFrom(key)) {
+            value = castOrNull(key, get(Run.class).getParent());
+        } else if (FlowExecution.class.isAssignableFrom(key)) {
+            value = castOrNull(key, getExecution());
+        } else if (FlowNode.class.isAssignableFrom(key)) {
+            value = castOrNull(key, getNode());
+        }
+        if (value != null) {
+            return value;
+        }
+        value = doGet(key);
         if (key == EnvVars.class) {
             Run<?,?> run = get(Run.class);
             EnvironmentAction a = run == null ? null : run.getAction(EnvironmentAction.class);
@@ -100,14 +115,6 @@ public abstract class DefaultStepContext extends StepContext {
             }
             */
             return castOrNull(key, n);
-        } else if (Run.class.isAssignableFrom(key)) {
-            return castOrNull(key, getExecution().getOwner().getExecutable());
-        } else if (Job.class.isAssignableFrom(key)) {
-            return castOrNull(key, get(Run.class).getParent());
-        } else if (FlowExecution.class.isAssignableFrom(key)) {
-            return castOrNull(key,getExecution());
-        } else if (FlowNode.class.isAssignableFrom(key)) {
-            return castOrNull(key, getNode());
         } else {
             // unrecognized key
             return null;
