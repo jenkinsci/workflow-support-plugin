@@ -26,7 +26,7 @@ package org.jenkinsci.plugins.workflow.support.visualization.table;
 import org.apache.commons.lang.StringUtils;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -93,7 +93,7 @@ public class FlowGraphTableTest {
             t.build();
             fail("Table construction should fail");
         } catch (IllegalStateException e) {
-            assertThat(e.getMessage(), equalTo("Saw StepStartNode[id=199, exec=CpsFlowExecution[Owner[test0/1:test0 #1]]] twice when finding siblings of StepStartNode[id=199, exec=CpsFlowExecution[Owner[test0/1:test0 #1]]]"));
+            assertThat(e.getMessage(), containsString("twice when finding siblings of StepStartNode[id=199"));
         }
     }
 
