@@ -63,7 +63,9 @@
     </pluginRepositories>
     <properties>
         <changelist>999999-SNAPSHOT</changelist>
-        <jenkins.version>2.440.3</jenkins.version>
+        <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
+        <jenkins.baseline>2.452</jenkins.baseline>
+        <jenkins.version>${jenkins.baseline}.4</jenkins.version>
         <no-test-jar>false</no-test-jar>
         <useBeta>true</useBeta>
         <hpi.compatibleSinceVersion>3.0</hpi.compatibleSinceVersion>
@@ -73,8 +75,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.440.x</artifactId>
-                <version>3234.v5ca_5154341ef</version>
+                <artifactId>bom-${jenkins.baseline}.x</artifactId>
+                <version>3850.vb_c5319efa_e29</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -105,7 +107,7 @@
             <!-- Required for running with Java 9+ -->
             <groupId>org.jboss.marshalling</groupId>
             <artifactId>jboss-marshalling-river</artifactId>
-            <version>2.2.1.Final</version>
+            <version>2.2.2.Final</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
