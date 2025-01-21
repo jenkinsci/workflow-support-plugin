@@ -35,7 +35,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 /**
  * Hyperlink which sends a POST request to the specified URL.
@@ -59,7 +59,7 @@ public final class POSTHyperlinkNote extends HyperlinkNote {
     public POSTHyperlinkNote(String url, int length) {
         super("#", length);
         if (url.startsWith("/")) {
-            StaplerRequest req = Stapler.getCurrentRequest();
+            StaplerRequest2 req = Stapler.getCurrentRequest2();
             // When req is not null?
             if (req != null) {
                 url = req.getContextPath() + url;
