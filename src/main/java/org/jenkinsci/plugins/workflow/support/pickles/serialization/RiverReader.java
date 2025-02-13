@@ -114,7 +114,7 @@ public class RiverReader implements Closeable {
         this.owner = owner;
     }
 
-    private int parseHeader(DataInputStream din) throws IOException {
+    static int parseHeader(DataInputStream din) throws IOException {
         if (din.readLong() != RiverWriter.HEADER) {
             throw new IOException("Invalid stream header");
         }
