@@ -24,36 +24,51 @@
 
 package org.jenkinsci.plugins.workflow.support.pickles.serialization;
 
-import groovy.lang.GroovyShell;
-import groovy.lang.Script;
-import java.io.DataInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.jboss.marshalling.Marshalling;
-import org.jboss.marshalling.MarshallingConfiguration;
-import org.jboss.marshalling.SimpleClassResolver;
-import org.jboss.marshalling.river.RiverMarshallerFactory;
-import static org.jenkinsci.plugins.workflow.support.pickles.serialization.RiverReader.parseHeader;
+import org.apache.commons.io.FileUtils;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowExecution;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import static org.junit.Assume.assumeNotNull;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsSessionRule;
 
-// mvnd test-compile exec:java -Dexec.mainClass=org.jenkinsci.plugins.workflow.support.pickles.serialization.RiverReaderStackOverflowErrorDiag -Dexec.classpathScope=test -Dexec.arguments=/path/to/program.dat
 public final class RiverReaderStackOverflowErrorDiag {
 
-    public static void main(String[] args) throws Exception {
-        var programDat = Path.of(args[0]);
-        // TODO probably need to specify a megawar also
-        System.err.println("Will load " + programDat.toRealPath());
-        Script script = new GroovyShell().parse("public class WorkflowScript extends Script implements Serializable {def run() {}}");
-        var classLoader = script.getClass().getClassLoader();
-        try (var in = Files.newInputStream(programDat)) {
-            var din = new DataInputStream(in);
-            parseHeader(din); // ignore offset, not bothering to read pickles
-            var config = new MarshallingConfiguration();
-            config.setClassResolver(new SimpleClassResolver(classLoader));
-            var eu = new RiverMarshallerFactory().createUnmarshaller(config);
-            eu.start(Marshalling.createByteInput(din));
-            var g = eu.readObject();
-            System.err.println("Loaded " + g);
-        }
+    private static Path input;
+
+    @BeforeClass public static void args() {
+        var path = System.getenv("BUILD_DIR");
+        assumeNotNull("Define $BUILD_DIR to run", path);
+        input = Path.of(path);
+    }
+
+    @Rule public JenkinsSessionRule rr = new JenkinsSessionRule();
+
+    @Test public void run() throws Throwable {
+        var jobDir = rr.getHome().toPath().resolve("jobs/xxx");
+        var buildDir = jobDir.resolve("builds/1");
+        FileUtils.copyDirectory(input.toFile(), buildDir.toFile());
+        Files.writeString(jobDir.resolve("config.xml"), "<flow-definition/>"); // minimal WorkflowJob
+        var buildXml = buildDir.resolve("build.xml");
+        Files.writeString(buildXml, Files.readString(buildXml).
+            replace("<completed>true</completed>", "<completed>false</completed>").
+            replace("<done>true</done>", "<done>false</done>").
+            replaceFirst("<head>1:[0-9]+</head>", "<!-- no heads -->"));
+        System.err.println("Loading " + input);
+        rr.then(r -> {
+            var build = r.jenkins.getItemByFullName("xxx", WorkflowJob.class).getBuildByNumber(1);
+            try {
+                ((CpsFlowExecution) build.getExecution()).programPromise.get();
+                System.err.println("Loaded.");
+            } catch (Exception x) {
+                x.printStackTrace();
+                build.writeWholeLogTo(System.err);
+            }
+        });
     }
 
 }
