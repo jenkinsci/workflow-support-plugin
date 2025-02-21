@@ -225,4 +225,11 @@ public abstract class DefaultStepContext extends StepContext {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getStepDisplayFunctionName() throws IOException {
+        return getNode().getDisplayFunctionName();
+    }
 }
