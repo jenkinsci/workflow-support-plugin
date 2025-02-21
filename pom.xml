@@ -76,9 +76,15 @@
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
                 <artifactId>bom-${jenkins.baseline}.x</artifactId>
-                <version>3850.vb_c5319efa_e29</version>
+                <version>4023.va_eeb_b_4e45f07</version>
                 <scope>import</scope>
                 <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.jenkins-ci.plugins.workflow</groupId>
+                <artifactId>workflow-cps</artifactId>
+                <!-- TODO https://github.com/jenkinsci/workflow-cps-plugin/pull/988 -->
+                <version>999999-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -186,6 +192,16 @@
         <dependency>
             <groupId>org.jenkinsci.plugins</groupId>
             <artifactId>pipeline-model-definition</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jenkins.plugins</groupId>
+            <artifactId>warnings-ng</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>parallel-test-executor</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

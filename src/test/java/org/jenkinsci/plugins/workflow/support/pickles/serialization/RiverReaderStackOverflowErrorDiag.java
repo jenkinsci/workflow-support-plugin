@@ -58,8 +58,10 @@ public final class RiverReaderStackOverflowErrorDiag {
             replace("<completed>true</completed>", "<completed>false</completed>").
             replace("<done>true</done>", "<done>false</done>").
             replaceFirst("<head>1:[0-9]+</head>", "<!-- no heads -->"));
+        Files.writeString(buildDir.resolve("log"), "<original log redacted>\n");
         System.err.println("Loading " + input);
         rr.then(r -> {
+            // TODO turn down logging on OldDataMonitor (we do not care about missing classes in build.xml)
             var build = r.jenkins.getItemByFullName("xxx", WorkflowJob.class).getBuildByNumber(1);
             try {
                 ((CpsFlowExecution) build.getExecution()).programPromise.get();
