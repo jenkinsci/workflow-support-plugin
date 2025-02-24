@@ -88,9 +88,7 @@ public abstract class DefaultStepContext extends StepContext {
         } else if (StepDescriptor.class.isAssignableFrom(key)) {
             var stepNode = castOrNull(StepNode.class, getNode());
             if (stepNode != null) {
-                if (stepNode.getDescriptor() != null) {
-                    value = castOrNull(key, stepNode.getDescriptor());
-                }
+                value = castOrNull(key, stepNode.getDescriptor());
             }
         }
         if (value != null) {
