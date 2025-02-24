@@ -33,7 +33,7 @@ public class SynchronousResumeNotSupportedExceptionTest {
     public RealJenkinsRule rjr = new RealJenkinsRule();
 
     @Test
-    public void fakeStepExecutes() throws Throwable {
+    public void test_SynchronousResumeNotSupportedException_ShouldSuggestRetry() throws Throwable {
         rjr.startJenkins();
         rjr.runRemotely(j -> {
             WorkflowJob p = j.createProject(WorkflowJob.class, "p");
