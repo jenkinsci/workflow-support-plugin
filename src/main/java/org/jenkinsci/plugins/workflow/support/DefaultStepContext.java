@@ -72,7 +72,7 @@ public abstract class DefaultStepContext extends StepContext {
     /**
      * Uses {@link #doGet} but automatically translates certain kinds of objects into others.
      * <p>Note that some basic types are handled directly by {@link #get} and cannot be overridden,
-     * such as {@link Run}, {@link Job}, {@link FlowExecution}, and {@link FlowNode}.
+     * such as {@link Run}, {@link Job}, {@link FlowExecution}, {@link FlowNode} and {@link StepDescriptor}.
      * <p>{@inheritDoc}
      */
     @Override public final <T> T get(Class<T> key) throws IOException, InterruptedException {

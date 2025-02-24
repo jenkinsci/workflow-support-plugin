@@ -1,7 +1,6 @@
 package org.jenkinsci.plugins.workflow.test.steps;
 
 import java.util.Set;
-import java.util.logging.Logger;
 
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.graph.FlowGraphWalker;
@@ -17,9 +16,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.BuildWatcher;
 import org.jvnet.hudson.test.JenkinsSessionRule;
-import org.jvnet.hudson.test.PrefixedOutputStream;
-import org.jvnet.hudson.test.RealJenkinsRule;
-import org.jvnet.hudson.test.TailLog;
 import org.jvnet.hudson.test.TestExtension;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -59,6 +55,7 @@ public class SynchronousResumeNotSupportedExceptionTest {
                 containsString("retry"),
                 containsString("simulatedSleep"),
                 containsString("retries")));
+            j.waitUntilNoActivity();
         });
     }
 

@@ -83,7 +83,7 @@
             <dependency>
                 <groupId>org.jenkins-ci.plugins.workflow</groupId>
                 <artifactId>workflow-step-api</artifactId>
-                <version>693.vf13cd0f1fdd2</version>
+                <version>694.v308f6b_0e2946</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
