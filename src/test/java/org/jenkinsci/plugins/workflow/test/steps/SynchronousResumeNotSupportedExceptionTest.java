@@ -12,8 +12,11 @@ import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.jenkinsci.plugins.workflow.steps.StepExecutions;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.BuildWatcher;
+import org.jvnet.hudson.test.JenkinsSessionRule;
 import org.jvnet.hudson.test.PrefixedOutputStream;
 import org.jvnet.hudson.test.RealJenkinsRule;
 import org.jvnet.hudson.test.TailLog;
@@ -27,29 +30,22 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 
 public class SynchronousResumeNotSupportedExceptionTest {
-    private static final Logger LOGGER = Logger.getLogger(SynchronousResumeNotSupportedExceptionTest.class.getName());
+
+    @ClassRule
+    public static BuildWatcher bw = new BuildWatcher();
 
     @Rule
-    public RealJenkinsRule rjr = new RealJenkinsRule();
+    public JenkinsSessionRule rjr = new JenkinsSessionRule();
 
     @Test
     public void test_SynchronousResumeNotSupportedException_ShouldSuggestRetry() throws Throwable {
-        rjr.startJenkins();
-        rjr.runRemotely(j -> {
+        rjr.then(j -> {
             WorkflowJob p = j.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition("simulatedSleep 20", true));
-            try(var tailLog = new TailLog(j, "p", 1).withColor(PrefixedOutputStream.Color.YELLOW)) {
-                var run = p.scheduleBuild2(0).waitForStart();
-                j.waitForMessage("Going to sleep for", run);
-            }
+            var run = p.scheduleBuild2(0).waitForStart();
+            j.waitForMessage("Going to sleep for", run);
         });
-
-        LOGGER.info("Restarting jenkins forcibly");
-        rjr.stopJenkinsForcibly();
-        rjr.startJenkins();
-        LOGGER.info("Jenkins has restarted");
-
-        rjr.runRemotely(j -> {
+        rjr.then(j -> {
             var b = j.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1);
             var w = new FlowGraphWalker(b.getExecution());
             Throwable error = null;
@@ -62,7 +58,7 @@ public class SynchronousResumeNotSupportedExceptionTest {
                 containsString("nonresumable"),
                 containsString("retry"),
                 containsString("simulatedSleep"),
-                containsString("retires")));
+                containsString("retries")));
         });
     }
 
@@ -78,13 +74,12 @@ public class SynchronousResumeNotSupportedExceptionTest {
 
         @Override
         public StepExecution start(StepContext context) throws Exception {
-            return StepExecutions.synchronous(context, c -> {
+            return StepExecutions.synchronousNonBlockingVoid(context, c -> {
                 var buildLogger = context.get(TaskListener.class).getLogger();
                 buildLogger.println("Simulated sleep step started");
                 buildLogger.println("Going to sleep for " + sleepSeconds + " seconds");
                 Thread.sleep(sleepSeconds * 1000L);
                 buildLogger.println("Simulated sleep step completed");
-                return null;
             });
         }
 
