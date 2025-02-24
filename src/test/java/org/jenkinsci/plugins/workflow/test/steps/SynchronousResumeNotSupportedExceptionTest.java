@@ -11,7 +11,7 @@ import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
-import org.jenkinsci.plugins.workflow.steps.SynchronousNonBlockingStepExecution;
+import org.jenkinsci.plugins.workflow.steps.StepExecutions;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.PrefixedOutputStream;
@@ -19,8 +19,6 @@ import org.jvnet.hudson.test.RealJenkinsRule;
 import org.jvnet.hudson.test.TailLog;
 import org.jvnet.hudson.test.TestExtension;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
 
 import hudson.model.TaskListener;
 
@@ -80,27 +78,14 @@ public class SynchronousResumeNotSupportedExceptionTest {
 
         @Override
         public StepExecution start(StepContext context) throws Exception {
-            return new SimulatedSleepExecution(this.sleepSeconds, context);
-        }
-
-        public static final class SimulatedSleepExecution extends SynchronousNonBlockingStepExecution<Void> {
-
-            private final int sleepSeconds;
-
-            SimulatedSleepExecution(int sleepSeconds, StepContext context) {
-                super(context);
-                this.sleepSeconds = sleepSeconds;
-            }
-
-            @Override
-            protected Void run() throws Exception {
-                var buildLogger = getContext().get(TaskListener.class).getLogger();
+            return StepExecutions.synchronous(context, c -> {
+                var buildLogger = context.get(TaskListener.class).getLogger();
                 buildLogger.println("Simulated sleep step started");
                 buildLogger.println("Going to sleep for " + sleepSeconds + " seconds");
                 Thread.sleep(sleepSeconds * 1000L);
                 buildLogger.println("Simulated sleep step completed");
                 return null;
-            }
+            });
         }
 
         @TestExtension
@@ -114,12 +99,6 @@ public class SynchronousResumeNotSupportedExceptionTest {
             @Override
             public String getFunctionName() {
                 return "simulatedSleep";
-            }
-
-            @NonNull
-            @Override
-            public String getDisplayName() {
-                return "Simulated Sleep Step";
             }
         }
     }
