@@ -32,7 +32,7 @@ public class FakeTest {
             WorkflowJob p = j.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition("fake 20", true));
             var run = p.scheduleBuild2(0).waitForStart();
-            j.waitForMessage("fake", run);
+            j.waitForMessage("going to sleep for", run);
             LOGGER.info("Jenkins will restart now");
         });
 
