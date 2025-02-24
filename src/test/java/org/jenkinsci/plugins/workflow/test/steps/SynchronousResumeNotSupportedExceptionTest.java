@@ -34,7 +34,7 @@ public class SynchronousResumeNotSupportedExceptionTest {
     public JenkinsSessionRule rjr = new JenkinsSessionRule();
 
     @Test
-    public void test_SynchronousResumeNotSupportedException_ShouldSuggestRetry() throws Throwable {
+    public void test_SynchronousResumeNotSupportedException_ShouldShowFailedStep_AndSuggestRetry() throws Throwable {
         rjr.then(j -> {
             WorkflowJob p = j.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition("simulatedSleep 20", true));
