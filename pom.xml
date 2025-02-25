@@ -80,6 +80,13 @@
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
+            <!-- TODO remove this after bom is updated; currently required for code merged in
+                    https://github.com/jenkinsci/workflow-step-api-plugin/pull/204 -->
+            <dependency>
+                <groupId>org.jenkins-ci.plugins.workflow</groupId>
+                <artifactId>workflow-step-api</artifactId>
+                <version>700.v6e45cb_a_5a_a_21</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     <dependencies>

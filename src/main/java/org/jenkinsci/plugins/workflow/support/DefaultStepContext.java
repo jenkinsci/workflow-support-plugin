@@ -49,9 +49,11 @@ import hudson.util.Secret;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.flow.GraphListener;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
+import org.jenkinsci.plugins.workflow.graph.StepNode;
 import org.jenkinsci.plugins.workflow.log.TaskListenerDecorator;
 import org.jenkinsci.plugins.workflow.steps.EnvironmentExpander;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
+import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.support.actions.EnvironmentAction;
 import org.jenkinsci.plugins.workflow.support.actions.LogStorageAction;
 
@@ -70,7 +72,7 @@ public abstract class DefaultStepContext extends StepContext {
     /**
      * Uses {@link #doGet} but automatically translates certain kinds of objects into others.
      * <p>Note that some basic types are handled directly by {@link #get} and cannot be overridden,
-     * such as {@link Run}, {@link Job}, {@link FlowExecution}, and {@link FlowNode}.
+     * such as {@link Run}, {@link Job}, {@link FlowExecution}, {@link FlowNode} and {@link StepDescriptor}.
      * <p>{@inheritDoc}
      */
     @Override public final <T> T get(Class<T> key) throws IOException, InterruptedException {
@@ -83,6 +85,11 @@ public abstract class DefaultStepContext extends StepContext {
             value = castOrNull(key, getExecution());
         } else if (FlowNode.class.isAssignableFrom(key)) {
             value = castOrNull(key, getNode());
+        } else if (StepDescriptor.class.isAssignableFrom(key)) {
+            var stepNode = castOrNull(StepNode.class, getNode());
+            if (stepNode != null) {
+                value = castOrNull(key, stepNode.getDescriptor());
+            }
         }
         if (value != null) {
             return value;
