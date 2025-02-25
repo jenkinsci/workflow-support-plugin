@@ -3,8 +3,6 @@ package org.jenkinsci.plugins.workflow.test.steps;
 import java.util.Set;
 
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
-import org.jenkinsci.plugins.workflow.graph.FlowGraphWalker;
-import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
@@ -43,19 +41,12 @@ public class SynchronousResumeNotSupportedExceptionTest {
         });
         rjr.then(j -> {
             var b = j.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1);
-            var w = new FlowGraphWalker(b.getExecution());
-            Throwable error = null;
-            for (FlowNode n: w) {
-                if (n.getError() != null) {
-                    error = n.getError().getError();
-                }
-            }
-            assertThat(error.getMessage(), allOf(
+            j.waitForCompletion(b);
+            assertThat(b.getLog(), allOf(
                 containsString("nonresumable"),
                 containsString("retry"),
                 containsString("simulatedSleep"),
                 containsString("retries")));
-            j.waitUntilNoActivity();
         });
     }
 
