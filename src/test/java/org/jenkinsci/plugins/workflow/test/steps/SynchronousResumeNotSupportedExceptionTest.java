@@ -85,7 +85,7 @@ public class SynchronousResumeNotSupportedExceptionTest {
 
             @Override
             public Set<? extends Class<?>> getRequiredContext() {
-                return Set.of();
+                return Set.of(TaskListener.class);
             }
 
             @Override
