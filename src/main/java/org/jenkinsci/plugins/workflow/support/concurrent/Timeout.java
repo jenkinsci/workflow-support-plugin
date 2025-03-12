@@ -32,6 +32,7 @@ import hudson.util.DaemonThreadFactory;
 import hudson.util.NamingThreadFactory;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -49,6 +50,7 @@ public class Timeout implements AutoCloseable {
 
     private final Thread thread;
     private volatile boolean completed;
+    private volatile ScheduledFuture<?> future;
     private long endTime;
     /*
     private final String originalName;
@@ -66,6 +68,9 @@ public class Timeout implements AutoCloseable {
 
     @Override public void close() {
         completed = true;
+        if (future != null) {
+            future.cancel(true);
+        }
         /*
         thread.setName(originalName);
         */
@@ -73,7 +78,7 @@ public class Timeout implements AutoCloseable {
     }
 
     private void ping(final long time, final TimeUnit unit) {
-        interruptions.schedule(() -> {
+        future = interruptions.schedule(() -> {
             if (completed) {
                 LOGGER.log(Level.FINER, "{0} already finished, no need to interrupt", thread.getName());
                 return;
