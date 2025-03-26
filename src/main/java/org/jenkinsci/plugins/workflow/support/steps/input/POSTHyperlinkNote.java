@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.workflow.support.steps.input;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.console.ConsoleAnnotationDescriptor;
 import hudson.console.HyperlinkNote;
@@ -43,7 +44,8 @@ import org.kohsuke.stapler.StaplerRequest2;
 public final class POSTHyperlinkNote extends HyperlinkNote {
 
     private static final Logger LOGGER = Logger.getLogger(POSTHyperlinkNote.class.getName());
-    
+
+    @SuppressFBWarnings("HSM_HIDING_METHOD")
     public static String encodeTo(String url, String text) {
         try {
             return new POSTHyperlinkNote(url, text.length()).encode() + text;
