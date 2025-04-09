@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.workflow.support.visualization.table;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Util;
 import java.util.ArrayList;
@@ -61,9 +62,13 @@ public class FlowGraphTable {
         if (execution!=null) {
             Map<FlowNode, Row> rows = createAllRows();
             Row firstRow = buildForwardReferences(rows);
-            buildTreeFromGraph(rows);
-            buildTreeDepth(firstRow);
-            this.rows = Collections.unmodifiableList(order(firstRow));
+            if (firstRow != null) {
+                buildTreeFromGraph(rows);
+                buildTreeDepth(firstRow);
+                this.rows = Collections.unmodifiableList(order(firstRow));
+            } else {
+                this.rows = List.of();
+            }
         } else {
             this.rows = Collections.emptyList();
         }
@@ -91,7 +96,7 @@ public class FlowGraphTable {
     /**
      * Builds up forward graph edge references from {@link FlowNode#getParents()} back pointers.
      */
-    private Row buildForwardReferences(Map<FlowNode, Row> rows) {
+    private @CheckForNull Row buildForwardReferences(Map<FlowNode, Row> rows) {
         // build up all the forward references
         Row firstRow = null;
         for (Row r : rows.values()) {
@@ -122,8 +127,6 @@ public class FlowGraphTable {
                 sr.endNode = en;
             }
         }
-        // graph shouldn't contain any cycle, so there should be at least one 'head node'
-        assert firstRow!=null;
         return firstRow;
     }
 
