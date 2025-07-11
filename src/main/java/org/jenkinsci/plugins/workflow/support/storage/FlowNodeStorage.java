@@ -99,7 +99,7 @@ public abstract class FlowNodeStorage implements FlowActionStorage {
     }
 
     /** Invoke this to insure any unwritten {@link FlowNode} data is persisted to disk.
-     *  Should be invoked by {@link FlowExecution#notifyShutdown()} to ensure disk state is persisted.
+     *  Should be invoked to ensure disk state is persisted.
      */
     public void flush() throws IOException {
         // Only needs implementation if you're not already guaranteeing persistence at all times
