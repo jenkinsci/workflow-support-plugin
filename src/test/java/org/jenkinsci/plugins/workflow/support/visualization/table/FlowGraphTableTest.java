@@ -23,7 +23,6 @@
  */
 package org.jenkinsci.plugins.workflow.support.visualization.table;
 
-import org.apache.commons.lang.StringUtils;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
@@ -123,7 +122,7 @@ public class FlowGraphTableTest {
         t.build();
         SemaphoreStep.success("wait/1", null);
         r.waitForCompletion(b);
-        assertThat(t.getRows().stream().map(r -> StringUtils.repeat("  ", r.getTreeDepth()) + r.getDisplayName()).toArray(String[]::new), arrayContaining(
+        assertThat(t.getRows().stream().map(r -> "  ".repeat(r.getTreeDepth()) + r.getDisplayName()).toArray(String[]::new), arrayContaining(
             "Start of Pipeline",
             "  stage",
             "    stage block (start)",
