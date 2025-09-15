@@ -36,10 +36,11 @@ import org.jenkinsci.plugins.workflow.actions.LabelAction;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.cps.nodes.StepStartNode;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.LogRecorder;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -49,12 +50,21 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
-public final class BulkFlowNodeStorageTest {
+@WithJenkins
+class BulkFlowNodeStorageTest {
 
-    @Rule public JenkinsRule r = new JenkinsRule();
-    @Rule public LoggerRule logger = new LoggerRule().record(RobustReflectionConverter.class, Level.FINE).capture(50);
+    @SuppressWarnings("unused")
+    private final LogRecorder logger = new LogRecorder().record(RobustReflectionConverter.class, Level.FINE).capture(50);
 
-    @Test public void orderOfEntries() throws Exception {
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
+
+    @Test
+    void orderOfEntries() throws Exception {
         var p = r.createProject(WorkflowJob.class, "p");
         p.setDefinition(new CpsFlowDefinition("for (int i = 1; i <= 40; i++) {echo(/step #$i/)}", true));
         var b = r.buildAndAssertSuccess(p);
@@ -70,7 +80,8 @@ public final class BulkFlowNodeStorageTest {
     }
 
     @LocalData
-    @Test public void actionDeserializationShouldBeRobust() throws Exception {
+    @Test
+    void actionDeserializationShouldBeRobust() throws Exception {
         /*
         var p = r.createProject(WorkflowJob.class);
         p.addProperty(new DurabilityHintJobProperty(FlowDurabilityHint.PERFORMANCE_OPTIMIZED));

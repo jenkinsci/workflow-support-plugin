@@ -37,20 +37,30 @@ import org.jenkinsci.plugins.workflow.steps.Step;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.Rule;
-import org.jvnet.hudson.test.BuildWatcher;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public class LogActionImplTest {
+@WithJenkins
+class LogActionImplTest {
 
-    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public JenkinsRule r = new JenkinsRule();
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
+    private JenkinsRule r;
 
-    @Test public void logsAndBlocks() throws Exception {
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
+
+    @Test
+    void logsAndBlocks() throws Exception {
         WorkflowJob p = r.createProject(WorkflowJob.class);
         p.setDefinition(new CpsFlowDefinition("parallel a: {chatty('LBBL') {echo(/atom step in A with $remaining commands to go/)}}, b: {chatty('BL') {echo(/atom step in B with $remaining commands to go/)}}", true));
         WorkflowRun b = r.buildAndAssertSuccess(p);
@@ -61,27 +71,48 @@ public class LogActionImplTest {
         r.assertLogContains("atom step in B with 1 commands to go", b);
         r.assertLogContains("logging from BL with 0 commands to go", b);
     }
+
+    @SuppressWarnings("unused")
     public static class ChattyStep extends Step {
+
         public final String pattern;
-        @DataBoundConstructor public ChattyStep(String pattern) {this.pattern = pattern;}
-        @Override public StepExecution start(StepContext context) throws Exception {
+
+        @DataBoundConstructor
+        public ChattyStep(String pattern) {this.pattern = pattern;}
+
+        @Override
+        public StepExecution start(StepContext context) throws Exception {
             return new Execution(context, pattern);
         }
-        @TestExtension("logsAndBlocks") public static class DescriptorImpl extends StepDescriptor {
-            @Override public String getFunctionName() {return "chatty";}
-            @Override public boolean takesImplicitBlockArgument() {return true;}
-            @Override public Set<? extends Class<?>> getRequiredContext() {
+
+        @SuppressWarnings("unused")
+        @TestExtension("logsAndBlocks")
+        public static class DescriptorImpl extends StepDescriptor {
+
+            @Override
+            public String getFunctionName() {return "chatty";}
+
+            @Override
+            public boolean takesImplicitBlockArgument() {return true;}
+
+            @Override
+            public Set<? extends Class<?>> getRequiredContext() {
                 return Collections.singleton(TaskListener.class);
             }
         }
+
         private static class Execution extends StepExecution {
+
+            private final String pattern;
+            private LinkedList<Boolean> commands; // L ~ false to log, B ~ true to run block
+
             Execution(StepContext context, String pattern) {
                 super(context);
                 this.pattern = pattern;
             }
-            final String pattern;
-            LinkedList<Boolean> commands; // L ~ false to log, B ~ true to run block
-            @Override public boolean start() throws Exception {
+
+            @Override
+            public boolean start() throws Exception {
                 commands = new LinkedList<>();
                 for (char c : pattern.toCharArray()) {
                     if (c == 'L') {
@@ -94,6 +125,7 @@ public class LogActionImplTest {
                 run();
                 return false;
             }
+
             private void run() throws Exception {
                 StepContext context = getContext();
                 if (commands.isEmpty()) {
@@ -105,19 +137,23 @@ public class LogActionImplTest {
                     run();
                 }
             }
+
             private final class Callback extends BodyExecutionCallback { // not using TailCall since run() sometimes calls onSuccess itself
-                @Override public void onSuccess(StepContext context, Object result) {
+
+                @Override
+                public void onSuccess(StepContext context, Object result) {
                     try {
                         run();
                     } catch (Exception x) {
                         context.onFailure(x);
                     }
                 }
-                @Override public void onFailure(StepContext context, Throwable t) {
+
+                @Override
+                public void onFailure(StepContext context, Throwable t) {
                     context.onFailure(t);
                 }
             }
         }
     }
-
 }

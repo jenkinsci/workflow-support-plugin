@@ -32,94 +32,107 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import org.junit.ClassRule;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.jvnet.hudson.test.BuildWatcher;
+
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.For;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.JenkinsSessionRule;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 
 @Issue("SECURITY-699")
-public class SerializationSecurityTest {
+class SerializationSecurityTest {
 
-    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
 
-    @Rule public JenkinsSessionRule sessions = new JenkinsSessionRule();
-    
+    @RegisterExtension
+    private final JenkinsSessionExtension sessions = new JenkinsSessionExtension();
+
     /** @see SerializableClass#callWriteObject */
     @For(RiverWriter.class)
-    @Test public void writeObjectChecksSandbox() throws Throwable {
+    @Test
+    void writeObjectChecksSandbox() throws Throwable {
         sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
-                "class Hack {\n" +
-                "  @NonCPS private void writeObject(ObjectOutputStream out) {\n" +
-                "    Jenkins.instance.systemMessage = 'oops'\n" +
-                "  }\n" +
-                "}\n" +
-                "def hack = new Hack()\n" +
-                "sleep 1\n" +
-                "echo(/should not still have $hack/)", true));
+                    """
+                            class Hack {
+                              @NonCPS private void writeObject(ObjectOutputStream out) {
+                                Jenkins.instance.systemMessage = 'oops'
+                              }
+                            }
+                            def hack = new Hack()
+                            sleep 1
+                            echo(/should not still have $hack/)""", true));
             safe(r, p.scheduleBuild2(0).get());
         });
     }
 
     /** @see SerializableClass#callWriteReplace */
     @For(RiverWriter.class)
-    @Test public void writeReplaceChecksSandbox() throws Throwable {
+    @Test
+    void writeReplaceChecksSandbox() throws Throwable {
         sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
-                "class Hack {\n" +
-                "  @NonCPS private Object writeReplace() {\n" +
-                "    Jenkins.instance.systemMessage = 'oops'\n" +
-                "    this\n" +
-                "  }\n" +
-                "}\n" +
-                "def hack = new Hack()\n" +
-                "sleep 1\n" +
-                "echo(/should not still have $hack/)", true));
+                    """
+                            class Hack {
+                              @NonCPS private Object writeReplace() {
+                                Jenkins.instance.systemMessage = 'oops'
+                                this
+                              }
+                            }
+                            def hack = new Hack()
+                            sleep 1
+                            echo(/should not still have $hack/)""", true));
             safe(r, p.scheduleBuild2(0).get());
         });
     }
 
     /** @see RiverMarshaller#doWriteObject */
     @For(RiverWriter.class)
-    @Test public void writeExternalChecksSandbox() throws Throwable {
+    @Test
+    void writeExternalChecksSandbox() throws Throwable {
         sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
-                "class Hack implements Externalizable {\n" +
-                "  @NonCPS void writeExternal(ObjectOutput out) {\n" +
-                "    Jenkins.instance.systemMessage = 'oops'\n" +
-                "  }\n" +
-                "  @NonCPS void readExternal(ObjectInput inp) {}\n" +
-                "}\n" +
-                "def hack = new Hack()\n" +
-                "sleep 1\n" +
-                "echo(/should not still have $hack/)", true));
+                    """
+                            class Hack implements Externalizable {
+                              @NonCPS void writeExternal(ObjectOutput out) {
+                                Jenkins.instance.systemMessage = 'oops'
+                              }
+                              @NonCPS void readExternal(ObjectInput inp) {}
+                            }
+                            def hack = new Hack()
+                            sleep 1
+                            echo(/should not still have $hack/)""", true));
             safe(r, p.scheduleBuild2(0).get());
         });
     }
 
     /** @see SerializableClass#callReadObject */
     @For(RiverReader.class)
-    @Test public void readObjectChecksSandbox() throws Throwable {
+    @Test
+    void readObjectChecksSandbox() throws Throwable {
         sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
-                "class Hack {\n" +
-                "  @NonCPS private void readObject(ObjectInputStream inp) {\n" +
-                "    Jenkins.instance.systemMessage = 'oops'\n" +
-                "  }\n" +
-                "}\n" +
-                "def hack = new Hack()\n" +
-                "semaphore 'wait'\n" +
-                "echo(/should not still have $hack/)", true));
+                    """
+                            class Hack {
+                              @NonCPS private void readObject(ObjectInputStream inp) {
+                                Jenkins.instance.systemMessage = 'oops'
+                              }
+                            }
+                            def hack = new Hack()
+                            semaphore 'wait'
+                            echo(/should not still have $hack/)""", true));
             SemaphoreStep.waitForStart("wait/1", p.scheduleBuild2(0).waitForStart());
         });
         sessions.then(r -> {
@@ -131,18 +144,20 @@ public class SerializationSecurityTest {
 
     /** @see SerializableClass#callReadResolve */
     @For(RiverReader.class)
-    @Test public void readResolveChecksSandbox() throws Throwable {
+    @Test
+    void readResolveChecksSandbox() throws Throwable {
         sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
-                "class Hack {\n" +
-                "  @NonCPS private Object readResolve() {\n" +
-                "    Jenkins.instance.systemMessage = 'oops'\n" +
-                "  }\n" +
-                "}\n" +
-                "def hack = new Hack()\n" +
-                "semaphore 'wait'\n" +
-                "echo(/should not still have $hack/)", true));
+                    """
+                            class Hack {
+                              @NonCPS private Object readResolve() {
+                                Jenkins.instance.systemMessage = 'oops'
+                              }
+                            }
+                            def hack = new Hack()
+                            semaphore 'wait'
+                            echo(/should not still have $hack/)""", true));
             SemaphoreStep.waitForStart("wait/1", p.scheduleBuild2(0).waitForStart());
         });
         sessions.then(r -> {
@@ -153,19 +168,21 @@ public class SerializationSecurityTest {
 
     /** @see RiverUnmarshaller#doReadNewObject */
     @For(RiverReader.class)
-    @Test public void readExternalChecksSandbox() throws Throwable {
+    @Test
+    void readExternalChecksSandbox() throws Throwable {
         sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
-                "class Hack implements Externalizable {\n" +
-                "  @NonCPS void writeExternal(ObjectOutput out) {}\n" +
-                "  @NonCPS void readExternal(ObjectInput inp) {\n" +
-                "    Jenkins.instance.systemMessage = 'oops'\n" +
-                "  }\n" +
-                "}\n" +
-                "def hack = new Hack()\n" +
-                "semaphore 'wait'\n" +
-                "echo(/should not still have $hack/)", true));
+                    """
+                            class Hack implements Externalizable {
+                              @NonCPS void writeExternal(ObjectOutput out) {}
+                              @NonCPS void readExternal(ObjectInput inp) {
+                                Jenkins.instance.systemMessage = 'oops'
+                              }
+                            }
+                            def hack = new Hack()
+                            semaphore 'wait'
+                            echo(/should not still have $hack/)""", true));
             SemaphoreStep.waitForStart("wait/1", p.scheduleBuild2(0).waitForStart());
         });
         sessions.then(r -> {
@@ -176,21 +193,23 @@ public class SerializationSecurityTest {
 
     /** @see SerializableClass#callNoArgConstructor */
     @For(RiverReader.class)
-    @Test public void externalizableNoArgConstructorChecksSandbox() throws Throwable {
+    @Test
+    void externalizableNoArgConstructorChecksSandbox() throws Throwable {
         sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
-                "class Hack implements Externalizable {\n" +
-                "  Hack(boolean x) {}\n" +
-                "  Hack() {" +
-                "    Jenkins.instance.systemMessage = 'oops'\n" +
-                "  }\n" +
-                "  @NonCPS void writeExternal(ObjectOutput out) {}\n" +
-                "  @NonCPS void readExternal(ObjectInput inp) {}\n" +
-                "}\n" +
-                "def hack = new Hack(true)\n" +
-                "semaphore 'wait'\n" +
-                "echo(/should not still have $hack/)", true));
+                    """
+                            class Hack implements Externalizable {
+                              Hack(boolean x) {}
+                              Hack() {\
+                                Jenkins.instance.systemMessage = 'oops'
+                              }
+                              @NonCPS void writeExternal(ObjectOutput out) {}
+                              @NonCPS void readExternal(ObjectInput inp) {}
+                            }
+                            def hack = new Hack(true)
+                            semaphore 'wait'
+                            echo(/should not still have $hack/)""", true));
             SemaphoreStep.waitForStart("wait/1", p.scheduleBuild2(0).waitForStart());
         });
         sessions.then(r -> {
@@ -204,21 +223,23 @@ public class SerializationSecurityTest {
      * @see SerializableClass#callObjectInputConstructor
      */
     @For(RiverReader.class)
-    @Test public void externalizableObjectInputConstructorChecksSandbox() throws Throwable {
+    @Test
+    void externalizableObjectInputConstructorChecksSandbox() throws Throwable {
         sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
-                "class Hack implements Externalizable {\n" +
-                "  Hack() {}\n" +
-                "  Hack(ObjectInput inp) {" +
-                "    Jenkins.instance.systemMessage = 'oops'\n" +
-                "  }\n" +
-                "  @NonCPS void writeExternal(ObjectOutput out) {}\n" +
-                "  @NonCPS void readExternal(ObjectInput inp) {}\n" +
-                "}\n" +
-                "def hack = new Hack()\n" +
-                "semaphore 'wait'\n" +
-                "echo(/should not still have $hack/)", true));
+                    """
+                            class Hack implements Externalizable {
+                              Hack() {}
+                              Hack(ObjectInput inp) {\
+                                Jenkins.instance.systemMessage = 'oops'
+                              }
+                              @NonCPS void writeExternal(ObjectOutput out) {}
+                              @NonCPS void readExternal(ObjectInput inp) {}
+                            }
+                            def hack = new Hack()
+                            semaphore 'wait'
+                            echo(/should not still have $hack/)""", true));
             SemaphoreStep.waitForStart("wait/1", p.scheduleBuild2(0).waitForStart());
         });
         sessions.then(r -> {
@@ -227,24 +248,26 @@ public class SerializationSecurityTest {
         });
     }
 
-    @Ignore("does not currently work (fails on `new Replacer`), since CpsWhitelist & GroovyClassLoaderWhitelist are not in .all()")
-    @Test public void harmlessCallsPassSandbox() throws Throwable {
+    @Disabled("does not currently work (fails on `new Replacer`), since CpsWhitelist & GroovyClassLoaderWhitelist are not in .all()")
+    @Test
+    void harmlessCallsPassSandbox() throws Throwable {
         sessions.then(r -> {
             WorkflowJob p = r.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition(
-                "class Fine {\n" +
-                "  @NonCPS private Object writeReplace() {\n" +
-                "    new Replacer()\n" +
-                "  }\n" +
-                "}\n" +
-                "class Replacer {\n" +
-                "  @NonCPS private Object readResolve() {\n" +
-                "    'something safe'\n" +
-                "  }\n" +
-                "}\n" +
-                "def fine = new Fine()\n" +
-                "semaphore 'wait'\n" +
-                "echo(/but we do have $fine/)", true));
+                    """
+                            class Fine {
+                              @NonCPS private Object writeReplace() {
+                                new Replacer()
+                              }
+                            }
+                            class Replacer {
+                              @NonCPS private Object readResolve() {
+                                'something safe'
+                              }
+                            }
+                            def fine = new Fine()
+                            semaphore 'wait'
+                            echo(/but we do have $fine/)""", true));
             SemaphoreStep.waitForStart("wait/1", p.scheduleBuild2(0).waitForStart());
         });
         sessions.then(r -> {
@@ -259,5 +282,4 @@ public class SerializationSecurityTest {
         r.assertLogNotContains("should not still have", b);
         r.assertLogContains("staticMethod jenkins.model.Jenkins getInstance", b);
     }
-
 }
