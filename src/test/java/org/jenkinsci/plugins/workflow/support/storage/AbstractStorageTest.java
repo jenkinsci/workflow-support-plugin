@@ -5,53 +5,59 @@ import hudson.model.Action;
 import org.jenkinsci.plugins.workflow.actions.BodyInvocationAction;
 import org.jenkinsci.plugins.workflow.actions.LabelAction;
 import org.jenkinsci.plugins.workflow.graph.AtomNode;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 /**
  * Base test for the storage implementations
  * @author Sam Van Oort
  */
-public abstract class AbstractStorageTest {
-    @ClassRule
-    public static BuildWatcher buildWatcher = new BuildWatcher();
+@WithJenkins
+abstract class AbstractStorageTest {
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
 
-    File storageDir;
-    XmlFile file;
+    protected JenkinsRule j;
 
-    @Before
-    public void setup() {
+    protected File storageDir;
+    protected XmlFile file;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
         File dir = new File(j.jenkins.getRootDir(), "storageTest");
         dir.delete();
         storageDir = new File(dir, "storage");
         file = new XmlFile(new File(dir, "execution.xml"));
     }
 
-    @After
-    public void teardown() {
+    @AfterEach
+    void afterEach() {
         File dir = new File(j.jenkins.getRootDir(), "storageTest");
         dir.delete();
     }
 
     // Implement me for the implementation we're testing
-    public abstract FlowNodeStorage instantiateStorage(MockFlowExecution exec, File storageDirectory);
+    protected abstract FlowNodeStorage instantiateStorage(MockFlowExecution exec, File storageDirectory);
 
     /** Tests that basic nodes read and write correctly */
     @Test
-    public void verifyBasicPersist() throws Exception {
+    void verifyBasicPersist() throws Exception {
         MockFlowExecution mock = new MockFlowExecution();
         FlowNodeStorage storage = instantiateStorage(mock, storageDir);
         mock.setStorage(storage);
@@ -78,15 +84,15 @@ public abstract class AbstractStorageTest {
         AtomNode deferredSave = new StorageTestUtils.SimpleAtomNode(mock, "deferredSave", notQuiteAsSimple);
         storage.storeNode(deferredSave, true);
         deferredSave.addAction(new LabelAction("I was deferred but should still be written"));
-        assert !storage.isPersistedFully();
+        assertFalse(storage.isPersistedFully());
 
         storage.flush();
-        assert storage.isPersistedFully();
+        assertTrue(storage.isPersistedFully());
 
         // Now we try to read it back
         MockFlowExecution mock2 = new MockFlowExecution();
         FlowNodeStorage storageAfterRead = instantiateStorage(mock2, storageDir);
-        assert storage.isPersistedFully();
+        assertTrue(storage.isPersistedFully());
 
         StorageTestUtils.assertNodesMatch(simple, storageAfterRead.getNode(simple.getId()));
         StorageTestUtils.assertNodesMatch(notQuiteAsSimple, storageAfterRead.getNode(notQuiteAsSimple.getId()));
@@ -96,6 +102,4 @@ public abstract class AbstractStorageTest {
         // Ensures we can still read the correct node from deferred version
         StorageTestUtils.assertNodesMatch(storage.getNode(deferredSave.getId()), storage.getNode(deferredSave.getId()));
     }
-
-
 }
