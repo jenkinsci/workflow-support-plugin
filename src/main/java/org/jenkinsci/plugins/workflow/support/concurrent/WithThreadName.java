@@ -24,20 +24,38 @@
 
 package org.jenkinsci.plugins.workflow.support.concurrent;
 
+import java.lang.*;
+
 /**
  * Utility to temporarily append some information to the name of the current thread.
  * This is helpful for making thread dumps more readable and informative:
  * stack trace elements do not contain any information about object identity.
  */
 public final class WithThreadName implements AutoCloseable {
-    /** Save original thread name to recover it in {@link #close} call. */
+    /** Save original thread name to recover it in {@link #close} call.
+     * Remains {@code null} if activity of this class is {@link #disabled}
+     * on a particular deployment.
+     */
     private final String original;
+
+    /** Optional toggle via JVM properties to skip work here,
+     *  and forfeit easy debugging, e.g. on systems where
+     *  java.lang.Thread.setNativeName(Native Method) aka
+     *  JVM_SetNativeThreadName() and further platform
+     *  specific implementation takes inexplicably long.
+     */
+    private final static Boolean disabled = Boolean.valueOf(System.getProperty("DISABLE_WithThreadName"));
 
     /**
      * Sets the current thread’s name.
      * @param suffix text to append to the original name
      */
     public WithThreadName(String suffix) {
+        if (disabled) {
+            original = null;
+            return;
+        }
+
         Thread t = Thread.currentThread();
         original = t.getName();
         t.setName(original + suffix);
@@ -47,6 +65,8 @@ public final class WithThreadName implements AutoCloseable {
      * Restores the original name.
      */
     @Override public void close() {
+        if (disabled) return;
+
         Thread.currentThread().setName(original);
     }
 
