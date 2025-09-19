@@ -58,7 +58,7 @@ public final class WithThreadName implements AutoCloseable {
     public WithThreadName(String suffix) {
         if (disabled) {
             original = null;
-            LOGGER.log(Level.FINE, "SKIP: Neutered WithThreadName('{0}')", suffix);
+            LOGGER.log(Level.FINE, "SKIP: Neutered WithThreadName(\"{0}\")", suffix);
             return;
         }
 
