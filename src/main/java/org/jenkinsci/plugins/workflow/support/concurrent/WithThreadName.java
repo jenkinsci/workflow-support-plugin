@@ -30,7 +30,7 @@ package org.jenkinsci.plugins.workflow.support.concurrent;
  * stack trace elements do not contain any information about object identity.
  */
 public final class WithThreadName implements AutoCloseable {
-
+    /** Save original thread name to recover it in {@link #close} call. */
     private final String original;
 
     /**
