@@ -25,6 +25,8 @@
 package org.jenkinsci.plugins.workflow.support.concurrent;
 
 import java.lang.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Utility to temporarily append some information to the name of the current thread.
@@ -46,6 +48,9 @@ public final class WithThreadName implements AutoCloseable {
      */
     private final static Boolean disabled = Boolean.valueOf(System.getProperty("DISABLE_WithThreadName"));
 
+    /** Help gauge how much and how often this code gets called */
+    private static final Logger LOGGER = Logger.getLogger(WithThreadName.class.getName());
+
     /**
      * Sets the current thread’s name.
      * @param suffix text to append to the original name
@@ -53,6 +58,7 @@ public final class WithThreadName implements AutoCloseable {
     public WithThreadName(String suffix) {
         if (disabled) {
             original = null;
+            LOGGER.log(Level.FINE, "SKIP: Neutered WithThreadName('{0}')", suffix);
             return;
         }
 
@@ -65,7 +71,11 @@ public final class WithThreadName implements AutoCloseable {
      * Restores the original name.
      */
     @Override public void close() {
-        if (disabled) return;
+        if (disabled) {
+            /* We did not track origin nor suffix here to be fast when skipping, so eh */
+            LOGGER.log(Level.FINE, "SKIP: Neutered WithThreadName.close()");
+            return;
+        }
 
         Thread.currentThread().setName(original);
     }
