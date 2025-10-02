@@ -28,6 +28,8 @@ import java.lang.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import jenkins.util.SystemProperties;
+
 /**
  * Utility to temporarily append some information to the name of the current thread.
  * This is helpful for making thread dumps more readable and informative:
@@ -46,7 +48,7 @@ public final class WithThreadName implements AutoCloseable {
      *  JVM_SetNativeThreadName() and further platform
      *  specific implementation takes inexplicably long.
      */
-    private final static Boolean disabled = Boolean.valueOf(System.getProperty("DISABLE_WithThreadName"));
+    private final static Boolean disabled = SystemProperties.getBoolean("DISABLE_WithThreadName");
 
     /** Help gauge how much and how often this code gets called */
     private static final Logger LOGGER = Logger.getLogger(WithThreadName.class.getName());
