@@ -60,7 +60,7 @@ public final class WithThreadName implements AutoCloseable {
     public WithThreadName(String suffix) {
         if (disabled) {
             original = null;
-            LOGGER.log(Level.FINE, "SKIP: Neutered WithThreadName(\"{0}\")", suffix);
+            LOGGER.fine(() -> "SKIP: Neutered WithThreadName(\"" + (suffix == null ? "(null)" : suffix) + "\")");
             return;
         }
 
@@ -75,7 +75,7 @@ public final class WithThreadName implements AutoCloseable {
     @Override public void close() {
         if (disabled) {
             /* We did not track origin nor suffix here to be fast when skipping, so eh */
-            LOGGER.log(Level.FINE, "SKIP: Neutered WithThreadName.close()");
+            LOGGER.fine(() -> "SKIP: Neutered WithThreadName.close()");
             return;
         }
 
