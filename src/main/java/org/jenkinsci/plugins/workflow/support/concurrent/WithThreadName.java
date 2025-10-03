@@ -37,8 +37,8 @@ import jenkins.util.SystemProperties;
  */
 public final class WithThreadName implements AutoCloseable {
     /** Save original thread name to recover it in {@link #close} call.
-     * Remains {@code null} if activity of this class is {@link #disabled}
-     * on a particular deployment.
+     * Remains {@code null} if activity of this class is explicitly not
+     * {@link #enabled} on a particular deployment.
      */
     private final String original;
 
@@ -58,7 +58,7 @@ public final class WithThreadName implements AutoCloseable {
      * @param suffix text to append to the original name
      */
     public WithThreadName(String suffix) {
-        if (disabled) {
+        if (!enabled) {
             original = null;
             LOGGER.fine(() -> "SKIP: Neutered WithThreadName(\"" + (suffix == null ? "(null)" : suffix) + "\")");
             return;
@@ -73,7 +73,7 @@ public final class WithThreadName implements AutoCloseable {
      * Restores the original name.
      */
     @Override public void close() {
-        if (disabled) {
+        if (!enabled) {
             /* We did not track origin nor suffix here to be fast when skipping, so eh */
             LOGGER.fine(() -> "SKIP: Neutered WithThreadName.close()");
             return;
