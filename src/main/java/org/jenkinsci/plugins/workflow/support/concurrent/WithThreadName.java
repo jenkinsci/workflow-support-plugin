@@ -48,7 +48,7 @@ public final class WithThreadName implements AutoCloseable {
      *  JVM_SetNativeThreadName() and further platform
      *  specific implementation takes inexplicably long.
      */
-    private final static Boolean disabled = SystemProperties.getBoolean("DISABLE_WithThreadName");
+    private final static boolean enabled = SystemProperties.getBoolean(WithThreadName.class.getName() + ",enabled", true);
 
     /** Help gauge how much and how often this code gets called */
     private static final Logger LOGGER = Logger.getLogger(WithThreadName.class.getName());
