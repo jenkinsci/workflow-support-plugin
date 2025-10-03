@@ -25,7 +25,6 @@
 package org.jenkinsci.plugins.workflow.support.concurrent;
 
 import java.lang.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jenkins.util.SystemProperties;
