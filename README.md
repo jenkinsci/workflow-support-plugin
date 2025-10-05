@@ -26,8 +26,11 @@ to tens of thousands of native (not very efficient on some systems) calls per
 second just for this troubleshooting aid, and can cause considerable slow-down
 of the Jenkins controller.
 
-If you suspect your controller's performance is impacted by this, please set
-a JVM property `WithThreadName.enabled=false` to disable the feature's native
-calls. You can still trace attempts to rename the threads by adding a Jenkins
-log listener for the class name at `FINE` or louder level, and watching the
+If you suspect your controller's performance is impacted by this, please
+configure a JVM property or context setting
+`org.jenkinsci.plugins.workflow.support.concurrent.WithThreadName.enabled=false`
+to disable the feature's native calls.
+
+You can still trace attempts to rename the threads by adding a Jenkins log
+listener for the class name at `FINE` or louder level, and watching the
 log entry stream via Web UI or automatically-rotating files on the controller.
