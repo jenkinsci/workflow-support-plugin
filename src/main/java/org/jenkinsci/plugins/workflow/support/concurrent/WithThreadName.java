@@ -24,20 +24,45 @@
 
 package org.jenkinsci.plugins.workflow.support.concurrent;
 
+import java.lang.*;
+import java.util.logging.Logger;
+
+import jenkins.util.SystemProperties;
+
 /**
  * Utility to temporarily append some information to the name of the current thread.
  * This is helpful for making thread dumps more readable and informative:
  * stack trace elements do not contain any information about object identity.
  */
 public final class WithThreadName implements AutoCloseable {
-
+    /** Save original thread name to recover it in {@link #close} call.
+     * Remains {@code null} if activity of this class is explicitly not
+     * {@link #enabled} on a particular deployment.
+     */
     private final String original;
+
+    /** Optional toggle via JVM properties to skip work here,
+     *  and forfeit easy debugging, e.g. on systems where
+     *  java.lang.Thread.setNativeName(Native Method) aka
+     *  JVM_SetNativeThreadName() and further platform
+     *  specific implementation takes inexplicably long.
+     */
+    private final static boolean enabled = SystemProperties.getBoolean(WithThreadName.class.getName() + ".enabled", true);
+
+    /** Help gauge how much and how often this code gets called */
+    private static final Logger LOGGER = Logger.getLogger(WithThreadName.class.getName());
 
     /**
      * Sets the current thread’s name.
      * @param suffix text to append to the original name
      */
     public WithThreadName(String suffix) {
+        if (!enabled) {
+            original = null;
+            LOGGER.fine(() -> "SKIP: Neutered WithThreadName(\"" + (suffix == null ? "(null)" : suffix) + "\")");
+            return;
+        }
+
         Thread t = Thread.currentThread();
         original = t.getName();
         t.setName(original + suffix);
@@ -47,6 +72,12 @@ public final class WithThreadName implements AutoCloseable {
      * Restores the original name.
      */
     @Override public void close() {
+        if (!enabled) {
+            /* We did not track origin nor suffix here to be fast when skipping, so eh */
+            LOGGER.fine(() -> "SKIP: Neutered WithThreadName.close()");
+            return;
+        }
+
         Thread.currentThread().setName(original);
     }
 
