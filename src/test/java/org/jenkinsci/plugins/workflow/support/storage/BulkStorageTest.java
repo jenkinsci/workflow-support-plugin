@@ -3,24 +3,26 @@ package org.jenkinsci.plugins.workflow.support.storage;
 import org.jenkinsci.plugins.workflow.actions.BodyInvocationAction;
 import org.jenkinsci.plugins.workflow.actions.LabelAction;
 import org.jenkinsci.plugins.workflow.graph.AtomNode;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.File;
 
 /**
  * Actually attempts to test the storage engine
  */
-public class BulkStorageTest extends AbstractStorageTest {
+class BulkStorageTest extends AbstractStorageTest {
 
     @Override
-    public FlowNodeStorage instantiateStorage(MockFlowExecution exec, File storageDirectory) {
+    protected FlowNodeStorage instantiateStorage(MockFlowExecution exec, File storageDirectory) {
         return new BulkFlowNodeStorage(exec, storageDir);
     }
 
     /** Tests the bulk-flushing behavior works as advertised. */
     @Test
-    public void testDeferWriteAndFlush() throws Exception {
+    void testDeferWriteAndFlush() throws Exception {
         MockFlowExecution mock = new MockFlowExecution();
         FlowNodeStorage storage = instantiateStorage(mock, storageDir);
         mock.setStorage(storage);
@@ -49,7 +51,7 @@ public class BulkStorageTest extends AbstractStorageTest {
         storageAfterRead = instantiateStorage(mock2, storageDir);
         assert storageAfterRead.isPersistedFully();
         mock2.setStorage(storageAfterRead);
-        Assert.assertNull(storageAfterRead.getNode(deferredWriteNode.getId()));
+        assertNull(storageAfterRead.getNode(deferredWriteNode.getId()));
         StorageTestUtils.assertNodesMatch(directlyStored, storageAfterRead.getNode(directlyStored.getId())); // Make sure we didn't corrupt old node either
 
         // Flush the deferred one and confirm it's on disk now
@@ -64,6 +66,6 @@ public class BulkStorageTest extends AbstractStorageTest {
         assert !storage.isPersistedFully();
         storageAfterRead = instantiateStorage(mock2, storageDir);
         mock2.setStorage(storageAfterRead);
-        Assert.assertEquals(1, storageAfterRead.getNode(deferredWriteNode.getId()).getActions().size());
+        assertEquals(1, storageAfterRead.getNode(deferredWriteNode.getId()).getActions().size());
     }
 }
