@@ -1,0 +1,10 @@
+name: Automatically approve and merge safe dependency updates
+on:
+- pull_request_target
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  auto-merge-safe-deps:
+    # TOOD switch to official version when https://github.com/jenkins-infra/github-reusable-workflows/pull/49 merged
+    uses: jglick/github-reusable-workflows/.github/workflows/auto-merge-safe-deps.yml@author
