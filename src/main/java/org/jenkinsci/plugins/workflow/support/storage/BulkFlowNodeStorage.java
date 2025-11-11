@@ -36,6 +36,8 @@ import org.jenkinsci.plugins.workflow.support.PipelineIOUtils;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.init.InitMilestone;
+import hudson.init.Initializer;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -241,6 +243,12 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
         public @NonNull List<Action> actions() {
             return actions != null ? Collections.unmodifiableList(actions) : Collections.emptyList();
         }
+    }
+
+    @Initializer(after = InitMilestone.EXTENSIONS_AUGMENTED)
+    public static void loadXstream() {
+        // Ensure that the XStream instance is loaded by a controlled thread to avoid referencing a Pipeline class loader.
+        XSTREAM.getClass();
     }
 
     public static final XStream2 XSTREAM = new XStream2();

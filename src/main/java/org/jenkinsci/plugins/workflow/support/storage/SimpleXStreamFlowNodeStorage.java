@@ -39,6 +39,8 @@ import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.actions.FlowNodeAction;
 import hudson.Util;
 import hudson.XmlFile;
+import hudson.init.InitMilestone;
+import hudson.init.Initializer;
 import hudson.model.Action;
 import hudson.util.RobustReflectionConverter;
 import hudson.util.XStream2;
@@ -50,7 +52,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -244,6 +245,12 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         public @NonNull List<Action> actions() {
             return actions != null ? Collections.unmodifiableList(actions) : Collections.emptyList();
         }
+    }
+
+    @Initializer(after = InitMilestone.EXTENSIONS_AUGMENTED)
+    public static void loadXstream() {
+        // Ensure that the XStream instance is loaded by a controlled thread to avoid referencing a Pipeline class loader.
+        XSTREAM.getClass();
     }
 
     public static final XStream2 XSTREAM = new XStream2();
