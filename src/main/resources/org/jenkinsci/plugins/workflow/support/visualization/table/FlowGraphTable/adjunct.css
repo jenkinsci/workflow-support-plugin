@@ -1,0 +1,18 @@
+tr.workflow-support-row-status-blue.workflow-support-row-executed-false td {
+    opacity: 0.3;
+}
+tr.workflow-support-row-status-blue td {
+    opacity: 0.6;
+}
+
+tr.workflow-support-row-status-yellow td {
+    font-weight: bold !important;
+    color: var(--alert-warning-text-color) !important;
+    background-color: var(--alert-warning-bg-color) !important;
+}
+
+tr.workflow-support-row-status-red td {
+    font-weight: bold !important;
+    color: var(--alert-danger-text-color) !important;
+    background-color: var(--alert-danger-bg-color) !important;
+}
