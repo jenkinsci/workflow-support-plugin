@@ -45,7 +45,7 @@
 
         <j:forEach var="row" items="${it.rows}">
           <j:set var="node" value="${row.node}"/>
-          <tr class="workflow-support-row-status-${node.iconColor} workflow-support-row-executed-${row.isExecuted()}"> <!-- Muted if not executed -->
+          <tr class="workflow-support-row-status-${node.iconColor} workflow-support-row-executed-${row.executed}"> <!-- Muted if not executed -->
             <!-- tooltip is for now debugging only -->
             <j:set var="exec_state" value=""/>
             <j:if test="${!row.executed}"><j:set var="exec_state" value=" (${%not executed})"/></j:if>
