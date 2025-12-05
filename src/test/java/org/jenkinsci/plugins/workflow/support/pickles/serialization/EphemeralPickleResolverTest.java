@@ -27,8 +27,7 @@ package org.jenkinsci.plugins.workflow.support.pickles.serialization;
 import org.jenkinsci.plugins.workflow.pickles.Pickle;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.NoSuchElementException;
@@ -36,19 +35,21 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static java.util.Arrays.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class EphemeralPickleResolverTest extends Assert {
+class EphemeralPickleResolverTest {
+
     @Test
-    public void resolveNothing() throws Exception {
+    void resolveNothing() throws Exception {
         ListenableFuture<?> f = new PickleResolver(new ArrayList<>()).rehydrate();
         assertSuccessfulCompletion(f);
     }
 
     @Test
-    public void resolveSomething() throws Exception {
+    void resolveSomething() throws Exception {
         TestPickle v1 = new TestPickle();
         TestPickle v2 = new TestPickle();
         ListenableFuture<?> f = new PickleResolver(asList(v1, v2)).rehydrate();
@@ -64,7 +65,7 @@ public class EphemeralPickleResolverTest extends Assert {
      * If a resolution of a value fails, the whole thing should fail.
      */
     @Test
-    public void resolutionFails() throws Exception {
+    void resolutionFails() throws Exception {
         TestPickle v1 = new TestPickle();
         TestPickle v2 = new TestPickle();
         ListenableFuture<?> f = new PickleResolver(asList(v1, v2)).rehydrate();
@@ -79,7 +80,7 @@ public class EphemeralPickleResolverTest extends Assert {
             f.get();
             fail("Expected a failure");
         } catch (ExecutionException e) {
-            assertTrue(e.getCause() instanceof NoSuchElementException);
+            assertInstanceOf(NoSuchElementException.class, e.getCause());
         }
     }
 
@@ -93,8 +94,9 @@ public class EphemeralPickleResolverTest extends Assert {
         f.get();
     }
 
-    class TestPickle extends Pickle {
-        SettableFuture<?> f = SettableFuture.create();
+    static class TestPickle extends Pickle {
+        private SettableFuture<?> f = SettableFuture.create();
+
         @Override
         public ListenableFuture<?> rehydrate() {
             return f;
