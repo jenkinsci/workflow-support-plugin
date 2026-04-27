@@ -27,31 +27,40 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import static org.junit.Assert.fail;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 
-public class FlowGraphTableTest {
+@WithJenkins
+class FlowGraphTableTest {
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Test
-    public void smokes() throws Exception {
+    void smokes() throws Exception {
         WorkflowJob p = r.createProject(WorkflowJob.class);
         p.setDefinition(new CpsFlowDefinition(
-                "echo('Hello, world!')\n" +
-                "timeout(time: 1, unit: 'MINUTES') {\n" +
-                "  echo('Hello again, world!')\n" +
-                "}\n" +
-                "echo('Goodbye, world!')\n", true));
+                """
+                        echo('Hello, world!')
+                        timeout(time: 1, unit: 'MINUTES') {
+                          echo('Hello again, world!')
+                        }
+                        echo('Goodbye, world!')
+                        """, true));
         WorkflowRun b = r.buildAndAssertSuccess(p);
         FlowGraphTable t = new FlowGraphTable(b.getExecution());
         t.build();
@@ -60,20 +69,22 @@ public class FlowGraphTableTest {
     }
 
     @Test
-    public void parallelSmokes() throws Exception {
+    void parallelSmokes() throws Exception {
         WorkflowJob p = r.createProject(WorkflowJob.class);
         p.setDefinition(new CpsFlowDefinition(
-                "echo('Hello, world!')\n" +
-                "parallel(one: {\n" +
-                "  timeout(time: 1, unit: 'MINUTES') {\n" +
-                "    echo('Hello, branch one!')\n" +
-                "  }\n" +
-                "}, two: {\n" +
-                "  timeout(time: 1, unit: 'MINUTES') {\n" +
-                "    echo('Hello, branch two!')\n" +
-                "  }\n" +
-                "})\n" +
-                "echo('Goodbye, world!')\n", true));
+                """
+                        echo('Hello, world!')
+                        parallel(one: {
+                          timeout(time: 1, unit: 'MINUTES') {
+                            echo('Hello, branch one!')
+                          }
+                        }, two: {
+                          timeout(time: 1, unit: 'MINUTES') {
+                            echo('Hello, branch two!')
+                          }
+                        })
+                        echo('Goodbye, world!')
+                        """, true));
         WorkflowRun b = r.buildAndAssertSuccess(p);
         FlowGraphTable t = new FlowGraphTable(b.getExecution());
         t.build();
@@ -84,7 +95,7 @@ public class FlowGraphTableTest {
     @Issue("JENKINS-62545")
     @LocalData // There is no known way to reproduce the issue from scratch, so we use a fake build with redacted flow node XML files from a real build that had the problem.
     @Test
-    public void corruptedFlowGraph() throws Exception {
+    void corruptedFlowGraph() {
         WorkflowJob p = r.jenkins.getItemByFullName("test0", WorkflowJob.class);
         WorkflowRun b = p.getBuildByNumber(1);
         FlowGraphTable t = new FlowGraphTable(b.getExecution());
@@ -97,25 +108,26 @@ public class FlowGraphTableTest {
     }
 
     @Test
-    public void rowDisplayName() throws Exception {
+    void rowDisplayName() throws Exception {
         WorkflowJob p = r.createProject(WorkflowJob.class);
         p.setDefinition(new CpsFlowDefinition(
-            "stage('start') {\n" +
-            "  echo 'some message'\n" +
-            "  def i = 0; retry(3) {\n" +
-            "    if (++i < 3) error 'oops'\n" +
-            "    node {\n" +
-            "      isUnix()\n" +
-            "    }\n" +
-            "  }\n" +
-            "}\n" +
-            "stage('main') {\n" +
-            "  parallel quick: {\n" +
-            "    echo 'done'\n" +
-            "  }, slow: {\n" +
-            "    semaphore 'wait'\n" +
-            "  }\n" +
-            "}", true));
+                """
+                        stage('start') {
+                          echo 'some message'
+                          def i = 0; retry(3) {
+                            if (++i < 3) error 'oops'
+                            node {
+                              isUnix()
+                            }
+                          }
+                        }
+                        stage('main') {
+                          parallel quick: {
+                            echo 'done'
+                          }, slow: {
+                            semaphore 'wait'
+                          }
+                        }""", true));
         WorkflowRun b = p.scheduleBuild2(0).waitForStart();
         SemaphoreStep.waitForStart("wait/1", b);
         FlowGraphTable t = new FlowGraphTable(b.getExecution());
@@ -144,5 +156,4 @@ public class FlowGraphTableTest {
             "        parallel block (Branch: slow)",
             "          semaphore"));
     }
-
 }
