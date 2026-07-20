@@ -68,7 +68,8 @@ public final class BlockSemaphoreStep extends Step {
         return state;
     }
 
-    @Override public StepExecution start(final StepContext context) throws Exception {
+    @Override
+    public StepExecution start(final StepContext context) throws Exception {
         this.context = context;
         return new StepExecution(context) {
             @Override
@@ -128,33 +129,41 @@ public final class BlockSemaphoreStep extends Step {
         context.onFailure(t);
     }
 
-    @Override public StepDescriptor getDescriptor() {
+    @Override
+    public StepDescriptor getDescriptor() {
         return new DescriptorImpl();
     }
 
-    /* not an @Extension */ private static final class DescriptorImpl extends StepDescriptor {
+    /* not an @Extension */
+    private static final class DescriptorImpl extends StepDescriptor {
 
-        @Override public Set<Class<?>> getRequiredContext() {
+        @Override
+        public Set<Class<?>> getRequiredContext() {
             throw new UnsupportedOperationException();
         }
 
-        @Override public String getFunctionName() {
+        @Override
+        public String getFunctionName() {
             throw new UnsupportedOperationException();
         }
 
-        @Override public Step newInstance(Map<String,Object> arguments) {
+        @Override
+        public Step newInstance(Map<String,Object> arguments) {
             throw new UnsupportedOperationException();
         }
 
-        @Override public Map<String,Object> defineArguments(Step step) throws UnsupportedOperationException {
+        @Override
+        public Map<String,Object> defineArguments(Step step) throws UnsupportedOperationException {
             throw new UnsupportedOperationException();
         }
 
-        @Override public String getDisplayName() {
+        @Override
+        public String getDisplayName() {
             return "Test block step";
         }
 
-        @Override public boolean takesImplicitBlockArgument() {
+        @Override
+        public boolean takesImplicitBlockArgument() {
             return true;
         }
 

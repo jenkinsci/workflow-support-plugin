@@ -11,31 +11,32 @@ import org.jenkinsci.plugins.workflow.actions.TimingAction;
 import org.jenkinsci.plugins.workflow.cps.nodes.StepStartNode;
 import org.jenkinsci.plugins.workflow.graph.AtomNode;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.LoggerRule;
+import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.LogRecorder;
 import org.jvnet.hudson.test.recipes.LocalData;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Tries to test the storage engine
  */
-public class SimpleXStreamStorageTest extends AbstractStorageTest {
+class SimpleXStreamStorageTest extends AbstractStorageTest {
 
-    @Rule public LoggerRule logger = new LoggerRule().record(RobustReflectionConverter.class, Level.FINE).capture(50);
+    @SuppressWarnings("unused")
+    private final LogRecorder logger = new LogRecorder().record(RobustReflectionConverter.class, Level.FINE).capture(50);
 
     @Override
-    public FlowNodeStorage instantiateStorage(MockFlowExecution exec, File storageDirectory) {
+    protected FlowNodeStorage instantiateStorage(MockFlowExecution exec, File storageDirectory) {
         return new SimpleXStreamFlowNodeStorage(exec, storageDirectory);
     }
 
     /** Verify that when nodes are explicitly flushed they do write to disk. */
     @Test
-    public void testDeferWriteAndFlush() throws Exception {
+    void testDeferWriteAndFlush() throws Exception {
         MockFlowExecution mock = new MockFlowExecution();
         FlowNodeStorage storage = instantiateStorage(mock, storageDir);
         mock.setStorage(storage);
@@ -60,8 +61,7 @@ public class SimpleXStreamStorageTest extends AbstractStorageTest {
 
         mock2.setStorage(storageAfterRead);
         StorageTestUtils.assertNodesMatch(directlyStored, storageAfterRead.getNode(directlyStored.getId()));
-        Assert.assertNull(storageAfterRead.getNode(deferredWriteNode.getId()));
-
+        assertNull(storageAfterRead.getNode(deferredWriteNode.getId()));
 
         // Flush the deferred one and confirm it's on disk now
         storage.flushNode(deferredWriteNode);
@@ -75,7 +75,7 @@ public class SimpleXStreamStorageTest extends AbstractStorageTest {
         assert !storage.isPersistedFully();
         storageAfterRead = instantiateStorage(mock2, storageDir);
         mock2.setStorage(storageAfterRead);
-        Assert.assertEquals(1, storageAfterRead.getNode(deferredWriteNode.getId()).getActions().size());
+        assertEquals(1, storageAfterRead.getNode(deferredWriteNode.getId()).getActions().size());
 
         // Mark node for autopersist and confirm it actually does now by adding a new action
         storage.autopersist(deferredWriteNode);
@@ -87,7 +87,8 @@ public class SimpleXStreamStorageTest extends AbstractStorageTest {
     }
 
     @LocalData
-    @Test public void actionDeserializationShouldBeRobust() throws Exception {
+    @Test
+    void actionDeserializationShouldBeRobust() throws Exception {
         /*
         var p = j.createProject(WorkflowJob.class);
         p.addProperty(new DurabilityHintJobProperty(FlowDurabilityHint.MAX_SURVIVABILITY));
