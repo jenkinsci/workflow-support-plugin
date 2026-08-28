@@ -1,7 +1,10 @@
 package org.jenkinsci.plugins.workflow.test.steps;
 
+import static org.junit.Assert.assertNotNull;
+
 import hudson.model.Result;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
+import org.jenkinsci.plugins.workflow.cps.CpsFlowExecution;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Rule;
@@ -17,14 +20,18 @@ public class SemaphoreStepTest {
     public BuildWatcher watcher = new BuildWatcher();
 
     @Test
+    @SuppressWarnings("deprecation")
     public void hardKill() throws Exception {
         WorkflowJob p1 = j.jenkins.createProject(WorkflowJob.class, "p");
         p1.setDefinition(new CpsFlowDefinition("echo 'locked!'; semaphore 'wait'"));
         WorkflowRun b = p1.scheduleBuild2(0).waitForStart();
         SemaphoreStep.waitForStart("wait/1", b);
+        CpsFlowExecution execution = (CpsFlowExecution) b.getExecution();
+        assertNotNull(execution);
 
         b.doKill();
         j.waitForMessage("Hard kill!", b);
         j.assertBuildStatus(Result.ABORTED, j.waitForCompletion(b));
+        execution.waitForSuspension();
     }
 }
