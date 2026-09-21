@@ -106,6 +106,7 @@ public class SimpleXStreamStorageTest extends AbstractStorageTest {
         assertThat(stageBodyStartNode, not(nullValue()));
         var label = stageBodyStartNode.getPersistentAction(LabelAction.class);
         assertThat(label.getDisplayName(), equalTo("test"));
+        b.delete();
     }
     // Used to create @LocalData for above test:
     /*
