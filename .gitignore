@@ -7,3 +7,7 @@ work
 /.settings/
 # macOS
 .DS_Store
+
+.classpath
+.settings
+.project
