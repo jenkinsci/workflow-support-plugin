@@ -28,6 +28,7 @@ import hudson.Extension;
 import hudson.model.Run;
 import java.io.File;
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -88,7 +89,8 @@ public final class SemaphoreStep extends Step implements Serializable {
     private final String id;
     private final int number;
 
-    @DataBoundConstructor public SemaphoreStep(String id) {
+    @DataBoundConstructor
+    public SemaphoreStep(String id) {
         this.id = id;
         number = State.get().allocateNumber(id);
     }
@@ -171,7 +173,8 @@ public final class SemaphoreStep extends Step implements Serializable {
         }
     }
 
-    @Override public StepExecution start(StepContext context) throws Exception {
+    @Override
+    public StepExecution start(StepContext context) throws Exception {
         return new Execution(context, k());
     }
 
@@ -184,7 +187,8 @@ public final class SemaphoreStep extends Step implements Serializable {
             this.k = k;
         }
 
-        @Override public boolean start() throws Exception {
+        @Override
+        public boolean start() throws Exception {
             State s = State.get();
             Object returnValue = null;
             Throwable error = null;
@@ -218,7 +222,8 @@ public final class SemaphoreStep extends Step implements Serializable {
             return sync;
         }
 
-        @Override public void stop(Throwable cause) throws Exception {
+        @Override
+        public void stop(Throwable cause) throws Exception {
             State s = State.get();
             synchronized (s) {
                 s.contexts.remove(k);
@@ -227,32 +232,39 @@ public final class SemaphoreStep extends Step implements Serializable {
             super.stop(cause);
         }
 
-        @Override public String getStatus() {
+        @Override
+        public String getStatus() {
             State s = State.get();
             synchronized (s) {
                 return s.contexts.containsKey(k) ? "waiting on " + k : "finished " + k;
             }
         }
 
+        @Serial
         private static final long serialVersionUID = 1L;
 
     }
 
-    @Extension public static final class DescriptorImpl extends StepDescriptor {
+    @SuppressWarnings("unused")
+    @Extension
+    public static final class DescriptorImpl extends StepDescriptor {
 
-        @Override public String getFunctionName() {
+        @Override
+        public String getFunctionName() {
             return "semaphore";
         }
 
-        @Override public String getDisplayName() {
+        @Override
+        public String getDisplayName() {
             return "Test step";
         }
 
-        @Override public Set<? extends Class<?>> getRequiredContext() {
+        @Override
+        public Set<? extends Class<?>> getRequiredContext() {
             return Set.of();
         }
-
     }
 
+    @Serial
     private static final long serialVersionUID = 1L;
 }

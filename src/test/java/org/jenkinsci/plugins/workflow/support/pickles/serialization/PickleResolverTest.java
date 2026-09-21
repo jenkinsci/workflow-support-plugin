@@ -9,32 +9,44 @@ import org.jenkinsci.plugins.workflow.pickles.Pickle;
 import org.jenkinsci.plugins.workflow.support.pickles.SingleTypedPickleFactory;
 import org.jenkinsci.plugins.workflow.support.pickles.TryRepeatedly;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
-import org.jvnet.hudson.test.FlagRule;
-import org.jvnet.hudson.test.JenkinsSessionRule;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 
-public class PickleResolverTest {
-    @ClassRule
-    public static BuildWatcher watcher = new BuildWatcher();
+class PickleResolverTest {
+    
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
 
-    @Rule
-    public JenkinsSessionRule sessions = new JenkinsSessionRule();
+    @RegisterExtension
+    private final JenkinsSessionExtension sessions = new JenkinsSessionExtension();
 
-    @Rule
-    public FlagRule<Long> resetPickleResolutionTimeout = new FlagRule<>(() -> PickleResolver.RESOLUTION_TIMEOUT_SECONDS, x -> PickleResolver.RESOLUTION_TIMEOUT_SECONDS = x);
+    private long resetPickleResolutionTimeout;
+
+    @BeforeEach
+    void beforeEach() {
+        resetPickleResolutionTimeout = PickleResolver.RESOLUTION_TIMEOUT_SECONDS;
+    }
+
+    @AfterEach
+    void afterEach() {
+        PickleResolver.RESOLUTION_TIMEOUT_SECONDS =  resetPickleResolutionTimeout;
+    }
 
     @Test
-    public void timeout() throws Throwable {
+    void timeout() throws Throwable {
         sessions.then(r -> {
             var p = r.jenkins.createProject(WorkflowJob.class, "stuckPickle");
             p.setDefinition(new CpsFlowDefinition(
-                    "def x = new org.jenkinsci.plugins.workflow.support.pickles.serialization.PickleResolverTest.StuckPickle.Marker()\n" +
-                    "semaphore 'wait'\n" +
-                    "echo x.getClass().getName()", false));
+                    """
+                            def x = new org.jenkinsci.plugins.workflow.support.pickles.serialization.PickleResolverTest.StuckPickle.Marker()
+                            semaphore 'wait'
+                            echo x.getClass().getName()""", false));
             var b = p.scheduleBuild2(0).waitForStart();
             SemaphoreStep.waitForStart("wait/1", b);
         });
@@ -47,18 +59,25 @@ public class PickleResolverTest {
         });
     }
 
+    @SuppressWarnings("unused")
     public static class StuckPickle extends Pickle {
+
         @Override
         public ListenableFuture<Marker> rehydrate(FlowExecutionOwner owner) {
-            return new TryRepeatedly<Marker>(1) {
+            return new TryRepeatedly<>(1) {
+
                 @Override
                 protected Marker tryResolve() {
                     return null;
                 }
-                @Override protected FlowExecutionOwner getOwner() {
+
+                @Override
+                protected FlowExecutionOwner getOwner() {
                     return owner;
                 }
-                @Override public String toString() {
+
+                @Override
+                public String toString() {
                     return "StuckPickle for " + owner;
                 }
             };
@@ -68,7 +87,9 @@ public class PickleResolverTest {
 
         @TestExtension("timeout")
         public static final class Factory extends SingleTypedPickleFactory<Marker> {
-            @Override protected Pickle pickle(Marker object) {
+
+            @Override
+            protected Pickle pickle(Marker object) {
                 return new StuckPickle();
             }
         }
