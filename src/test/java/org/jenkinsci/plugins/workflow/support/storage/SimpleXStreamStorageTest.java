@@ -10,6 +10,7 @@ import org.jenkinsci.plugins.workflow.actions.LabelAction;
 import org.jenkinsci.plugins.workflow.actions.TimingAction;
 import org.jenkinsci.plugins.workflow.cps.nodes.StepStartNode;
 import org.jenkinsci.plugins.workflow.graph.AtomNode;
+import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -121,4 +122,49 @@ public class SimpleXStreamStorageTest extends AbstractStorageTest {
         }
     }
     */
+
+    public static class ReentrantOnLoadAction extends hudson.model.InvisibleAction implements org.jenkinsci.plugins.workflow.actions.FlowNodeAction, org.jenkinsci.plugins.workflow.actions.PersistentAction {
+        private final String targetNodeId;
+        private transient FlowNode resolvedTarget;
+
+        public ReentrantOnLoadAction(String targetNodeId) {
+            this.targetNodeId = targetNodeId;
+        }
+
+        @Override
+        public void onLoad(FlowNode parent) {
+            try {
+                this.resolvedTarget = parent.getExecution().getNode(targetNodeId);
+            } catch (Exception x) {
+                throw new RuntimeException(x);
+            }
+        }
+    }
+
+    @Test
+    public void reentrantActionOnLoadDoesNotDeadlockOrRecurse() throws Exception {
+        MockFlowExecution mock = new MockFlowExecution();
+        FlowNodeStorage storage = instantiateStorage(mock, storageDir);
+        mock.setStorage(storage);
+        file.write(mock);
+
+        AtomNode nodeA = new StorageTestUtils.SimpleAtomNode(mock, "nodeA");
+        AtomNode nodeB = new StorageTestUtils.SimpleAtomNode(mock, "nodeB", nodeA);
+        nodeA.addAction(new ReentrantOnLoadAction("nodeA"));
+        nodeB.addAction(new ReentrantOnLoadAction("nodeA"));
+        storage.storeNode(nodeA, false);
+        storage.storeNode(nodeB, false);
+
+        MockFlowExecution mockAfterRead = new MockFlowExecution();
+        FlowNodeStorage storageAfterRead = instantiateStorage(mockAfterRead, storageDir);
+        mockAfterRead.setStorage(storageAfterRead);
+
+        FlowNode loadedB = storageAfterRead.getNode("nodeB");
+        Assert.assertNotNull(loadedB);
+        ReentrantOnLoadAction actionB = loadedB.getAction(ReentrantOnLoadAction.class);
+        Assert.assertNotNull(actionB);
+        Assert.assertNotNull(actionB.resolvedTarget);
+        Assert.assertEquals("nodeA", actionB.resolvedTarget.getId());
+    }
 }
+

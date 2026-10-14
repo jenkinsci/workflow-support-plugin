@@ -71,9 +71,9 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     private final File dir;
     private final FlowExecution exec;
 
-    private final LoadingCache<String,FlowNode> nodeCache = Caffeine.newBuilder()
+    private final com.github.benmanes.caffeine.cache.Cache<String, FlowNode> nodeCache = Caffeine.newBuilder()
             .softValues()
-            .build(key -> SimpleXStreamFlowNodeStorage.this.load(key).node);
+            .build();
 
     private static final Logger LOGGER = Logger.getLogger(SimpleXStreamFlowNodeStorage.class.getName());
 
@@ -89,14 +89,29 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
 
     @Override
     public FlowNode getNode(String id) throws IOException {
-        try {
-            if (deferredWrite != null) {
-                FlowNode maybeOutput = deferredWrite.get(id);
-                if (maybeOutput != null) {
-                    return maybeOutput;
-                }
+        if (deferredWrite != null) {
+            FlowNode maybeOutput = deferredWrite.get(id);
+            if (maybeOutput != null) {
+                return maybeOutput;
             }
-            return nodeCache.get(id);
+        }
+        FlowNode cached = nodeCache.getIfPresent(id);
+        if (cached != null) {
+            return cached;
+        }
+        try {
+            Tag v = readTag(id);
+            FlowNode existing = nodeCache.asMap().putIfAbsent(id, v.node);
+            if (existing != null) {
+                return existing;
+            }
+            for (FlowNodeAction a : Util.filter(v.actions(), FlowNodeAction.class)) {
+                a.onLoad(v.node);
+            }
+            return v.node;
+        } catch (NoSuchFileException x) {
+            LOGGER.finer("Tried to load FlowNode where file does not exist, for id " + id);
+            return null;
         } catch (CompletionException x) {
             Throwable cause = x.getCause();
             if (cause instanceof NoSuchFileException) {
@@ -203,7 +218,7 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
         return this.deferredWrite == null || this.deferredWrite.isEmpty();
     }
 
-    private Tag load(String id) throws IOException {
+    private Tag readTag(String id) throws IOException {
         XmlFile nodeFile = new XmlFile(XSTREAM, getNodeFile(id));
         Tag v = (Tag) nodeFile.read();
         if (v.node == null) {
@@ -215,6 +230,11 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
             throw (IllegalAccessError) new IllegalAccessError("Failed to set owner").initCause(e);
         }
         v.storeActions();
+        return v;
+    }
+
+    private Tag load(String id) throws IOException {
+        Tag v = readTag(id);
         for (FlowNodeAction a : Util.filter(v.actions(), FlowNodeAction.class)) {
             a.onLoad(v.node);
         }
