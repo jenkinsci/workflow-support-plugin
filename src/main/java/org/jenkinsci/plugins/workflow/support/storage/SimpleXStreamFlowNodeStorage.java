@@ -25,7 +25,6 @@
 package org.jenkinsci.plugins.workflow.support.storage;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
@@ -58,6 +57,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.logging.Logger;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -74,6 +75,15 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
     private final com.github.benmanes.caffeine.cache.Cache<String, FlowNode> nodeCache = Caffeine.newBuilder()
             .softValues()
             .build();
+
+    private final ConcurrentHashMap<String, InFlightLoad> inFlightLoads = new ConcurrentHashMap<>();
+
+    private static final class InFlightLoad {
+        final Thread owner = Thread.currentThread();
+        final CountDownLatch latch = new CountDownLatch(1);
+        volatile FlowNode node;
+        volatile boolean succeeded;
+    }
 
     private static final Logger LOGGER = Logger.getLogger(SimpleXStreamFlowNodeStorage.class.getName());
 
@@ -95,31 +105,73 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
                 return maybeOutput;
             }
         }
-        FlowNode cached = nodeCache.getIfPresent(id);
-        if (cached != null) {
-            return cached;
-        }
-        try {
-            Tag v = readTag(id);
-            FlowNode existing = nodeCache.asMap().putIfAbsent(id, v.node);
+        while (true) {
+            FlowNode cached = nodeCache.getIfPresent(id);
+            if (cached != null) {
+                return cached;
+            }
+            InFlightLoad current = inFlightLoads.get(id);
+            if (current != null && current.owner == Thread.currentThread()) {
+                return current.node;
+            }
+            InFlightLoad myLoad = new InFlightLoad();
+            InFlightLoad existing = inFlightLoads.putIfAbsent(id, myLoad);
             if (existing != null) {
-                return existing;
+                if (existing.owner == Thread.currentThread()) {
+                    return existing.node;
+                }
+                boolean interrupted = false;
+                try {
+                    while (true) {
+                        try {
+                            existing.latch.await();
+                            break;
+                        } catch (InterruptedException ie) {
+                            interrupted = true;
+                        }
+                    }
+                } finally {
+                    if (interrupted) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+                if (existing.succeeded) {
+                    return existing.node;
+                }
+                continue;
             }
-            for (FlowNodeAction a : Util.filter(v.actions(), FlowNodeAction.class)) {
-                a.onLoad(v.node);
-            }
-            return v.node;
-        } catch (NoSuchFileException x) {
-            LOGGER.finer("Tried to load FlowNode where file does not exist, for id " + id);
-            return null;
-        } catch (CompletionException x) {
-            Throwable cause = x.getCause();
-            if (cause instanceof NoSuchFileException) {
-                LOGGER.finer("Tried to load FlowNode where file does not exist, for id "+id);
-                // No file, no node
+            try {
+                FlowNode rechecked = nodeCache.getIfPresent(id);
+                if (rechecked != null) {
+                    myLoad.node = rechecked;
+                    myLoad.succeeded = true;
+                    return rechecked;
+                }
+                Tag v = readTag(id);
+                myLoad.node = v.node;
+                for (FlowNodeAction a : Util.filter(v.actions(), FlowNodeAction.class)) {
+                    a.onLoad(v.node);
+                }
+                nodeCache.put(id, v.node);
+                myLoad.succeeded = true;
+                return v.node;
+            } catch (NoSuchFileException x) {
+                LOGGER.finer("Tried to load FlowNode where file does not exist, for id " + id);
+                myLoad.succeeded = true;
                 return null;
-            } else {
-                throw new IOException(cause);
+            } catch (CompletionException x) {
+                Throwable cause = x.getCause();
+                if (cause instanceof NoSuchFileException) {
+                    LOGGER.finer("Tried to load FlowNode where file does not exist, for id "+id);
+                    // No file, no node
+                    myLoad.succeeded = true;
+                    return null;
+                } else {
+                    throw new IOException(cause);
+                }
+            } finally {
+                inFlightLoads.remove(id, myLoad);
+                myLoad.latch.countDown();
             }
         }
     }

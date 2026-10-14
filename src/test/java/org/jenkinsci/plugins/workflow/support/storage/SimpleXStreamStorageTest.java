@@ -126,6 +126,7 @@ public class SimpleXStreamStorageTest extends AbstractStorageTest {
     public static class ReentrantOnLoadAction extends hudson.model.InvisibleAction implements org.jenkinsci.plugins.workflow.actions.FlowNodeAction, org.jenkinsci.plugins.workflow.actions.PersistentAction {
         private final String targetNodeId;
         private transient FlowNode resolvedTarget;
+        private static volatile boolean failNextLoad;
 
         public ReentrantOnLoadAction(String targetNodeId) {
             this.targetNodeId = targetNodeId;
@@ -133,6 +134,10 @@ public class SimpleXStreamStorageTest extends AbstractStorageTest {
 
         @Override
         public void onLoad(FlowNode parent) {
+            if (failNextLoad) {
+                failNextLoad = false;
+                throw new IllegalStateException("Simulated transient onLoad failure");
+            }
             try {
                 this.resolvedTarget = parent.getExecution().getNode(targetNodeId);
             } catch (Exception x) {
@@ -158,6 +163,9 @@ public class SimpleXStreamStorageTest extends AbstractStorageTest {
         MockFlowExecution mockAfterRead = new MockFlowExecution();
         FlowNodeStorage storageAfterRead = instantiateStorage(mockAfterRead, storageDir);
         mockAfterRead.setStorage(storageAfterRead);
+
+        ReentrantOnLoadAction.failNextLoad = true;
+        Assert.assertThrows(IllegalStateException.class, () -> storageAfterRead.getNode("nodeB"));
 
         FlowNode loadedB = storageAfterRead.getNode("nodeB");
         Assert.assertNotNull(loadedB);
