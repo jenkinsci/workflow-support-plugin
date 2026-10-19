@@ -78,6 +78,11 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
 
     private final ConcurrentHashMap<String, InFlightLoad> inFlightLoads = new ConcurrentHashMap<>();
 
+    /** Loads awaited by each thread, guarded by this map's monitor. */
+    private final Map<Thread, InFlightLoad> waitingLoads = new HashMap<>();
+
+    private final ThreadLocal<InFlightLoad> loadingNode = new ThreadLocal<>();
+
     private static final class InFlightLoad {
         final Thread owner = Thread.currentThread();
         final CountDownLatch latch = new CountDownLatch(1);
@@ -112,13 +117,24 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
             }
             InFlightLoad current = inFlightLoads.get(id);
             if (current != null && current.owner == Thread.currentThread()) {
-                return current.node;
+                return reentrantNode(id, current);
             }
             InFlightLoad myLoad = new InFlightLoad();
             InFlightLoad existing = inFlightLoads.putIfAbsent(id, myLoad);
             if (existing != null) {
                 if (existing.owner == Thread.currentThread()) {
-                    return existing.node;
+                    return reentrantNode(id, existing);
+                }
+                Thread waitingThread = Thread.currentThread();
+                synchronized (waitingLoads) {
+                    for (InFlightLoad pending = existing;
+                            pending != null && pending.latch.getCount() != 0;
+                            pending = waitingLoads.get(pending.owner)) {
+                        if (pending.owner == waitingThread) {
+                            throw new IOException("Cyclic FlowNode action initialization while loading " + id);
+                        }
+                    }
+                    waitingLoads.put(waitingThread, existing);
                 }
                 boolean interrupted = false;
                 try {
@@ -131,6 +147,9 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
                         }
                     }
                 } finally {
+                    synchronized (waitingLoads) {
+                        waitingLoads.remove(waitingThread);
+                    }
                     if (interrupted) {
                         Thread.currentThread().interrupt();
                     }
@@ -140,6 +159,8 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
                 }
                 continue;
             }
+            InFlightLoad previousLoad = loadingNode.get();
+            loadingNode.set(myLoad);
             try {
                 FlowNode rechecked = nodeCache.getIfPresent(id);
                 if (rechecked != null) {
@@ -170,10 +191,24 @@ public class SimpleXStreamFlowNodeStorage extends FlowNodeStorage {
                     throw new IOException(cause);
                 }
             } finally {
-                inFlightLoads.remove(id, myLoad);
-                myLoad.latch.countDown();
+                synchronized (waitingLoads) {
+                    inFlightLoads.remove(id, myLoad);
+                    myLoad.latch.countDown();
+                }
+                if (previousLoad == null) {
+                    loadingNode.remove();
+                } else {
+                    loadingNode.set(previousLoad);
+                }
             }
         }
+    }
+
+    private FlowNode reentrantNode(String id, InFlightLoad load) throws IOException {
+        if (load != loadingNode.get()) {
+            throw new IOException("Cyclic FlowNode action initialization while loading " + id);
+        }
+        return load.node;
     }
 
     @Override
