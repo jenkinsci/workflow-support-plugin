@@ -31,23 +31,26 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.IntStream;
 import jenkins.util.Timer;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.Rule;
-import org.jvnet.hudson.test.LoggerRule;
+import static org.junit.jupiter.api.Assertions.fail;
 
-public class TimeoutTest {
+import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.LogRecorder;
 
-    @Rule public LoggerRule logging = new LoggerRule().record(Timeout.class, Level.FINER);
-    
-    @Test public void passed() throws Exception {
+class TimeoutTest {
+
+    @SuppressWarnings("unused")
+    private final LogRecorder logging = new LogRecorder().record(Timeout.class, Level.FINER);
+
+    @Test
+    void passed() throws Exception {
         try (Timeout timeout = Timeout.limit(5, TimeUnit.SECONDS)) {
             Thread.sleep(1_000);
         }
         Thread.sleep(5_000);
     }
 
-    @Test public void failed() throws Exception {
+    @Test
+    void failed() throws Exception {
         try (Timeout timeout = Timeout.limit(5, TimeUnit.SECONDS)) {
             Thread.sleep(10_000);
             fail("should have timed out");
@@ -57,7 +60,8 @@ public class TimeoutTest {
         Thread.sleep(1_000);
     }
 
-    @Test public void hung() throws Exception {
+    @Test
+    void hung() throws Exception {
         /* see disabled code in Timeout:
         final AtomicBoolean stop = new AtomicBoolean();
         Thread t = Thread.currentThread();
@@ -88,7 +92,8 @@ public class TimeoutTest {
         */
     }
 
-    @Test public void starvation() throws Exception {
+    @Test
+    void starvation() throws Exception {
         Map<Integer, Future<?>> hangers = new TreeMap<>();
         IntStream.range(0, 15).forEachOrdered(i -> hangers.put(i, Timer.get().submit(() -> {
             try (Timeout timeout = Timeout.limit(5, TimeUnit.SECONDS)) {
@@ -105,5 +110,4 @@ public class TimeoutTest {
             System.err.println("joined #" + hanger.getKey());
         }
     }
-
 }

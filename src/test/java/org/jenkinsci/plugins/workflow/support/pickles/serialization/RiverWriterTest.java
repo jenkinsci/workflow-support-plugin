@@ -33,22 +33,26 @@ import java.util.Collections;
 import java.util.logging.Level;
 import static org.hamcrest.Matchers.containsString;
 import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
-import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.LoggerRule;
+import org.jvnet.hudson.test.LogRecorder;
 
-public class RiverWriterTest {
+class RiverWriterTest {
 
-    @Rule public TemporaryFolder tmp = new TemporaryFolder();
-    @Rule public LoggerRule logging = new LoggerRule().recordPackage(RiverWriter.class, Level.FINE);
+    @SuppressWarnings("unused")
+    private final LogRecorder logging = new LogRecorder().recordPackage(RiverWriter.class, Level.FINE);
 
-    @Test public void trivial() throws Exception {
-        File f = tmp.newFile();
+    @TempDir
+    private File tmp;
+
+    @Test
+    void trivial() throws Exception {
+        File f = File.createTempFile("junit", null, tmp);
         FlowExecutionOwner owner = FlowExecutionOwner.dummyOwner();
         try (RiverWriter w = new RiverWriter(f, owner, Collections.emptySet())) {
             w.writeObject(Collections.singletonList("hello world"));
@@ -61,8 +65,9 @@ public class RiverWriterTest {
     }
 
     @Issue("JENKINS-26137")
-    @Test public void errors() throws Exception {
-        File f = tmp.newFile();
+    @Test
+    void errors() throws Exception {
+        File f = File.createTempFile("junit", null, tmp);
         FlowExecutionOwner owner = FlowExecutionOwner.dummyOwner();
         try (RiverWriter w = new RiverWriter(f, owner, Collections.emptySet())) {
             w.writeObject(Collections.singletonList(new NotActuallySerializable()));
@@ -82,9 +87,10 @@ public class RiverWriterTest {
             assertThat(Functions.printThrowable(x), containsString(NotActuallySerializable.class.getName() + ".bad"));
         }
     }
+
     private static class NotActuallySerializable implements Serializable {
-        String good = "OK";
-        Object bad = new Object();
+        private String good = "OK";
+        private Object bad = new Object();
     }
 
     // TODO pickle resolution
