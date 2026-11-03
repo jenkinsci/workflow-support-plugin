@@ -9,12 +9,11 @@ import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.jenkinsci.plugins.workflow.steps.StepExecutions;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
-import org.jvnet.hudson.test.JenkinsSessionRule;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import hudson.model.TaskListener;
@@ -23,23 +22,24 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 
-public class SynchronousResumeNotSupportedExceptionTest {
+class SynchronousResumeNotSupportedExceptionTest {
 
-    @ClassRule
-    public static BuildWatcher bw = new BuildWatcher();
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
 
-    @Rule
-    public JenkinsSessionRule rjr = new JenkinsSessionRule();
+    @RegisterExtension
+    private final JenkinsSessionExtension sessions = new JenkinsSessionExtension();
 
     @Test
-    public void test_SynchronousResumeNotSupportedException_ShouldShowFailedStep_AndSuggestRetry() throws Throwable {
-        rjr.then(j -> {
+    void test_SynchronousResumeNotSupportedException_ShouldShowFailedStep_AndSuggestRetry() throws Throwable {
+        sessions.then(j -> {
             WorkflowJob p = j.createProject(WorkflowJob.class, "p");
             p.setDefinition(new CpsFlowDefinition("simulatedSleep 20", true));
             var run = p.scheduleBuild2(0).waitForStart();
             j.waitForMessage("Going to sleep for", run);
         });
-        rjr.then(j -> {
+        sessions.then(j -> {
             var b = j.jenkins.getItemByFullName("p", WorkflowJob.class).getBuildByNumber(1);
             j.waitForCompletion(b);
             assertThat(b.getLog(), allOf(

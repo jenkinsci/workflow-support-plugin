@@ -41,33 +41,54 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.jenkinsci.plugins.workflow.test.steps.SemaphoreStep;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.Rule;
-import org.jvnet.hudson.test.BuildWatcher;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockFolder;
-import org.jvnet.hudson.test.JenkinsSessionRule;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
+import org.jvnet.hudson.test.junit.jupiter.JenkinsSessionExtension;
 
 @Issue("JENKINS-26834")
-public class RunWrapperTest {
+class RunWrapperTest {
 
-    @ClassRule public static BuildWatcher buildWatcher = new BuildWatcher();
-    @Rule public JenkinsSessionRule sessions = new JenkinsSessionRule();
-    @Rule public GitSampleRepoRule sampleRepo1 = new GitSampleRepoRule();
-    @Rule public GitSampleRepoRule sampleRepo2 = new GitSampleRepoRule();
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
 
-    @Test public void historyAndPickling() throws Throwable {
+    @RegisterExtension
+    private final JenkinsSessionExtension sessions = new JenkinsSessionExtension();
+
+    private final GitSampleRepoRule sampleRepo1 = new GitSampleRepoRule();
+    private final GitSampleRepoRule sampleRepo2 = new GitSampleRepoRule();
+
+    @BeforeEach
+    void beforeEach() throws Throwable {
+        sampleRepo1.before();
+        sampleRepo2.before();
+    }
+
+    @AfterEach
+    void afterEach() {
+        sampleRepo1.after();
+        sampleRepo2.after();
+    }
+
+    @Test
+    void historyAndPickling() throws Throwable {
         sessions.then(j -> {
                 WorkflowJob p = j.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition(
-                    "def b0 = currentBuild\n" +
-                    "for (b = b0; b != null; b = b.previousBuild) {\n" +
-                    "  semaphore 'basics'\n" +
-                    "  echo \"number=${b.number} result=${b.result}\"\n" +
-                    "}", true));
+                        """
+                                def b0 = currentBuild
+                                for (b = b0; b != null; b = b.previousBuild) {
+                                  semaphore 'basics'
+                                  echo "number=${b.number} result=${b.result}"
+                                }""", true));
                 SemaphoreStep.success("basics/1", null);
                 WorkflowRun b1 = j.buildAndAssertSuccess(p);
                 j.assertLogContains("number=1 result=null", b1);
@@ -86,14 +107,16 @@ public class RunWrapperTest {
         });
     }
 
-    @Test public void updateSelf() throws Throwable {
+    @Test
+    void updateSelf() throws Throwable {
         sessions.then(j -> {
                 WorkflowJob p = j.createProject(WorkflowJob.class, "p");
                 p.setDefinition(new CpsFlowDefinition(
-                    "currentBuild.result = 'UNSTABLE'\n" +
-                    "currentBuild.description = 'manipulated'\n" +
-                    "currentBuild.displayName = 'special'\n" +
-                    "def pb = currentBuild.previousBuild; if (pb != null) {pb.displayName = 'verboten'}", true));
+                        """
+                                currentBuild.result = 'UNSTABLE'
+                                currentBuild.description = 'manipulated'
+                                currentBuild.displayName = 'special'
+                                def pb = currentBuild.previousBuild; if (pb != null) {pb.displayName = 'verboten'}""", true));
                 WorkflowRun b1 = j.buildAndAssertStatus(Result.UNSTABLE, p);
                 assertEquals("manipulated", b1.getDescription());
                 assertEquals("special", b1.getDisplayName());
@@ -105,8 +128,8 @@ public class RunWrapperTest {
         });
     }
 
-    @Issue("JENKINS-30412")
-    @Test public void getChangeSets() throws Throwable {
+    @Issue("JENKINS-30412") @Test
+    void getChangeSets() throws Throwable {
         sessions.then(j -> {
                 sampleRepo1.init();
                 sampleRepo2.init();
@@ -146,15 +169,17 @@ public class RunWrapperTest {
         });
     }
 
-    @Issue("JENKINS-37366")
-    @Test public void projectInfoFromCurrentBuild() throws Throwable {
+    @Issue("JENKINS-37366") @Test
+    void projectInfoFromCurrentBuild() throws Throwable {
         sessions.then(j -> {
                 MockFolder folder = j.createFolder("this-folder");
                 WorkflowJob p = folder.createProject(WorkflowJob.class, "this-job");
                 p.setDefinition(new CpsFlowDefinition(
-                        "echo \"currentBuild.fullDisplayName='${currentBuild.fullDisplayName}'\"\n" +
-                        "echo \"currentBuild.projectName='${currentBuild.projectName}'\"\n" +
-                        "echo \"currentBuild.fullProjectName='${currentBuild.fullProjectName}'\"\n", true));
+                        """
+                                echo "currentBuild.fullDisplayName='${currentBuild.fullDisplayName}'"
+                                echo "currentBuild.projectName='${currentBuild.projectName}'"
+                                echo "currentBuild.fullProjectName='${currentBuild.fullProjectName}'"
+                                """, true));
                 WorkflowRun b = j.buildAndAssertSuccess(p);
                 { // TODO mojibake until https://github.com/jenkinsci/workflow-job-plugin/pull/89 is released and can be consumed as a test dependency; expect this-folder » this-job #1
                     j.assertLogContains("currentBuild.fullDisplayName='this-folder", b);
@@ -165,13 +190,15 @@ public class RunWrapperTest {
         });
     }
 
-    @Issue("JENKINS-42952")
-    @Test public void duration() throws Throwable {
+    @Issue("JENKINS-42952") @Test
+    void duration() throws Throwable {
         sessions.then(j -> {
                 WorkflowJob p = j.createProject(WorkflowJob.class, "this-job");
                 p.setDefinition(new CpsFlowDefinition(
-                        "echo \"currentBuild.duration='${currentBuild.duration}'\"\n" +
-                                "echo \"currentBuild.durationString='${currentBuild.durationString}'\"\n", true));
+                        """
+                                echo "currentBuild.duration='${currentBuild.duration}'"
+                                echo "currentBuild.durationString='${currentBuild.durationString}'"
+                                """, true));
                 WorkflowRun b = j.buildAndAssertSuccess(p);
                 j.assertLogNotContains("currentBuild.duration='0'", b);
                 j.assertLogNotContains("currentBuild.durationString='" + Messages.Run_NotStartedYet() + "'", b);
@@ -179,45 +206,47 @@ public class RunWrapperTest {
     }
 
 
-    @Issue("JENKINS-37366")
-    @Test public void getCurrentResult() throws Throwable {
+    @Issue("JENKINS-37366") @Test
+    void getCurrentResult() throws Throwable {
         sessions.then(j -> {
                 MockFolder folder = j.createFolder("this-folder");
                 WorkflowJob p = folder.createProject(WorkflowJob.class, "current-result-job");
                 p.setDefinition(new CpsFlowDefinition(
-                        "echo \"initial currentBuild.currentResult='${currentBuild.currentResult}'\"\n" +
-                        "currentBuild.result = 'UNSTABLE'\n" +
-                        "echo \"final currentBuild.currentResult='${currentBuild.currentResult}'\"\n" +
-                        "echo \"resultIsBetterOrEqualTo FAILURE: ${currentBuild.resultIsBetterOrEqualTo('FAILURE')}\"\n" +
-                        "echo \"resultIsWorseOrEqualTo SUCCESS: ${currentBuild.resultIsWorseOrEqualTo('SUCCESS')}\"\n",
+                        """
+                                echo "initial currentBuild.currentResult='${currentBuild.currentResult}'"
+                                currentBuild.result = 'UNSTABLE'
+                                echo "final currentBuild.currentResult='${currentBuild.currentResult}'"
+                                echo "resultIsBetterOrEqualTo FAILURE: ${currentBuild.resultIsBetterOrEqualTo('FAILURE')}"
+                                echo "resultIsWorseOrEqualTo SUCCESS: ${currentBuild.resultIsWorseOrEqualTo('SUCCESS')}"
+                                """,
                         true));
                 WorkflowRun b = j.buildAndAssertStatus(Result.UNSTABLE, p);
-                j.assertLogContains("initial currentBuild.currentResult='" + Result.SUCCESS.toString() + "'", b);
-                j.assertLogContains("final currentBuild.currentResult='" + Result.UNSTABLE.toString() + "'", b);
+                j.assertLogContains("initial currentBuild.currentResult='" + Result.SUCCESS + "'", b);
+                j.assertLogContains("final currentBuild.currentResult='" + Result.UNSTABLE + "'", b);
                 j.assertLogContains("resultIsBetterOrEqualTo FAILURE: true", b);
                 j.assertLogContains("resultIsWorseOrEqualTo SUCCESS: true", b);
         });
     }
 
-    @Issue("JENKINS-36528")
-    @Test public void freestyleEnvVars() throws Throwable {
+    @Issue("JENKINS-36528") @Test
+    void freestyleEnvVars() throws Throwable {
         sessions.then(j -> {
                 WorkflowJob p = j.createProject(WorkflowJob.class, "pipeline-job");
                 FreeStyleProject f = j.createProject(FreeStyleProject.class, "freestyle-job");
                 f.addProperty(new ParametersDefinitionProperty(new StringParameterDefinition("param", "default")));
                 p.setDefinition(new CpsFlowDefinition(
-                        "def b = build(job: 'freestyle-job', parameters: [string(name: 'param', value: 'something')])\n" +
-                                "echo \"b.buildVariables.BUILD_TAG='${b.buildVariables.BUILD_TAG}'\"\n" +
-                                "echo \"b.buildVariables.param='${b.buildVariables.param}'\"\n", true));
+                        """
+                                def b = build(job: 'freestyle-job', parameters: [string(name: 'param', value: 'something')])
+                                echo "b.buildVariables.BUILD_TAG='${b.buildVariables.BUILD_TAG}'"
+                                echo "b.buildVariables.param='${b.buildVariables.param}'"
+                                """, true));
                 WorkflowRun b = j.buildAndAssertSuccess(p);
                 j.assertLogContains("b.buildVariables.BUILD_TAG='jenkins-freestyle-job-1'", b);
                 j.assertLogContains("b.buildVariables.param='something'", b);
         });
     }
 
-    @Test
-    @Issue("JENKINS-54227")
-    public void buildCauseTest() throws Throwable {
+    @Test @Issue("JENKINS-54227") void buildCauseTest() throws Throwable {
         sessions.then(j -> {
             WorkflowJob job = j.createProject(WorkflowJob.class, "test");
             // test with a single build cause
@@ -270,18 +299,19 @@ public class RunWrapperTest {
 
     }
 
-    @Issue("JENKINS-31576")
-    @Test
-    public void upstreamBuilds() throws Throwable {
+    @Issue("JENKINS-31576") @Test
+    void upstreamBuilds() throws Throwable {
         sessions.then(j -> {
                 WorkflowJob first = j.createProject(WorkflowJob.class, "first-job");
                 WorkflowJob second = j.createProject(WorkflowJob.class, "second-job");
                 WorkflowJob third = j.createProject(WorkflowJob.class, "third-job");
                 first.setDefinition(new CpsFlowDefinition("build job: 'second-job'\n", true));
                 second.setDefinition(new CpsFlowDefinition("build job: 'third-job'\n", true));
-                third.setDefinition(new CpsFlowDefinition("currentBuild.upstreamBuilds?.each { b ->\n" +
-                        "  echo \"b: ${b.getFullDisplayName()}\"\n" +
-                        "}\n", true));
+                third.setDefinition(new CpsFlowDefinition("""
+                        currentBuild.upstreamBuilds?.each { b ->
+                          echo "b: ${b.getFullDisplayName()}"
+                        }
+                        """, true));
 
                 WorkflowRun firstRun = j.buildAndAssertSuccess(first);
                 WorkflowRun secondRun = second.getBuildByNumber(1);
@@ -294,9 +324,7 @@ public class RunWrapperTest {
         });
     }
 
-    @Test
-    @Issue("JENKINS-73421")
-    public void externalizableId() throws Throwable {
+    @Test @Issue("JENKINS-73421") void externalizableId() throws Throwable {
         sessions.then(j -> {
             WorkflowJob first = j.createProject(WorkflowJob.class, "first-job");
             first.setDefinition(new CpsFlowDefinition("echo(/externalizableId=$currentBuild.externalizableId/)", true));
