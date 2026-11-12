@@ -26,17 +26,19 @@ package org.jenkinsci.plugins.workflow.support.actions;
 import org.jenkinsci.plugins.workflow.flow.FlowExecution;
 import org.jenkinsci.plugins.workflow.graph.FlowNode;
 import org.jenkinsci.plugins.workflow.support.actions.PauseAction;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.mockito.Mockito;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
-public class PauseActionTest {
+class PauseActionTest {
 
     @Test
-    public void test() throws Exception {
+    void test() throws Exception {
         FlowExecution flowExecution = Mockito.mock(FlowExecution.class);
         FlowNode flowNode = new FlowNode(flowExecution, "1") {
             @Override
@@ -45,35 +47,35 @@ public class PauseActionTest {
             }
         };
 
-        Assert.assertFalse(PauseAction.isPaused(flowNode));
-        Assert.assertEquals(0L, PauseAction.getPauseDuration(flowNode));
+        assertFalse(PauseAction.isPaused(flowNode));
+        assertEquals(0L, PauseAction.getPauseDuration(flowNode));
 
         flowNode.addAction(new PauseAction("P1"));
         PauseAction firstPause = PauseAction.getCurrentPause(flowNode);
-        Assert.assertEquals("P1", firstPause.getCause());
-        Assert.assertTrue(PauseAction.isPaused(flowNode));
+        assertEquals("P1", firstPause.getCause());
+        assertTrue(PauseAction.isPaused(flowNode));
         Thread.sleep(200);
-        Assert.assertTrue(PauseAction.getPauseDuration(flowNode) > 100L);
+        assertTrue(PauseAction.getPauseDuration(flowNode) > 100L);
 
         PauseAction.endCurrentPause(flowNode);
-        Assert.assertFalse(PauseAction.isPaused(flowNode));
+        assertFalse(PauseAction.isPaused(flowNode));
         long firstPauseDuration = firstPause.getPauseDuration();
 
         Thread.sleep(200);
-        Assert.assertEquals(firstPauseDuration, PauseAction.getPauseDuration(flowNode));
+        assertEquals(firstPauseDuration, PauseAction.getPauseDuration(flowNode));
 
         flowNode.addAction(new PauseAction("P2"));
         PauseAction secondPause = PauseAction.getCurrentPause(flowNode);
-        Assert.assertEquals("P2", secondPause.getCause());
-        Assert.assertTrue(PauseAction.isPaused(flowNode));
+        assertEquals("P2", secondPause.getCause());
+        assertTrue(PauseAction.isPaused(flowNode));
         Thread.sleep(200);
-        Assert.assertTrue(PauseAction.getPauseDuration(flowNode) > firstPauseDuration);
+        assertTrue(PauseAction.getPauseDuration(flowNode) > firstPauseDuration);
 
         PauseAction.endCurrentPause(flowNode);
-        Assert.assertFalse(PauseAction.isPaused(flowNode));
+        assertFalse(PauseAction.isPaused(flowNode));
         long secondPauseDuration = secondPause.getPauseDuration();
 
         Thread.sleep(200);
-        Assert.assertEquals((firstPauseDuration + secondPauseDuration), PauseAction.getPauseDuration(flowNode));
+        assertEquals((firstPauseDuration + secondPauseDuration), PauseAction.getPauseDuration(flowNode));
     }
 }

@@ -25,6 +25,7 @@ import java.util.List;
     List<FlowNode> heads = new ArrayList<>();
     transient FlowNodeStorage storage;
 
+    @SuppressWarnings("unused")
     MockFlowExecution(@NonNull FlowNodeStorage storage) {
         this.storage = storage;
     }
