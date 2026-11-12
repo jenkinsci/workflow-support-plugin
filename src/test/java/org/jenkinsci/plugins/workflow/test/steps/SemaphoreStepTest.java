@@ -33,7 +33,7 @@ class SemaphoreStepTest {
         SemaphoreStep.waitForStart("wait/1", b);
 
         b.doKill();
-        j.waitForMessage("Hard kill!", b);
+        j.waitForMessage("Forcibly killing entire build", b);
         j.assertBuildStatus(Result.ABORTED, j.waitForCompletion(b));
     }
 }
