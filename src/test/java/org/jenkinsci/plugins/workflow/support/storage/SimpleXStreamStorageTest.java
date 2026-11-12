@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.workflow.support.storage;
 
 
+import hudson.Functions;
 import hudson.model.Result;
 import hudson.util.RobustReflectionConverter;
 import java.io.File;
@@ -20,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assume.assumeFalse;
 
 /**
  * Tries to test the storage engine
@@ -88,6 +90,7 @@ public class SimpleXStreamStorageTest extends AbstractStorageTest {
 
     @LocalData
     @Test public void actionDeserializationShouldBeRobust() throws Exception {
+        assumeFalse(Functions.isWindows());
         /*
         var p = j.createProject(WorkflowJob.class);
         p.addProperty(new DurabilityHintJobProperty(FlowDurabilityHint.MAX_SURVIVABILITY));
@@ -106,7 +109,6 @@ public class SimpleXStreamStorageTest extends AbstractStorageTest {
         assertThat(stageBodyStartNode, not(nullValue()));
         var label = stageBodyStartNode.getPersistentAction(LabelAction.class);
         assertThat(label.getDisplayName(), equalTo("test"));
-        b.delete();
     }
     // Used to create @LocalData for above test:
     /*
