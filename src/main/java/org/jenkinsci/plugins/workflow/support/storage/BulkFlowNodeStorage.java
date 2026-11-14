@@ -24,6 +24,9 @@
 
 package org.jenkinsci.plugins.workflow.support.storage;
 
+import com.thoughtworks.xstream.io.HierarchicalStreamDriver;
+import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
+import com.thoughtworks.xstream.io.xml.StandardStaxDriver;
 import hudson.Util;
 import hudson.model.Action;
 import hudson.util.IOUtils;
@@ -40,17 +43,20 @@ import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.Writer;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLOutputFactory;
 
 /**
  * {@link FlowNodeStorage} implementation that stores all the {@link FlowNode}s together in one file for efficient bulk I/O
@@ -251,7 +257,40 @@ public class BulkFlowNodeStorage extends FlowNodeStorage {
         XSTREAM.getClass();
     }
 
-    public static final XStream2 XSTREAM = new XStream2();
+    public static final XStream2 XSTREAM = new XStream2(new ManyEntitiesStaxDriver());
+
+    // adapted from XStream2.StaxDriver
+    private static class ManyEntitiesStaxDriver extends StandardStaxDriver {
+
+        private final HierarchicalStreamDriver writeDelegate = XStream2.getDefaultDriver();
+
+        @Override
+        public HierarchicalStreamWriter createWriter(Writer out) {
+            // PrettyPrintWriter not accessible outside core
+            return writeDelegate.createWriter(out);
+        }
+
+        @Override
+        public HierarchicalStreamWriter createWriter(OutputStream out) {
+            return writeDelegate.createWriter(out);
+        }
+
+        @Override
+        protected XMLInputFactory createInputFactory() {
+            var instance = XMLInputFactory.newDefaultFactory();
+            instance.setProperty(XMLInputFactory.IS_NAMESPACE_AWARE, false);
+            instance.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
+            // Revert Java 24+ limits:
+            instance.setProperty("jdk.xml.maxGeneralEntitySizeLimit", "0"); // not 100000
+            instance.setProperty("jdk.xml.totalEntitySizeLimit", "50000000"); // not 100000
+            return instance;
+        }
+
+        @Override
+        protected XMLOutputFactory createOutputFactory() {
+            return XMLOutputFactory.newInstance();
+        }
+    }
 
     private static final Field FlowNode$exec;
     private static final Method FlowNode_setActions;
