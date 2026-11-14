@@ -18,13 +18,14 @@ import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.jenkinsci.plugins.workflow.steps.SynchronousStepExecution;
 import org.jenkinsci.plugins.workflow.support.steps.input.POSTHyperlinkNote;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.htmlunit.HttpMethod;
 import org.htmlunit.MockWebConnection;
@@ -42,38 +43,43 @@ import hudson.model.TaskListener;
 import hudson.model.queue.QueueTaskFuture;
 import jenkins.model.Jenkins;
 
-public class POSTHyperlinkNoteTest {
+@WithJenkins
+class POSTHyperlinkNoteTest {
 
-    @Rule
-    public JenkinsRule jr = new JenkinsRule();
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     @Test
     @Issue("SECURITY-2881")
-    public void urlsAreSafeFromJavascriptInjection() throws Exception {
+    void urlsAreSafeFromJavascriptInjection() throws Exception {
         testSanitization("whatever/'+alert(1)+'");
     }
 
     @Test
-    @Ignore("webclient does not support unicode URLS and this is passed as /jenkins/whatever/%F0%9F%99%88%F0%9F%99%89%F0%9F%99%8A%F0%9F%98%80%E2%98%BA")
-    public void testPassingMultiByteCharacters() throws Exception {
+    @Disabled("webclient does not support unicode URLS and this is passed as /jenkins/whatever/%F0%9F%99%88%F0%9F%99%89%F0%9F%99%8A%F0%9F%98%80%E2%98%BA")
+    void testPassingMultiByteCharacters() throws Exception {
         // this is actually illegal in HTML4 but common -> https://www.w3.org/TR/html40/appendix/notes.html#non-ascii-chars
         // browsers infer the URL from the charset and then encode the escaped characters...
         testSanitization("whatever/🙈🙉🙊😀☺");
     }
 
     @Test
-    public void testPassingSingleByte() throws Exception {
+    void testPassingSingleByte() throws Exception {
         testSanitization("whatever/something?withparameter=baa");
     }
 
     void testSanitization(String fragment) throws Exception {
-        WorkflowJob project = jr.createProject(WorkflowJob.class);
+        WorkflowJob project = r.createProject(WorkflowJob.class);
         project.setDefinition(new CpsFlowDefinition("security2881(params.TEST_URL)\n", true));
         project.addProperty(new ParametersDefinitionProperty(new StringParameterDefinition("TEST_URL", "WHOOPS")));
 
         QueueTaskFuture<WorkflowRun> scheduleBuild = project.scheduleBuild2(0, new ParametersAction(new StringParameterValue("TEST_URL", fragment)));
-        WorkflowRun run = jr.assertBuildStatus(Result.SUCCESS, scheduleBuild);
-        WebClient wc = jr.createWebClient();
+        WorkflowRun run = r.assertBuildStatus(Result.SUCCESS, scheduleBuild);
+        WebClient wc = r.createWebClient();
 
         HtmlPage page = wc.getPage(run, "console");
         HtmlAnchor anchor = page.getAnchorByText("SECURITY-2881");
@@ -95,10 +101,11 @@ public class POSTHyperlinkNoteTest {
         assertThat(request.getHttpMethod(), is(HttpMethod.POST));
         URL url = request.getUrl();
         System.out.println(url.toExternalForm());
-        assertThat(url, allOf(hasProperty("host", is(new URL(jr.jenkins.getConfiguredRootUrl()).getHost())),
-                              hasProperty("file", is(jr.contextPath + '/' + fragment))));
+        assertThat(url, allOf(hasProperty("host", is(new URL(r.jenkins.getConfiguredRootUrl()).getHost())),
+                              hasProperty("file", is(r.contextPath + '/' + fragment))));
     }
 
+    @SuppressWarnings("unused")
     public static class Security2881ConsoleStep extends Step {
 
         private final String urlFragment;
@@ -116,20 +123,24 @@ public class POSTHyperlinkNoteTest {
         @TestExtension 
         public static final class DescriptorImpl extends StepDescriptor {
 
-            @Override public String getFunctionName() {
+            @Override
+            public String getFunctionName() {
                 return "security2881";
             }
 
             @NonNull
-            @Override public String getDisplayName() {
+            @Override
+            public String getDisplayName() {
                 return "Security2881";
             }
 
-            @Override public Set<? extends Class<?>> getRequiredContext() {
+            @Override
+            public Set<? extends Class<?>> getRequiredContext() {
                 return Collections.singleton(TaskListener.class);
             }
 
-            @Override public String argumentsToString(@NonNull Map<String, Object> namedArgs) {
+            @Override
+            public String argumentsToString(@NonNull Map<String, Object> namedArgs) {
                 return null;
             }
         }
